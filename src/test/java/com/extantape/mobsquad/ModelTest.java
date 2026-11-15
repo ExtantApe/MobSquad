@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.extantape.mobsquad.model.Critter;
 import com.extantape.mobsquad.model.Critterbook;
+import com.extantape.mobsquad.model.Sidekicks;
 import com.extantape.mobsquad.model.Growth;
 import com.extantape.mobsquad.model.Levels;
 import com.extantape.mobsquad.model.Species;
@@ -49,7 +50,7 @@ class ModelTest {
         UUID p = UUID.randomUUID();
         Wrangler w = new Wrangler(p);
         w.wranglinXp = 150;
-        w.critters.add(new Critter(UUID.randomUUID(), Species.CHICKEN, "Clucky McCluckface", 3, 42, 0));
+        w.critters.add(new Critter(UUID.randomUUID(), Species.CHICKEN, "Clucky McCluckface", 3, 42, 0, 77));
         w.critters.add(Critter.fresh(Species.IRON_GOLEM).tuckered(123456789L));
         store.save(w);
         Store.Loaded back = store.load(p);
@@ -159,5 +160,71 @@ class ModelTest {
         Store.Loaded l = new Store(dir).load(p);
         assertEquals(0, l.skipped());
         assertEquals(java.util.Set.of(Species.BEE), l.wrangler().pages);
+    }
+
+    private static Critter withMinutes(Species s, long minutes) {
+        Critter c = Critter.fresh(s);
+        return new Critter(c.id(), s, c.name(), 1, 0, 0, minutes);
+    }
+
+    @Test
+    void aSidekickNeedsTenHoursOutTogether() {
+        Wrangler w = new Wrangler(UUID.randomUUID());
+        Critter young = withMinutes(Species.FOX, Sidekicks.MINUTES - 1);
+        w.critters.add(young);
+        assertNull(Sidekicks.roll(w, java.util.List.of(young.id()), 100, () -> 0.0));
+        assertEquals(0, w.sidekickRoll, "a day with nobody eligible doesn't use the roll up");
+    }
+
+    @Test
+    void theRollIsSmallAndOnceADay() {
+        Wrangler w = new Wrangler(UUID.randomUUID());
+        Critter old = withMinutes(Species.FOX, Sidekicks.MINUTES);
+        w.critters.add(old);
+        assertNull(Sidekicks.roll(w, java.util.List.of(old.id()), 100, () -> Sidekicks.CHANCE));
+        assertEquals(100, w.sidekickRoll);
+        assertNull(Sidekicks.roll(w, java.util.List.of(old.id()), 100, () -> 0.0), "already rolled today");
+        assertEquals(old, Sidekicks.roll(w, java.util.List.of(old.id()), 101, () -> 0.0));
+        assertEquals(old.id(), w.sidekick);
+    }
+
+    @Test
+    void oneSidekickAndOnlyFromCrittersOut() {
+        Wrangler w = new Wrangler(UUID.randomUUID());
+        Critter home = withMinutes(Species.BEE, 5000), out = withMinutes(Species.FOX, 700);
+        w.critters.add(home);
+        w.critters.add(out);
+        assertEquals(out, Sidekicks.roll(w, java.util.List.of(out.id()), 5, () -> 0.0));
+        assertNull(Sidekicks.roll(w, java.util.List.of(home.id(), out.id()), 6, () -> 0.0), "one per player");
+    }
+
+    @Test
+    void sidekickAndMinutesRoundTrip(@TempDir Path dir) throws Exception {
+        Store store = new Store(dir);
+        UUID p = UUID.randomUUID();
+        Wrangler w = new Wrangler(p);
+        Critter c = withMinutes(Species.SKELETON, 612);
+        w.critters.add(c);
+        w.sidekick = c.id();
+        w.sidekickRoll = 20407;
+        store.save(w);
+        Wrangler back = store.load(p).wrangler();
+        assertEquals(612, back.critters.getFirst().minutes());
+        assertEquals(c.id(), back.sidekick);
+        assertEquals(20407, back.sidekickRoll);
+    }
+
+    @Test
+    void aSidekickNotInTheListIsDropped(@TempDir Path dir) throws Exception {
+        UUID p = UUID.randomUUID();
+        Files.writeString(dir.resolve(p + ".txt"), "wranglin 0\nsidekick " + UUID.randomUUID() + "\n");
+        assertNull(new Store(dir).load(p).wrangler().sidekick);
+    }
+
+    @Test
+    void minutesOutAddUpAndEarnExperience() {
+        Critter c = Critter.fresh(Species.FOX).minuteOut(2).minuteOut(2);
+        assertEquals(2, c.minutes());
+        assertEquals(4, c.xp());
     }
 }

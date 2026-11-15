@@ -100,7 +100,7 @@ public final class BunkhouseMenu implements Listener {
         h.slots.clear();
         long now = System.currentTimeMillis();
         int level = squads.wranglinLevel(p);
-        int out = squads.posse().of(p.getUniqueId()).size();
+        int out = squads.posse().counted(p.getUniqueId());
         for (int i = 0; i < Math.min(CRITTER_SLOTS, w.critters.size()); i++) {
             Critter c = w.critters.get(i);
             h.slots.add(c.id());
@@ -132,9 +132,10 @@ public final class BunkhouseMenu implements Listener {
         return it;
     }
 
-    private static ItemStack icon(Critter c, boolean out, long now) {
+    private ItemStack icon(Critter c, boolean out, long now) {
         Material egg = Material.matchMaterial(c.species().entity + "_SPAWN_EGG");
         List<Component> lore = new ArrayList<>();
+        if (squads.posse().isSidekick(c.id())) lore.add(line("Your sidekick", NamedTextColor.GOLD));
         lore.add(line(c.species().title() + ", level " + c.level(), NamedTextColor.GRAY));
         if (c.level() < com.extantape.mobsquad.model.Growth.MAX)
             lore.add(line(String.format(java.util.Locale.US, "%,d experience to level %d", com.extantape.mobsquad.model.Growth.xpFor(c.level() + 1) - c.xp(), c.level() + 1), NamedTextColor.DARK_GRAY));
@@ -171,8 +172,7 @@ public final class BunkhouseMenu implements Listener {
             return;
         }
         if (slot == CALL_BACK_SLOT) {
-            int n = squads.posse().of(p.getUniqueId()).size();
-            squads.posse().backAll(p.getUniqueId());
+            int n = squads.posse().recall(p.getUniqueId()); // a sidekick stays
             p.sendMessage(Component.text(n == 0 ? "Nobody's out with you." : "Everyone's back in the Bunkhouse.", NamedTextColor.GREEN));
         } else if (slot < h.slots.size()) {
             Critter c = w.find(h.slots.get(slot));
@@ -182,6 +182,10 @@ public final class BunkhouseMenu implements Listener {
     }
 
     private void toggle(Player p, Critter c) {
+        if (squads.posse().isOut(c.id()) && squads.posse().isSidekick(c.id())) {
+            p.sendMessage(Component.text(c.name() + " won't leave your side. A sidekick only uses the Bunkhouse to travel through a gate.", NamedTextColor.YELLOW));
+            return;
+        }
         if (squads.posse().isOut(c.id())) {
             squads.posse().back(c.id());
             p.sendMessage(Component.text(c.name() + " is back in the Bunkhouse.", NamedTextColor.GREEN));
@@ -205,7 +209,7 @@ public final class BunkhouseMenu implements Listener {
         if (!Levels.unlocked(c.species().tier, level))
             return c.name() + " is a " + c.species().tier.title + " critter. It can go out from Wranglin' level " + c.species().tier.level + ".";
         int max = Levels.posse(level);
-        if (squads.posse().of(p.getUniqueId()).size() >= max)
+        if (squads.posse().counted(p.getUniqueId()) >= max)
             return "You can have " + max + (max == 1 ? " critter" : " critters") + " out at once at Wranglin' level " + level + ". Call one back first.";
         return null;
     }

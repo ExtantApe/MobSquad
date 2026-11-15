@@ -35,6 +35,7 @@ public final class Posse implements Runnable {
     private boolean catchingUp;
     private final Fights fights = new Fights(this);
     private Specials specials;
+    private java.util.function.Predicate<UUID> sidekick = id -> false;
 
     /** A critter out with its owner: which one, whose, and the mob standing in for it. */
     public record Out(UUID owner, Critter critter, Mob mob) {}
@@ -66,6 +67,29 @@ public final class Posse implements Runnable {
 
     public Fights fights() {
         return fights;
+    }
+
+    /** Tells the posse which critters are sidekicks: they don't count toward the posse and don't answer a recall. */
+    public void sidekicks(java.util.function.Predicate<UUID> isSidekick) {
+        this.sidekick = isSidekick;
+    }
+
+    public boolean isSidekick(UUID critter) {
+        return sidekick.test(critter);
+    }
+
+    /** The critters out with a player that count toward their posse: everyone but a sidekick. */
+    public int counted(UUID owner) {
+        int n = 0;
+        for (Out o : of(owner)) if (!sidekick.test(o.critter().id())) n++;
+        return n;
+    }
+
+    /** Calls a player's critters home, all but a sidekick. Returns how many went. */
+    public int recall(UUID owner) {
+        int n = 0;
+        for (Out o : of(owner)) if (!sidekick.test(o.critter().id())) { back(o.critter().id()); n++; }
+        return n;
     }
 
     public void specials(Specials specials) {

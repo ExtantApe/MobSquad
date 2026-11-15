@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.0
+
+The sidekick and the later parts of four specials.
+
+- **The sidekick.** A critter with 10 hours out with you has a 1 in 10 chance each day of becoming your sidekick, rolled once a day while it's out. It comes out on its own when you join, change worlds or it's rested, doesn't count toward your posse, and stays when you click it in the Bunkhouse menu, use the menu's bell or ring the dinnerbell. One per player. Admins can set or clear it with `/mobsquad sidekick <player> <critter|none>`.
+- **Time together** is counted per critter and saved as an eighth field on its line in the player's file; older files read as 0.
+- **From level 25:** the chicken lays speedy eggs, the bee's sting makes hostile mobs glow, the fox pounces for a double first hit, and the skeleton shares arrows when you carry a bow or crossbow. Each gets stronger at the later milestones; see the README.
+- Not yet: travelling with your sidekick through a gate (that waits for the Waystation hook) and the small model of your sidekick above the Bunkhouse.
+
 ## 0.4.0
 
 La Ménagerie and the Critterbook.
