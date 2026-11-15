@@ -1,5 +1,6 @@
 package com.extantape.mobsquad.world;
 
+import com.extantape.mobsquad.model.Growth;
 import com.extantape.mobsquad.model.Species;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,6 +32,7 @@ public final class Fights {
     private final Posse posse;
     private final Map<UUID, LivingEntity> targets = new HashMap<>();
     private final Map<UUID, Long> lastHit = new HashMap<>();
+    private final Map<UUID, Long> lastBlast = new HashMap<>();
     static final long PROVOKED_MS = 30_000;
     private final Map<UUID, Long> provoked = new HashMap<>();
     private final Map<UUID, UUID> provokedOwner = new HashMap<>();
@@ -83,6 +85,7 @@ public final class Fights {
             boolean started = startedIt(e, owner);
             if (!started && (neutral(e) || e.customName() != null)) continue;
             double d = e.getLocation().distanceSquared(o.mob().getLocation()) - (started ? 1000 : 0);
+            if (o.critter().species() == Species.AXOLOTL && (e instanceof org.bukkit.entity.Drowned || e instanceof org.bukkit.entity.Guardian)) d -= 500; // its favorites
             if (d < bestD) { bestD = d; best = (LivingEntity) e; }
         }
         return best;
@@ -103,6 +106,9 @@ public final class Fights {
         }
         m.setTarget(null);
         if (s.attack <= 0) return shoot(o, t); // the skeleton
+        int level = o.critter().level(), stage = Growth.stage(level);
+        double power = s.attack * Growth.attack(level);
+        if (s == Species.CREEPER && m.getLocation().distance(t.getLocation()) <= 3 && blast(o, t, power, stage)) return true;
         double reach = 1.6 + (m.getWidth() + t.getWidth()) / 2;
         if (m.getLocation().distance(t.getLocation()) > reach) {
             m.getPathfinder().moveTo(t, 1.3);
@@ -112,7 +118,12 @@ public final class Fights {
                 lastHit.put(id, now);
                 m.lookAt(t);
                 m.swingMainHand();
-                t.damage(s.attack, DamageSource.builder(DamageType.MOB_ATTACK).withCausingEntity(m).withDirectEntity(m).build());
+                t.damage(power, DamageSource.builder(DamageType.MOB_ATTACK).withCausingEntity(m).withDirectEntity(m).build());
+                if (s == Species.IRON_GOLEM && t.isValid()) { // throws it back
+                    org.bukkit.util.Vector away = t.getLocation().toVector().subtract(m.getLocation().toVector()).setY(0);
+                    if (away.lengthSquared() > 0) away.normalize();
+                    t.setVelocity(away.multiply(0.6 + 0.15 * stage).setY(0.45));
+                }
             }
         }
         return true;
@@ -122,20 +133,59 @@ public final class Fights {
     private boolean shoot(Posse.Out o, LivingEntity t) {
         Mob m = o.mob();
         double d = m.getLocation().distance(t.getLocation());
-        if (d > RANGE || !m.hasLineOfSight(t)) {
+        int level = o.critter().level(), stage = Growth.stage(level);
+        if (d > range(stage) || !m.hasLineOfSight(t)) {
             m.getPathfinder().moveTo(t, 1.2);
             return true;
         }
         m.getPathfinder().stopPathfinding();
         m.lookAt(t);
         long now = System.currentTimeMillis();
-        if (now - lastHit.getOrDefault(o.critter().id(), 0L) < SHOT_MS) return true;
+        if (now - lastHit.getOrDefault(o.critter().id(), 0L) < shotMs(stage)) return true;
         lastHit.put(o.critter().id(), now);
         org.bukkit.util.Vector aim = t.getLocation().add(0, t.getHeight() * 0.6, 0).toVector().subtract(m.getEyeLocation().toVector());
         aim.setY(aim.getY() + aim.length() * 0.08); // a little arc
         org.bukkit.entity.Arrow a = m.launchProjectile(org.bukkit.entity.Arrow.class, aim.normalize().multiply(1.8));
         a.setPickupStatus(org.bukkit.entity.AbstractArrow.PickupStatus.DISALLOWED);
-        a.setDamage(ARROW_DAMAGE);
+        a.setDamage(ARROW_DAMAGE * Growth.attack(level));
+        return true;
+    }
+
+    /** The skeleton's covering fire: 15 blocks and a shot every 1.5 s, 3 blocks more and 0.2 s quicker per milestone. */
+    static double range(int stage) {
+        return RANGE + 3 * stage;
+    }
+
+    static long shotMs(int stage) {
+        return SHOT_MS - 200L * stage;
+    }
+
+    /** The creeper's blast radius: 3 blocks, half a block more per milestone. */
+    static double blastRadius(int stage) {
+        return 3 + 0.5 * stage;
+    }
+
+    /**
+     * The creeper's blast: hurts the hostile mobs it may fight within {@link #blastRadius}, breaks nothing, and never goes
+     * off with a player within the radius plus three blocks. Every few seconds; a plain hit in between.
+     */
+    private boolean blast(Posse.Out o, LivingEntity t, double power, int stage) {
+        Mob m = o.mob();
+        double r = blastRadius(stage);
+        org.bukkit.Location at = m.getLocation();
+        if (!at.getNearbyPlayers(r + 3).isEmpty()) return false;
+        long now = System.currentTimeMillis();
+        if (now - lastBlast.getOrDefault(o.critter().id(), 0L) < 6000 - 750L * stage) return false;
+        lastBlast.put(o.critter().id(), now);
+        at.getWorld().spawnParticle(org.bukkit.Particle.EXPLOSION, at.clone().add(0, 1, 0), 1);
+        at.getWorld().playSound(at, org.bukkit.Sound.ENTITY_GENERIC_EXPLODE, 0.7f, 1.3f);
+        DamageSource src = DamageSource.builder(DamageType.MOB_ATTACK).withCausingEntity(m).withDirectEntity(m).build();
+        for (Entity e : m.getNearbyEntities(r, r, r)) {
+            if (!(e instanceof LivingEntity l) || !mayTarget(m, e) || e.getLocation().distance(at) > r) continue;
+            l.damage(power * 2, src);
+            org.bukkit.util.Vector away = e.getLocation().toVector().subtract(at.toVector()).setY(0);
+            if (away.lengthSquared() > 0) l.setVelocity(away.normalize().multiply(0.8).setY(0.4));
+        }
         return true;
     }
 
@@ -153,5 +203,6 @@ public final class Fights {
     void forget(UUID critter) {
         targets.remove(critter);
         lastHit.remove(critter);
+        lastBlast.remove(critter);
     }
 }

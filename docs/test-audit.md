@@ -2,6 +2,14 @@
 
 Kept by this repo's owning session, per `~/Code/CLAUDE.md`, "Test self-audits". Newest first.
 
+## 2026-11-15: 0.3.0
+
+- Promises added: README "Levels" and "Specials", the Safety line on the two block-touching specials, CHANGELOG 0.3.0, the new decisions entries.
+- Covered by unit tests (ModelTest): the level curve both ways for every level 1 to 100, the cap at 100, stat growth at the ends and slowing near the top, milestone stages, experience setting the level, every species has a special.
+- Covered by bots (133 checks on 26.1.2 and 26.2; the specials section needs the Bunkhouse menu, so it's skipped on 26.3): the admin level command and the saved level and experience; a level 50 chicken's health and full health on going out; slow falling with the chicken; water breathing and regeneration near the axolotl, and it plays dead and heals when badly hurt; the bee grows wheat with random ticks off; the fox fetches a dropped item and leaves another player's alone; the allay finds iron ore and says when there's no diamond ore; the enderman fetches a pumpkin, refuses stone and refuses a block in someone else's GriefPrevention claim; the creeper's blast hurts two hostile mobs at once, spares a cow and breaks nothing, and with a player close by it only hits one at a time; beating a husk levels a golem up and saves it; the golem takes a quarter of a mob's hit on its owner.
+- Gaps skipped: the skeleton's range and fire rate at milestones and the golem's throw (same fight code as covered shots and hits; the numbers are plain functions); the enderman's teleport to you (a scheduled teleport through the same path as catching up, which is covered); walking experience (a once-a-minute timer; the experience path is covered by the golem's kill); milestone messages (covered by the level-up message path).
+- Gaps for later: the later parts of four specials when they land.
+
 ## 2026-11-15: 0.2.0
 
 - Promises added: README "Coaxing", "Fighting" and "Vittles", CHANGELOG 0.2.0.

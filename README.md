@@ -2,17 +2,28 @@
 
 Coax mobs into critters for Paper: they follow you, fight only hostile mobs, and live safely in a shared Bunkhouse. No client mods. Gotta coax em all... Pokemob!
 
-**Status:** 0.2.0. Every launch critter can be coaxed, critters fight hostile mobs only, and vittles revive them. Passed with bots on throwaway Paper 26.1.2 and 26.2 servers (111 checks each). On 26.3 the bots can't use blocks, so only the commands and the coaxing puzzles ran there (52 checks). Bots can't crouch where the server sees it, so the creeper and fox puzzles were tested with a test-only stand-in for crouching; real crouching is untested. Nothing has been seen in a real game client yet.
+**Status:** 0.3.0. Critters level up from 1 to 100 and every launch critter has its special. Passed with bots on throwaway Paper 26.1.2 and 26.2 servers (133 checks each). On 26.3 the bots can't use blocks, so only the commands and the coaxing puzzles ran there (52 checks). Bots can't crouch where the server sees it, so the creeper and fox puzzles were tested with a test-only stand-in for crouching; real crouching is untested. The skeleton's longer range and the enderman's teleport out of trouble have no bot test yet. Nothing has been seen in a real game client yet.
 
 ## What it does
 
 - **Coaxing.** Each kind of mob has its own small puzzle, and you need its tier first. The chicken: walk it 10 blocks on a trail of seeds without running. The creeper: gunpowder starts a standoff; crouch while it swells, gunpowder when it calms, three times. The enderman: offer it a block, then stay near it for 20 seconds without looking it in the eye. `/mobsquad hints` lists all nine. Break a puzzle's rule and you start over. A mob being coaxed never turns on you, and after a failed try it leaves you alone for 10 seconds.
 - **Fighting.** Critters fight hostile mobs only: the ones after you or your critters, and other hostile mobs near you that aren't neutral or named. They never hurt players, pets, villagers or farm animals. The skeleton shoots and the allay never fights.
+- **Levels.** Each critter has its own level, 1 to 100. It earns experience for every hostile mob it helps beat (the mob's max health, so 20 for a zombie) and 2 for every minute out with you. Health, attack and speed grow a little each level and slow near the top: at level 100 a critter has four times its health, three times its attack and a fifth more speed. The Bunkhouse menu shows each critter's level, how far it is from the next and its special.
+- **Specials.** Every critter has one, and it grows at levels 25, 50, 75 and 100.
+  - Chicken: you fall slowly while it's out.
+  - Axolotl: water breathing and regeneration while you're within 6 blocks of it. It goes after drowned and guardians first, and plays dead and heals when it's badly hurt.
+  - Bee: crops near it grow faster, one crop a second.
+  - Fox: fetches items you drop or leave behind (drops from blocks you break and mobs you beat), after they've lain 5 seconds. It never touches anyone else's.
+  - Allay: right-click it holding an ore, a raw ore or a gem, and it flies to the nearest matching ore within 8 blocks of you.
+  - Creeper: a blast that hurts only the hostile mobs around its target and breaks nothing. It never goes off with a player within 6 blocks.
+  - Enderman: right-click it, then swing at a block within 8 blocks, and it fetches it for you. Only blocks an enderman can carry, and only where you could dig yourself, so claims say no. When it's badly hurt, it teleports to you.
+  - Skeleton: covering fire from 15 blocks, reaching further and shooting faster at each milestone.
+  - Iron golem: takes a quarter of any hostile mob's hit on you within 8 blocks, and throws the mobs it hits back.
 - **Vittles.** Right-click them to perk up a tuckered-out critter on the spot. Craft two from bread, a carrot and sweet berries.
 - **Bunkhouses.** An admin marks a vault block as a Bunkhouse. Anyone who right-clicks it sees only their own critters. Click one to send it out or call it back. Critters never exist as items, so they can't be dropped, traded or duplicated.
 - **Following.** A critter out with you walks after you and steps beside you if it's left more than 24 blocks behind.
 - **Wranglin'.** Coaxing earns Wranglin' experience. One critter can be out at once, two from level 10 and three from level 25. Mob tiers unlock at levels 1, 10, 25 and 40.
-- **Safety.** A critter never targets or hurts a player, and players can't hurt it. It never changes a block, explodes, burns in the sun or wanders off by teleporting. Out of health, it's tuckered out: it drops nothing and rests in the Bunkhouse for 5 real minutes.
+- **Safety.** A critter never targets or hurts a player, and players can't hurt it. It never changes a block on its own, explodes, burns in the sun or wanders off by teleporting. The two specials that touch blocks go through the server's own checks: the bee's crops grow through the same event as natural growth, and the enderman takes a block only where a block-break check as you passes. Out of health, it's tuckered out: it drops nothing and rests in the Bunkhouse for 5 real minutes.
 - **The dinnerbell.** Ring it and every critter out with you heads home.
 - **Plain files.** One text file per player in `plugins/MobSquad/players`. A critter out in the world is never saved with the world, so after a restart, a crash or the player leaving, it's back in the Bunkhouse exactly once.
 
@@ -34,6 +45,7 @@ Settings are in `plugins/MobSquad/config.yml`: worlds where MobSquad is off, the
 | `/mobsquad give <player> <critter>` | admins | Puts a critter in a player's Bunkhouse. |
 | `/mobsquad vittles <player> [amount]` | admins | Gives vittles. |
 | `/mobsquad xp <player> <amount>` | admins | Sets a player's Wranglin' experience. |
+| `/mobsquad level <player> <critter> <level>` | admins | Sets every critter of that kind a player has to a level. |
 | `/mobsquad reload` | admins | Rereads config.yml. |
 
 `/ms` works too. Permissions: `mobsquad.use` (everyone) and `mobsquad.admin` (ops).

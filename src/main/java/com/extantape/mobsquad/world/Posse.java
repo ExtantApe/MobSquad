@@ -34,6 +34,7 @@ public final class Posse implements Runnable {
     private final Consumer<Out> onGone;
     private boolean catchingUp;
     private final Fights fights = new Fights(this);
+    private Specials specials;
 
     /** A critter out with its owner: which one, whose, and the mob standing in for it. */
     public record Out(UUID owner, Critter critter, Mob mob) {}
@@ -67,6 +68,64 @@ public final class Posse implements Runnable {
         return fights;
     }
 
+    public void specials(Specials specials) {
+        this.specials = specials;
+    }
+
+    public java.util.Collection<Out> all() {
+        return out.values();
+    }
+
+    public Out byId(UUID critter) {
+        return out.get(critter);
+    }
+
+    /** Swaps in a critter's new level and experience, and grows its stats to match. */
+    public void update(Critter c) {
+        Out o = out.get(c.id());
+        if (o == null) return;
+        Out n = new Out(o.owner(), c, o.mob());
+        out.put(c.id(), n);
+        if (c.level() != o.critter().level()) grow(n);
+    }
+
+    /** Moves a critter somewhere on purpose (catching up, an enderman's fetch), letting the safety rules allow it. */
+    public void moveCritter(Entity e, Location to) {
+        catchingUp = true;
+        try {
+            e.teleport(to);
+        } finally {
+            catchingUp = false;
+        }
+    }
+
+    private static final org.bukkit.attribute.Attribute[] GROWN = {
+        org.bukkit.attribute.Attribute.MAX_HEALTH, org.bukkit.attribute.Attribute.MOVEMENT_SPEED, org.bukkit.attribute.Attribute.FLYING_SPEED};
+    /** Each critter's stats as its mob was spawned, before growth. */
+    private final Map<UUID, double[]> bases = new HashMap<>();
+
+    /** Health and speed for a critter's level, from its mob's stats as spawned, keeping how hurt it is. */
+    void grow(Out o) {
+        Mob m = o.mob();
+        double[] base = bases.computeIfAbsent(o.critter().id(), k -> {
+            double[] b = new double[GROWN.length];
+            for (int i = 0; i < GROWN.length; i++) {
+                var inst = m.getAttribute(GROWN[i]);
+                b[i] = inst == null ? -1 : inst.getBaseValue();
+            }
+            return b;
+        });
+        int level = o.critter().level();
+        double was = m.getAttribute(GROWN[0]).getValue(), share = was > 0 ? m.getHealth() / was : 1;
+        for (int i = 0; i < GROWN.length; i++) {
+            var inst = m.getAttribute(GROWN[i]);
+            if (inst == null || base[i] < 0) continue;
+            inst.setBaseValue(base[i] * (i == 0 ? com.extantape.mobsquad.model.Growth.health(level) : com.extantape.mobsquad.model.Growth.speed(level)));
+        }
+        double max = m.getAttribute(GROWN[0]).getValue();
+        m.setHealth(Math.max(0.5, Math.min(max, share * max)));
+    }
+
     public boolean isOut(UUID critter) {
         return out.containsKey(critter);
     }
@@ -94,6 +153,8 @@ public final class Posse implements Runnable {
         });
         Out o = new Out(owner.getUniqueId(), c, (Mob) spawned);
         out.put(c.id(), o);
+        grow(o);
+        o.mob().setHealth(o.mob().getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).getValue());
         return o;
     }
 
@@ -102,6 +163,8 @@ public final class Posse implements Runnable {
         Out o = out.remove(critter);
         if (o == null) return;
         fights.forget(critter);
+        bases.remove(critter);
+        if (specials != null) specials.forget(critter);
         if (o.mob().isValid()) o.mob().remove();
         onGone.accept(o);
     }
@@ -131,15 +194,9 @@ public final class Posse implements Runnable {
                 continue;
             }
             double d = m.getLocation().distance(p.getLocation());
+            if (specials != null && d <= 2 * CATCH_UP && specials.step(o, p)) continue;
             if (d <= Fights.LEASH && fights.step(o, p)) continue;
-            if (d > CATCH_UP) {
-                catchingUp = true;
-                try {
-                    m.teleport(p.getLocation());
-                } finally {
-                    catchingUp = false;
-                }
-            }
+            if (d > CATCH_UP) moveCritter(m, p.getLocation());
             else if (d > CLOSE) m.getPathfinder().moveTo(p.getLocation(), 1.2);
             else m.getPathfinder().stopPathfinding();
             if (m.getTarget() != null && !fights.mayTarget(m, m.getTarget())) m.setTarget(null);

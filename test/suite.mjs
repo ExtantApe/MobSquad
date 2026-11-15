@@ -536,6 +536,165 @@ else if (want('fighting')) {
   await s.ask('gamemode survival Wrangler', 300)
 }
 
+// ---------- levels and specials ----------
+if (!MENU) skip('specials')
+else if (want('specials')) {
+  section('Levels and specials')
+  await s.ask('mobsquad xp Wrangler 40000', 300)
+  await s.ask('gamemode survival Wrangler', 200)
+  await s.ask('clear Wrangler', 200)
+  await s.ask('effect clear Wrangler', 200)
+  await s.ask('gamemode creative Neighbor', 200)
+  await stand(other, 'Neighbor', X - 20, Z + 20)
+  for (const g of ['randomTickSpeed 0', 'random_tick_speed 0']) await s.ask('gamerule ' + g, 150) // only the bee grows crops here
+  for (const k of ['chicken', 'axolotl', 'bee', 'fox', 'allay', 'creeper', 'enderman', 'iron_golem']) await s.ask(`mobsquad give Wrangler ${k}`, 250)
+  const slotOf = k => critterLines('Wrangler').map(l => l.split(' ')[2] === k).lastIndexOf(true)
+  const lineOf = k => critterLines('Wrangler')[slotOf(k)] || ''
+  const effects = async sel => (await s.ask(`data get entity ${sel} active_effects`, 400)).join(' ')
+  const attr = async (sel, a) => { const m = (await s.ask(`attribute ${sel} minecraft:${a} get`, 400)).join(' ').match(/is ([\d.]+)/); return m ? +m[1] : null }
+  async function sendOnly(kind) {
+    await stand(me, 'Wrangler', X, Z, 0, 20)
+    await openBunkhouse(me, vault); await me.clickWindow(53, 0, 0); await sleep(300)
+    await s.ask('kill @e[type=!player]', 400)
+    await me.clickWindow(slotOf(kind), 0, 0); await sleep(500); await closeMenu(me)
+    await until(async () => await s.count(`@e[type=${kind}]`) === 1, 4000, 250)
+  }
+
+  // levels and stats
+  let out = (await s.ask('mobsquad level Wrangler chicken 50', 400)).join(' ')
+  check('an admin can set a critter\'s level', /set \d+ of Wrangler's chickens? to level 50/.test(out), out)
+  check('the level and its experience are saved', lineOf('chicken').split(' ').slice(3, 5).join(' ') === '50 24010', lineOf('chicken'))
+  await sendOnly('chicken')
+  const hp = await attr('@e[type=chicken,limit=1]', 'max_health')
+  check('a level 50 chicken has about 3.2 times its health', hp !== null && Math.abs(hp - 4 * (1 + 3 * (1 - (50 / 99) ** 2))) < 0.05, hp)
+  check('it comes out at full health', Math.abs((await health('@e[type=chicken,limit=1]')) - hp) < 0.05)
+  await sleep(1500)
+  check('the chicken: you fall slowly while it\'s out', /slow_falling/.test(await effects('Wrangler')))
+
+  // the axolotl
+  await sendOnly('axolotl')
+  await sleep(1500)
+  const ax = await effects('Wrangler')
+  check('the axolotl: water breathing and regeneration near it', /water_breathing/.test(ax) && /regeneration/.test(ax), ax.slice(-200))
+  const axHp = await attr('@e[type=axolotl,limit=1]', 'max_health')
+  await s.ask(`damage @e[type=axolotl,limit=1] ${Math.round(axHp * 0.7)} minecraft:generic`, 600)
+  check('badly hurt, it plays dead and heals', /regeneration/.test(await effects('@e[type=axolotl,limit=1]')))
+
+  // the bee
+  const crops = [[1, 1], [-1, 1], [1, -1], [-1, -1], [2, 0], [-2, 0]]
+  await sendOnly('bee')
+  for (const [dx, dz] of crops) { await s.ask(`setblock ${X + dx} ${Y - 1} ${Z + dz} farmland`, 80); await s.ask(`setblock ${X + dx} ${Y} ${Z + dz} wheat[age=0]`, 80) }
+  const grown = async () => { let n = 0; for (const [dx, dz] of crops) if ((await s.ask(`execute if block ${X + dx} ${Y} ${Z + dz} wheat[age=0]`, 120)).join(' ').includes('failed')) n++; return n }
+  check('the bee: crops near it grow faster', await until(async () => await grown() >= 2, 15000, 1000), `${await grown()} of ${crops.length} grew`)
+  for (const [dx, dz] of crops) { await s.ask(`setblock ${X + dx} ${Y} ${Z + dz} air`, 60); await s.ask(`setblock ${X + dx} ${Y - 1} ${Z + dz} grass_block`, 60) }
+
+  // the fox
+  await sendOnly('fox')
+  await hold(me, 'Wrangler', 'cobblestone', 8)
+  await stand(me, 'Wrangler', X, Z, -90, 0)
+  await me.tossStack(me.inventory.items().find(i => i.name === 'cobblestone'))
+  await sleep(700)
+  await stand(me, 'Wrangler', X - 4, Z, -90, 0)
+  const fetched = await until(() => me.inventory.items().some(i => i.name === 'cobblestone'), 20000, 500)
+  check('the fox: fetches an item you dropped', fetched)
+  await s.ask('gamemode survival Neighbor', 200)
+  await stand(other, 'Neighbor', X + 5, Z + 2)
+  await hold(other, 'Neighbor', 'oak_log', 4)
+  await other.tossStack(other.inventory.items().find(i => i.name === 'oak_log'))
+  await stand(other, 'Neighbor', X - 20, Z + 20)
+  await sleep(9000)
+  check('it leaves other players\' items alone', !me.inventory.items().some(i => i.name === 'oak_log') && await s.count('@e[type=item]') >= 1)
+  await s.ask('kill @e[type=item]', 200)
+
+  // the allay
+  await sendOnly('allay')
+  await s.ask(`setblock ${X + 4} ${Y - 3} ${Z - 2} iron_ore`, 200)
+  await hold(me, 'Wrangler', 'raw_iron', 1)
+  let from = me.chatLog.length
+  await poke(me, entity(me, e => e.name === 'allay'))
+  check('the allay: shown an ore, it finds the nearest one', await waitSaid(me, /found iron ore about \d+ blocks away/, 4000, from), me.chatLog.slice(from).join(' | '))
+  await sleep(3200)
+  await hold(me, 'Wrangler', 'diamond', 1)
+  from = me.chatLog.length
+  await poke(me, entity(me, e => e.name === 'allay'))
+  check('with none close by, it says so', await waitSaid(me, /found no diamond ore close by/, 4000, from), me.chatLog.slice(from).join(' | '))
+  await s.ask(`setblock ${X + 4} ${Y - 3} ${Z - 2} stone`, 200)
+
+  // the enderman
+  await sendOnly('enderman')
+  await s.ask('clear Wrangler', 200)
+  const fetchAt = new Vec3(X + 3, Y, Z)
+  await s.ask(`setblock ${fetchAt.x} ${fetchAt.y} ${fetchAt.z} pumpkin`, 300)
+  async function askFetch() {
+    await poke(me, entity(me, e => e.name === 'enderman')); await sleep(500)
+    await me.lookAt(fetchAt.offset(0.5, 0.5, 0.5), true); await sleep(300)
+    me.swingArm(); await sleep(2000)
+  }
+  await askFetch()
+  check('the enderman: fetches the block you swing at', (await s.ask(`execute if block ${fetchAt.x} ${fetchAt.y} ${fetchAt.z} air`, 200)).join(' ').includes('passed')
+    && await until(() => me.inventory.items().some(i => i.name === 'pumpkin'), 3000))
+  await s.ask(`setblock ${fetchAt.x} ${fetchAt.y} ${fetchAt.z} stone`, 300)
+  from = me.chatLog.length
+  await askFetch()
+  check('it won\'t carry a block an enderman can\'t', (await s.ask(`execute if block ${fetchAt.x} ${fetchAt.y} ${fetchAt.z} stone`, 200)).join(' ').includes('passed'))
+  // on someone else's claim, it won't dig
+  await stand(other, 'Neighbor', X + 40, Z - 40)
+  await hold(other, 'Neighbor', 'golden_shovel', 1)
+  await s.ask('acb Neighbor 400', 300)
+  let nfrom = other.chatLog.length
+  other.chat('/claim 5')
+  const made = await waitSaid(other, /[Cc]laim created|created/, 5000, nfrom)
+  await stand(other, 'Neighbor', X - 20, Z + 20)
+  const claimed = new Vec3(X + 37, Y, Z - 40)
+  await s.ask(`setblock ${claimed.x} ${claimed.y} ${claimed.z} pumpkin`, 300)
+  await stand(me, 'Wrangler', X + 33, Z - 40, -90, 0)
+  await sleep(1500)
+  await poke(me, entity(me, e => e.name === 'enderman')); await sleep(500)
+  await me.lookAt(claimed.offset(0.5, 0.5, 0.5), true); await sleep(300)
+  me.swingArm(); await sleep(2000)
+  if (made) check('it won\'t take a block from someone else\'s claim', (await s.ask(`execute if block ${claimed.x} ${claimed.y} ${claimed.z} pumpkin`, 200)).join(' ').includes('passed'))
+  else console.log('  (skipped the claim check: GriefPrevention made no claim)')
+  await s.ask(`setblock ${claimed.x} ${claimed.y} ${claimed.z} air`, 200)
+
+  // the creeper
+  await sendOnly('creeper')
+  await s.ask(`summon cow ${X + 6} ${Y} ${Z - 11}`, 200)
+  await s.ask(`summon husk ${X + 3} ${Y} ${Z - 9.5} {Tags:["foe","a"],PersistenceRequired:1b,NoAI:1b}`, 200)
+  await s.ask(`summon husk ${X + 4.5} ${Y} ${Z - 9.5} {Tags:["foe","b"],PersistenceRequired:1b,NoAI:1b}`, 600)
+  const both = await until(async () => (await health('@e[tag=a,limit=1]') ?? 0) < 20 && (await health('@e[tag=b,limit=1]') ?? 0) < 20, 20000, 400)
+  check('the creeper: one blast hurts the hostile mobs around its target', both, `${await health('@e[tag=a,limit=1]')} / ${await health('@e[tag=b,limit=1]')}`)
+  check('it leaves the cow alone', (await health('@e[type=cow,limit=1]')) === 10)
+  check('it breaks no blocks', (await s.ask(`execute if block ${X + 3} ${Y - 1} ${Z - 10} grass_block`, 200)).join(' ').includes('passed'))
+  await s.ask('kill @e[type=husk]', 300)
+  await s.ask(`tp Neighbor ${X + 4} ${Y} ${Z - 11}`, 300)
+  await s.ask(`summon husk ${X + 3} ${Y} ${Z - 9.5} {Tags:["foe","a"],PersistenceRequired:1b,NoAI:1b}`, 200)
+  await s.ask(`summon husk ${X + 4.5} ${Y} ${Z - 9.5} {Tags:["foe","b"],PersistenceRequired:1b,NoAI:1b}`, 300)
+  let firstHurt = null
+  await until(async () => { const a = await health('@e[tag=a,limit=1]'), b = await health('@e[tag=b,limit=1]'); if (a < 20 || b < 20) { firstHurt = [a, b]; return true } return false }, 15000, 250)
+  check('with a player close by it never blasts, only hits one at a time', firstHurt && firstHurt.some(h => h === 20), firstHurt)
+  await s.ask(`tp Neighbor ${X - 20} ${Y} ${Z + 20}`, 300)
+
+  // the iron golem: experience, levels and its guard
+  await sendOnly('iron_golem')
+  await s.ask(`summon husk ${X + 3} ${Y} ${Z - 3} {Tags:["foe"],PersistenceRequired:1b,NoAI:1b}`, 600)
+  from = me.chatLog.length
+  await until(async () => await s.count('@e[type=husk,tag=foe]') === 0, 20000, 500)
+  check('beating a hostile mob earns a critter experience and a level', await waitSaid(me, /Iron golem is now level 2/, 4000, from), me.chatLog.slice(from).join(' | '))
+  check('the new level is saved', /^critter \S+ iron_golem 2 20 /.test(lineOf('iron_golem')), lineOf('iron_golem'))
+  await s.ask(`summon zombie ${X} ${Y} ${Z + 14} {Tags:["hitter"],PersistenceRequired:1b,NoAI:1b}`, 400)
+  await s.ask('effect clear Wrangler', 200)
+  await s.ask('effect give Wrangler minecraft:instant_health 1 5', 600)
+  const golemBefore = await health('@e[type=iron_golem,limit=1]')
+  await s.ask('damage Wrangler 4 minecraft:mob_attack by @e[tag=hitter,limit=1]', 600)
+  const meAfter = await health('Wrangler'), golemAfter = await health('@e[type=iron_golem,limit=1]')
+  const lost = 20 - meAfter, took = golemBefore - golemAfter
+  // easy difficulty makes a 4-point mob hit 3; the golem takes a quarter of it. Natural regen can blur the player's own number.
+  check('the iron golem takes a quarter of a hit meant for you', lost > 0 && lost <= 2.26 && Math.abs(took - 0.75) < 0.01, `you lost ${lost}, golem took ${took}`)
+  await openBunkhouse(me, vault); await me.clickWindow(53, 0, 0); await sleep(300); await closeMenu(me)
+  await s.ask('kill @e[type=!player]', 400)
+  for (const g of ['randomTickSpeed 3', 'random_tick_speed 3']) await s.ask('gamerule ' + g, 150)
+}
+
 // ---------- vittles ----------
 if (!MENU) skip('vittles')
 else if (want('vittles')) {
