@@ -1,0 +1,25 @@
+package com.extantape.mobsquad.model;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+/** One player's MobSquad: their own Wranglin' experience and the critters in their Bunkhouse. */
+public final class Wrangler {
+    public final UUID player;
+    public long wranglinXp;
+    public final List<Critter> critters = new ArrayList<>();
+
+    public Wrangler(UUID player) {
+        this.player = player;
+    }
+
+    public Critter find(UUID id) {
+        for (Critter c : critters) if (c.id().equals(id)) return c;
+        return null;
+    }
+
+    public void replace(Critter c) {
+        for (int i = 0; i < critters.size(); i++) if (critters.get(i).id().equals(c.id())) critters.set(i, c);
+    }
+}
