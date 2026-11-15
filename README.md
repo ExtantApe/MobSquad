@@ -2,7 +2,7 @@
 
 Coax mobs into critters for Paper: they follow you, fight only hostile mobs, and live safely in a shared Bunkhouse. No client mods. Gotta coax em all... Pokemob!
 
-**Status:** 0.2.0. Every launch critter can be coaxed, critters fight hostile mobs only, and vittles revive them. Passed with bots on throwaway Paper 26.1.2 and 26.2 servers (111 checks each). On 26.3 the bots can't use blocks, so only the commands and the coaxing puzzles ran there (52 checks). Bots can't crouch where the server sees it, so the creeper and fox puzzles were tested with a test-only stand-in for crouching; real crouching is untested. Nothing has been seen in a real game client yet. Six of the nine puzzles and the vittles recipe are proposals waiting for the owner's say.
+**Status:** 0.2.0. Every launch critter can be coaxed, critters fight hostile mobs only, and vittles revive them. Passed with bots on throwaway Paper 26.1.2 and 26.2 servers (111 checks each). On 26.3 the bots can't use blocks, so only the commands and the coaxing puzzles ran there (52 checks). Bots can't crouch where the server sees it, so the creeper and fox puzzles were tested with a test-only stand-in for crouching; real crouching is untested. Nothing has been seen in a real game client yet.
 
 ## What it does
 
