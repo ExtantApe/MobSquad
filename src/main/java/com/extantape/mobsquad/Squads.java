@@ -23,6 +23,7 @@ public final class Squads {
     private final Map<UUID, Wrangler> online = new HashMap<>();
     private Posse posse;
     private Settings settings;
+    private java.util.function.BiConsumer<Player, com.extantape.mobsquad.model.Species> pageOpener;
 
     public Squads(Store store, Logger log, Settings settings) {
         this.store = store;
@@ -88,11 +89,17 @@ public final class Squads {
         if (after > before) p.sendMessage(Component.text("Your Wranglin' is now level " + after + ".", NamedTextColor.GOLD));
     }
 
+    /** Called when a player gets a critter whose La Ménagerie page they haven't opened. */
+    public void pageOpener(java.util.function.BiConsumer<Player, com.extantape.mobsquad.model.Species> opener) {
+        this.pageOpener = opener;
+    }
+
     public void add(Player p, Critter c) {
         Wrangler w = get(p);
         if (w == null) return;
         w.critters.add(c);
         save(w);
+        if (!w.pages.contains(c.species()) && pageOpener != null) pageOpener.accept(p, c.species());
     }
 
     /** Experience for a critter that's out; tells its owner when it levels up or passes a milestone. */

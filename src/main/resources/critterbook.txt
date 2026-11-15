@@ -1,0 +1,92 @@
+# The Critterbook: every mob in Minecraft Java Edition, numbered in the order each first appeared in Java Edition,
+# from the history sections of the Minecraft Wiki (checked 2026-11-15). Mobs added in the same version are numbered
+# in the order of their first snapshot, then alphabetically. Numbers never change; new mobs get the next numbers.
+# Format: number, the mob's entity id, and after # the Java version it first appeared in.
+1 creeper # Classic 0.24_SURVIVAL_TEST
+2 pig # Classic 0.24_SURVIVAL_TEST
+3 skeleton # Classic 0.24_SURVIVAL_TEST
+4 zombie # Classic 0.24_SURVIVAL_TEST
+5 spider # Classic 0.26 SURVIVAL TEST
+6 sheep # Classic 0.28
+7 cow # Alpha v1.0.8
+8 slime # Alpha v1.0.11
+9 chicken # Alpha v1.0.14
+10 ghast # Alpha v1.2.0 preview
+11 zombified_piglin # Alpha v1.2.0 preview
+12 squid # Beta 1.2
+13 wolf # Beta 1.4
+14 cave_spider # Beta 1.8 Pre-release
+15 enderman # Beta 1.8 Pre-release
+16 silverfish # Beta 1.8 Pre-release
+17 blaze # Beta 1.9 Prerelease
+18 magma_cube # Beta 1.9 Prerelease
+19 mooshroom # Beta 1.9 Prerelease
+20 snow_golem # Beta 1.9 Prerelease
+21 villager # Beta 1.9 Prerelease
+22 ender_dragon # Beta 1.9 Prerelease 4
+23 cat # 12w04a
+24 ocelot # 12w04a
+25 iron_golem # 12w08a
+26 zombie_villager # 12w32a
+27 wither # 12w34a
+28 wither_skeleton # 12w36a
+29 bat # 12w38a
+30 witch # 12w38a
+31 donkey # 13w16a
+32 horse # 13w16a
+33 mule # 13w16a
+34 skeleton_horse # 13w16a
+35 zombie_horse # 13w16a
+36 endermite # 14w11a
+37 elder_guardian # 14w25a
+38 guardian # 14w25a
+39 rabbit # 14w27a
+40 shulker # 15w31a
+41 husk # 16w20a
+42 polar_bear # 16w20a
+43 stray # 16w20a
+44 evoker # 16w39a
+45 llama # 16w39a
+46 vex # 16w39a
+47 vindicator # 16w39a
+48 parrot # 17w13a
+49 phantom # 18w07a
+50 turtle # 18w07a
+51 cod # 18w08b
+52 pufferfish # 18w08b
+53 salmon # 18w08b
+54 tropical_fish # 18w10a
+55 drowned # 18w11a
+56 dolphin # 18w15a
+57 panda # 18w43a
+58 pillager # 18w43a
+59 ravager # 18w43a
+60 trader_llama # 19w05a
+61 wandering_trader # 19w05a
+62 fox # 19w07a
+63 bee # 19w34a
+64 hoglin # 20w06a
+65 piglin # 20w07a
+66 strider # 20w13a
+67 zoglin # 20w14a
+68 piglin_brute # 20w27a
+69 axolotl # 20w51a
+70 glow_squid # 21w03a
+71 goat # 21w13a
+72 warden # Deep Dark Experimental Snapshot 1
+73 frog # 22w11a
+74 tadpole # 22w11a
+75 allay # 22w13a
+76 camel # 22w42a
+77 sniffer # 23w07a
+78 breeze # 23w45a
+79 armadillo # 23w51a
+80 bogged # 24w07a
+81 creaking # 24w40a
+82 happy_ghast # 25w15a
+83 copper_golem # 25w31a
+84 nautilus # 25w41a
+85 zombie_nautilus # 25w41a
+86 camel_husk # 25w44a
+87 parched # 25w44a
+88 sulfur_cube # 26.2 snap1

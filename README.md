@@ -2,7 +2,7 @@
 
 Coax mobs into critters for Paper: they follow you, fight only hostile mobs, and live safely in a shared Bunkhouse. No client mods. Gotta coax em all... Pokemob!
 
-**Status:** 0.3.0. Critters level up from 1 to 100 and every launch critter has its special. Passed with bots on throwaway Paper 26.1.2 and 26.2 servers (133 checks each). On 26.3 the bots can't use blocks, so only the commands and the coaxing puzzles ran there (52 checks). Bots can't crouch where the server sees it, so the creeper and fox puzzles were tested with a test-only stand-in for crouching; real crouching is untested. The skeleton's longer range and the enderman's teleport out of trouble have no bot test yet. Nothing has been seen in a real game client yet.
+**Status:** 0.4.0. La Ménagerie, the journal, with Critterbook numbers. Passed with bots on throwaway Paper 26.1.2 and 26.2 servers (147 checks each). On 26.3 the bots can't use blocks, so the Bunkhouse menu and everything sent out from it didn't run there (65 checks ran). Bots can't crouch where the server sees it, so the creeper and fox puzzles were tested with a test-only stand-in for crouching; real crouching is untested. The skeleton's longer range and the enderman's teleport out of trouble have no bot test yet. Nothing has been seen in a real game client yet, including how the journal looks.
 
 ## What it does
 
@@ -19,6 +19,7 @@ Coax mobs into critters for Paper: they follow you, fight only hostile mobs, and
   - Enderman: right-click it, then swing at a block within 8 blocks, and it fetches it for you. Only blocks an enderman can carry, and only where you could dig yourself, so claims say no. When it's badly hurt, it teleports to you.
   - Skeleton: covering fire from 15 blocks, reaching further and shooting faster at each milestone.
   - Iron golem: takes a quarter of any hostile mob's hit on you within 8 blocks, and throws the mobs it hits back.
+- **La Ménagerie.** Your journal, with a page for each critter: its Critterbook number, a line about it, how to coax it and its special. A page opens the first time you're within 10 blocks of that critter and can see it, or when you get one. `/mobsquad journal` or the book in the Bunkhouse menu opens it. Critterbook numbers follow the order each mob first appeared in Minecraft Java Edition, so the creeper is No. 1 and the allay No. 75. Every mob in the game has a number already, and the numbers never change.
 - **Vittles.** Right-click them to perk up a tuckered-out critter on the spot. Craft two from bread, a carrot and sweet berries.
 - **Bunkhouses.** An admin marks a vault block as a Bunkhouse. Anyone who right-clicks it sees only their own critters. Click one to send it out or call it back. Critters never exist as items, so they can't be dropped, traded or duplicated.
 - **Following.** A critter out with you walks after you and steps beside you if it's left more than 24 blocks behind.
@@ -37,9 +38,10 @@ Settings are in `plugins/MobSquad/config.yml`: worlds where MobSquad is off, the
 
 | Command | Who | What it does |
 | --- | --- | --- |
-| `/mobsquad` | everyone | How it works, in three lines. |
+| `/mobsquad` | everyone | How it works, in four lines. |
 | `/mobsquad list` | everyone | Your critters and your Wranglin' level. |
 | `/mobsquad hints` | everyone | How to coax each critter. |
+| `/mobsquad journal` | everyone | Opens La Ménagerie. |
 | `/mobsquad dinnerbell` | everyone | Gives you a dinnerbell. |
 | `/mobsquad bunkhouse add` and `remove` | admins | Marks or unmarks the vault you're looking at. |
 | `/mobsquad give <player> <critter>` | admins | Puts a critter in a player's Bunkhouse. |

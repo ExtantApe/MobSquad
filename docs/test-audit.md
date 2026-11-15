@@ -2,6 +2,14 @@
 
 Kept by this repo's owning session, per `~/Code/CLAUDE.md`, "Test self-audits". Newest first.
 
+## 2026-11-15: 0.4.0
+
+- Promises added: README "La Ménagerie", the journal command, CHANGELOG 0.4.0, the Critterbook decisions.
+- Covered by unit tests (ModelTest): Critterbook numbers run 1 to 88 with no gaps; the nine launch numbers are pinned so they can't change; page lines round-trip; an older file opens pages for critters already in it.
+- Covered by bots (147 checks on 26.1.2 and 26.2, 65 on 26.3; the journal runs on all three): the command opens the journal; a new player's pages are all locked, in Critterbook order; meeting a fox opens and saves its page; a creeper behind a wall and a chicken 25 blocks away aren't met, and the creeper is once the wall goes; getting a critter opens its page; open pages show the critter and locked ones stay hidden; clicking an open page sends a book and a locked one doesn't; nothing can be taken from the journal; the Bunkhouse menu opens it (26.1.2 and 26.2).
+- Gaps skipped: what the book pages say and how they look (bots get the book packet but don't render it; the text is plain data in Journal.java); meeting while MobSquad is off in a world (same settings check as the Bunkhouse, covered).
+- Gaps for later: spirit coats and quest chapters when they land.
+
 ## 2026-11-15: 0.3.0
 
 - Promises added: README "Levels" and "Specials", the Safety line on the two block-touching specials, CHANGELOG 0.3.0, the new decisions entries.
