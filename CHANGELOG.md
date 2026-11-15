@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.0
+
+Levels and specials.
+
+- **Critter levels, 1 to 100.** A critter earns experience for each hostile mob it helps beat (the mob's max health, up to 100) and 2 for each minute out. Level n needs 10 (n - 1)² experience: level 10 at 810, level 50 at 24,010, level 100 at 98,010. You're told when a critter levels up, and again when its special grows.
+- **Stats grow with the level** and slow near the top: health up to four times, attack up to three times, speed up to a fifth more at level 100.
+- **Every launch critter's special**, growing at levels 25, 50, 75 and 100: the chicken's slow falling, the axolotl's water breathing and regeneration (and playing dead), the bee's crop growth, the fox's fetching, the allay's ore finding, the creeper's blast that hurts only hostile mobs, the enderman's block fetching and its teleport out of trouble, the skeleton's longer, faster covering fire, and the iron golem's guard and throw. See the README for the numbers.
+- The Bunkhouse menu shows each critter's experience to the next level and its special.
+- `/mobsquad level <player> <critter> <level>` for admins.
+- Not yet: the brief's later parts of four specials (the chicken's speed eggs, the bee's glowing sting, the fox's pounce, the skeleton sharing arrows).
+
 ## 0.2.0
 
 The rest of the launch puzzles, fighting and vittles.

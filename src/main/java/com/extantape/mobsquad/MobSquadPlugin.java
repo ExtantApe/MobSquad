@@ -12,6 +12,8 @@ import com.extantape.mobsquad.world.Bunkhouses;
 import com.extantape.mobsquad.world.Dinnerbell;
 import com.extantape.mobsquad.world.Posse;
 import com.extantape.mobsquad.world.Safety;
+import com.extantape.mobsquad.world.Specials;
+import com.extantape.mobsquad.model.Growth;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -55,7 +57,10 @@ public final class MobSquadPlugin extends JavaPlugin {
         this.coaxing = coaxing;
         vittles = new Vittles(this, squads);
         vittles.register();
+        Specials specials = new Specials(this, squads);
+        posse.specials(specials);
         var pm = getServer().getPluginManager();
+        pm.registerEvents(specials, this);
         pm.registerEvents(new Safety(squads), this);
         pm.registerEvents(new BunkhouseMenu(squads, bunkhouses), this);
         pm.registerEvents(dinnerbell, this);
@@ -75,6 +80,7 @@ public final class MobSquadPlugin extends JavaPlugin {
         }, this);
         getServer().getScheduler().runTaskTimer(this, posse, Posse.FOLLOW_TICKS, Posse.FOLLOW_TICKS);
         getServer().getScheduler().runTaskTimer(this, coaxing, Coaxing.PERIOD, Coaxing.PERIOD);
+        getServer().getScheduler().runTaskTimer(this, specials, Specials.PERIOD, Specials.PERIOD);
         getServer().getScheduler().runTaskTimer(this, squads::saveAll, 20L * 300, 20L * 300);
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, e -> e.registrar().register(
             Commands.literal("mobsquad")
@@ -99,6 +105,12 @@ public final class MobSquadPlugin extends JavaPlugin {
                 .then(Commands.literal("xp").requires(src -> src.getSender().hasPermission("mobsquad.admin"))
                     .then(Commands.argument("player", ArgumentTypes.player())
                         .then(Commands.argument("amount", IntegerArgumentType.integer(0, 1_000_000)).executes(this::xp))))
+                .then(Commands.literal("level").requires(src -> src.getSender().hasPermission("mobsquad.admin"))
+                    .then(Commands.argument("player", ArgumentTypes.player())
+                        .then(Commands.argument("critter", StringArgumentType.word()).suggests((c, b) -> {
+                            for (Species s : Species.values()) if (s.id().startsWith(b.getRemainingLowerCase())) b.suggest(s.id());
+                            return b.buildFuture();
+                        }).then(Commands.argument("level", IntegerArgumentType.integer(1, Growth.MAX)).executes(this::level)))))
                 .then(Commands.literal("reload").requires(src -> src.getSender().hasPermission("mobsquad.admin")).executes(this::reload))
                 .build(),
             "Your critters, the dinnerbell, and admin tools for Bunkhouses.", List.of("ms")));
@@ -223,6 +235,34 @@ public final class MobSquadPlugin extends JavaPlugin {
         squads.save(w);
         say(c, "[MobSquad] " + p.getName() + " has " + w.wranglinXp + " Wranglin' experience, level " + Levels.level(w.wranglinXp) + ".", NamedTextColor.GREEN);
         return Command.SINGLE_SUCCESS;
+    }
+
+    /** Sets every critter of one kind that a player has to a level, for testing and for fixing mistakes. */
+    private int level(CommandContext<CommandSourceStack> c) throws CommandSyntaxException {
+        Species s = Species.byId(c.getArgument("critter", String.class));
+        if (s == null) {
+            say(c, "No such critter. Press Tab for the list.", NamedTextColor.YELLOW);
+            return 0;
+        }
+        Player p = c.getArgument("player", PlayerSelectorArgumentResolver.class).resolve(c.getSource()).getFirst();
+        Wrangler w = squads.get(p);
+        if (w == null) {
+            say(c, p.getName() + "'s Bunkhouse list can't be read right now; see the server log.", NamedTextColor.RED);
+            return 0;
+        }
+        int level = c.getArgument("level", Integer.class), n = 0;
+        for (Critter cr : List.copyOf(w.critters)) {
+            if (cr.species() != s) continue;
+            Critter set = cr.withXp(Growth.xpFor(level));
+            w.replace(set);
+            squads.posse().update(set);
+            n++;
+        }
+        squads.save(w);
+        String kind = s.title().toLowerCase(Locale.ROOT);
+        say(c, n == 0 ? p.getName() + " has no " + kind + "." : "[MobSquad] set " + n + " of " + p.getName() + "'s " + kind + (n == 1 ? "" : "s") + " to level " + level + ".",
+            n == 0 ? NamedTextColor.YELLOW : NamedTextColor.GREEN);
+        return n == 0 ? 0 : Command.SINGLE_SUCCESS;
     }
 
     private int reload(CommandContext<CommandSourceStack> c) {

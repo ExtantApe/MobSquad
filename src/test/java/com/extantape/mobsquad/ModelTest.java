@@ -3,6 +3,7 @@ package com.extantape.mobsquad;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.extantape.mobsquad.model.Critter;
+import com.extantape.mobsquad.model.Growth;
 import com.extantape.mobsquad.model.Levels;
 import com.extantape.mobsquad.model.Species;
 import com.extantape.mobsquad.model.Tier;
@@ -71,5 +72,49 @@ class ModelTest {
         Store.Loaded back = new Store(dir).load(UUID.randomUUID());
         assertTrue(back.wrangler().critters.isEmpty());
         assertEquals(0, back.wrangler().wranglinXp);
+    }
+
+    @Test
+    void critterLevelsRunOneToAHundred() {
+        assertEquals(1, Growth.level(0));
+        assertEquals(1, Growth.level(9));
+        assertEquals(2, Growth.level(10));
+        assertEquals(10, Growth.level(810));
+        assertEquals(9, Growth.level(809));
+        assertEquals(100, Growth.level(98_010));
+        assertEquals(100, Growth.level(10_000_000));
+        for (int n = 1; n <= 100; n++) assertEquals(n, Growth.level(Growth.xpFor(n)), "level " + n);
+    }
+
+    @Test
+    void statsGrowAndSlowNearTheTop() {
+        assertEquals(1.0, Growth.health(1), 1e-9);
+        assertEquals(4.0, Growth.health(100), 1e-9);
+        assertEquals(3.0, Growth.attack(100), 1e-9);
+        assertEquals(1.2, Growth.speed(100), 1e-9);
+        double early = Growth.fraction(11) - Growth.fraction(1), late = Growth.fraction(100) - Growth.fraction(90);
+        assertTrue(early > 5 * late, "the first ten levels grow much more than the last ten");
+        for (int n = 2; n <= 100; n++) assertTrue(Growth.fraction(n) > Growth.fraction(n - 1));
+    }
+
+    @Test
+    void specialsGrowAtTheMilestones() {
+        assertEquals(0, Growth.stage(24));
+        assertEquals(1, Growth.stage(25));
+        assertEquals(2, Growth.stage(50));
+        assertEquals(3, Growth.stage(75));
+        assertEquals(4, Growth.stage(100));
+    }
+
+    @Test
+    void experienceSetsTheLevel() {
+        Critter c = Critter.fresh(Species.FOX).withXp(Growth.xpFor(30) + 5);
+        assertEquals(30, c.level());
+        assertEquals(Growth.xpFor(30) + 5, c.xp());
+    }
+
+    @Test
+    void everyCritterHasASpecial() {
+        for (Species s : Species.values()) assertFalse(s.special.isBlank(), s.title());
     }
 }

@@ -131,6 +131,9 @@ public final class BunkhouseMenu implements Listener {
         Material egg = Material.matchMaterial(c.species().entity + "_SPAWN_EGG");
         List<Component> lore = new ArrayList<>();
         lore.add(line(c.species().title() + ", level " + c.level(), NamedTextColor.GRAY));
+        if (c.level() < com.extantape.mobsquad.model.Growth.MAX)
+            lore.add(line(String.format(java.util.Locale.US, "%,d experience to level %d", com.extantape.mobsquad.model.Growth.xpFor(c.level() + 1) - c.xp(), c.level() + 1), NamedTextColor.DARK_GRAY));
+        lore.add(line(c.species().special, NamedTextColor.LIGHT_PURPLE));
         if (out) {
             lore.add(line("Out with you", NamedTextColor.GREEN));
             lore.add(line("Click to call it back.", NamedTextColor.DARK_GRAY));

@@ -15,6 +15,11 @@ public record Critter(UUID id, Species species, String name, int level, long xp,
         return tuckeredUntil > now;
     }
 
+    /** With new experience; the level follows from it. */
+    public Critter withXp(long newXp) {
+        return new Critter(id, species, name, Growth.level(newXp), newXp, tuckeredUntil);
+    }
+
     public Critter tuckered(long until) {
         return new Critter(id, species, name, level, xp, until);
     }

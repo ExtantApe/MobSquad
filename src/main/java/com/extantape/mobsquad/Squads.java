@@ -95,6 +95,25 @@ public final class Squads {
         save(w);
     }
 
+    /** Experience for a critter that's out; tells its owner when it levels up or passes a milestone. */
+    public void critterXp(Posse.Out o, long xp) {
+        Player p = Bukkit.getPlayer(o.owner());
+        if (p == null) return;
+        Wrangler w = get(p);
+        if (w == null) return;
+        Critter c = w.find(o.critter().id());
+        if (c == null || c.level() >= com.extantape.mobsquad.model.Growth.MAX) return;
+        Critter n = c.withXp(c.xp() + xp);
+        w.replace(n);
+        posse.update(n);
+        if (n.level() == c.level()) return;
+        save(w);
+        p.sendMessage(Component.text(n.name() + " is now level " + n.level() + ".", NamedTextColor.GOLD));
+        if (com.extantape.mobsquad.model.Growth.stage(n.level()) > com.extantape.mobsquad.model.Growth.stage(c.level()))
+            p.sendMessage(Component.text("Its special grows stronger: " + n.species().special, NamedTextColor.LIGHT_PURPLE));
+        p.playSound(p.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 0.6f, 1.4f);
+    }
+
     /** Out of health: back to the Bunkhouse to rest a few real minutes. */
     public void tucker(Posse.Out o) {
         posse.back(o.critter().id());
