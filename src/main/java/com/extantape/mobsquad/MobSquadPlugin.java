@@ -1,6 +1,7 @@
 package com.extantape.mobsquad;
 
-import com.extantape.mobsquad.coax.ChickenTrail;
+import com.extantape.mobsquad.coax.Coaxing;
+import com.extantape.mobsquad.world.Vittles;
 import com.extantape.mobsquad.model.Critter;
 import com.extantape.mobsquad.model.Levels;
 import com.extantape.mobsquad.model.Species;
@@ -39,6 +40,8 @@ public final class MobSquadPlugin extends JavaPlugin {
     private Squads squads;
     private Bunkhouses bunkhouses;
     private Dinnerbell dinnerbell;
+    private Coaxing coaxing;
+    private Vittles vittles;
 
     @Override
     public void onEnable() {
@@ -48,16 +51,20 @@ public final class MobSquadPlugin extends JavaPlugin {
         squads.posse(posse);
         bunkhouses = new Bunkhouses(this);
         dinnerbell = new Dinnerbell(this, squads);
-        ChickenTrail chickens = new ChickenTrail(squads);
+        Coaxing coaxing = new Coaxing(squads);
+        this.coaxing = coaxing;
+        vittles = new Vittles(this, squads);
+        vittles.register();
         var pm = getServer().getPluginManager();
         pm.registerEvents(new Safety(squads), this);
         pm.registerEvents(new BunkhouseMenu(squads, bunkhouses), this);
         pm.registerEvents(dinnerbell, this);
-        pm.registerEvents(chickens, this);
+        pm.registerEvents(coaxing, this);
+        pm.registerEvents(vittles, this);
         pm.registerEvents(new Listener() {
             @EventHandler
-            public void onQuit(PlayerQuitEvent e) {
-                chickens.forget(e.getPlayer().getUniqueId());
+            public void onJoin(org.bukkit.event.player.PlayerJoinEvent e) {
+                e.getPlayer().discoverRecipe(vittles.key());
             }
 
             /** A critter left behind by a crash is never saved, but if one turns up, it goes. */
@@ -67,13 +74,14 @@ public final class MobSquadPlugin extends JavaPlugin {
             }
         }, this);
         getServer().getScheduler().runTaskTimer(this, posse, Posse.FOLLOW_TICKS, Posse.FOLLOW_TICKS);
-        getServer().getScheduler().runTaskTimer(this, chickens, ChickenTrail.PERIOD, ChickenTrail.PERIOD);
+        getServer().getScheduler().runTaskTimer(this, coaxing, Coaxing.PERIOD, Coaxing.PERIOD);
         getServer().getScheduler().runTaskTimer(this, squads::saveAll, 20L * 300, 20L * 300);
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, e -> e.registrar().register(
             Commands.literal("mobsquad")
                 .requires(src -> src.getSender().hasPermission("mobsquad.use"))
                 .executes(this::help)
                 .then(Commands.literal("list").executes(this::list))
+                .then(Commands.literal("hints").executes(this::hints))
                 .then(Commands.literal("dinnerbell").executes(this::giveBell))
                 .then(Commands.literal("bunkhouse").requires(src -> src.getSender().hasPermission("mobsquad.admin"))
                     .then(Commands.literal("add").executes(c -> bunkhouse(c, true)))
@@ -84,6 +92,10 @@ public final class MobSquadPlugin extends JavaPlugin {
                             for (Species s : Species.values()) if (s.id().startsWith(b.getRemainingLowerCase())) b.suggest(s.id());
                             return b.buildFuture();
                         }).executes(this::give))))
+                .then(Commands.literal("vittles").requires(src -> src.getSender().hasPermission("mobsquad.admin"))
+                    .then(Commands.argument("player", ArgumentTypes.player())
+                        .executes(c -> giveVittles(c, 1))
+                        .then(Commands.argument("amount", IntegerArgumentType.integer(1, 64)).executes(c -> giveVittles(c, c.getArgument("amount", Integer.class))))))
                 .then(Commands.literal("xp").requires(src -> src.getSender().hasPermission("mobsquad.admin"))
                     .then(Commands.argument("player", ArgumentTypes.player())
                         .then(Commands.argument("amount", IntegerArgumentType.integer(0, 1_000_000)).executes(this::xp))))
@@ -94,6 +106,7 @@ public final class MobSquadPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (coaxing != null) coaxing.stop();
         if (squads == null) return;
         if (squads.posse() != null) squads.posse().backEveryone();
         squads.saveAll();
@@ -106,7 +119,7 @@ public final class MobSquadPlugin extends JavaPlugin {
     private int help(CommandContext<CommandSourceStack> c) {
         say(c, "MobSquad: coax a mob and it waits in your Bunkhouse. Right-click a Bunkhouse to send critters out and call them back.", NamedTextColor.GOLD);
         say(c, "/mobsquad list shows your critters. /mobsquad dinnerbell gives you a bell that calls them all home.", NamedTextColor.GRAY);
-        say(c, "Chickens: hold seeds, right-click one, and walk it " + (int) ChickenTrail.DISTANCE + " blocks without running.", NamedTextColor.GRAY);
+        say(c, "/mobsquad hints tells you how to coax each critter. Vittles perk up a tuckered-out critter on the spot.", NamedTextColor.GRAY);
         return Command.SINGLE_SUCCESS;
     }
 
@@ -127,6 +140,17 @@ public final class MobSquadPlugin extends JavaPlugin {
         for (Critter cr : w.critters) {
             String state = squads.posse().isOut(cr.id()) ? "out" : cr.resting(now) ? "resting" : "ready";
             say(c, "  " + cr.name() + " (" + cr.species().title().toLowerCase(Locale.ROOT) + ", level " + cr.level() + "), " + state, NamedTextColor.GRAY);
+        }
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private int hints(CommandContext<CommandSourceStack> c) {
+        int level = c.getSource().getExecutor() instanceof Player p ? squads.wranglinLevel(p) : 100;
+        say(c, "How to coax them (Wranglin' level " + level + "):", NamedTextColor.GOLD);
+        for (Species s : Species.values()) {
+            boolean open = Levels.unlocked(s.tier, level);
+            say(c, "  " + s.title() + " (" + s.tier.title + "): " + (open ? s.hint : "from Wranglin' level " + s.tier.level + "."),
+                open ? NamedTextColor.GRAY : NamedTextColor.DARK_GRAY);
         }
         return Command.SINGLE_SUCCESS;
     }
@@ -178,6 +202,13 @@ public final class MobSquadPlugin extends JavaPlugin {
         }
         squads.add(p, Critter.fresh(s));
         say(c, "[MobSquad] gave " + p.getName() + " a " + s.title().toLowerCase(Locale.ROOT) + ".", NamedTextColor.GREEN);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private int giveVittles(CommandContext<CommandSourceStack> c, int amount) throws CommandSyntaxException {
+        Player p = c.getArgument("player", PlayerSelectorArgumentResolver.class).resolve(c.getSource()).getFirst();
+        for (var left : p.getInventory().addItem(vittles.make(amount)).values()) p.getWorld().dropItem(p.getLocation(), left);
+        say(c, "[MobSquad] gave " + p.getName() + " " + amount + " vittles.", NamedTextColor.GREEN);
         return Command.SINGLE_SUCCESS;
     }
 

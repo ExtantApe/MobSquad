@@ -2,7 +2,7 @@ name: MobSquad
 version: '${version}'
 main: com.extantape.mobsquad.MobSquadPlugin
 api-version: '26.1'
-description: "Coax mobs into critters that follow you, fight only hostile mobs and level up. Gotta coax em all... Pokemob!"
+description: "Coax mobs into critters that follow you, fight only hostile mobs and rest in a Bunkhouse. Gotta coax em all... Pokemob!"
 website: https://github.com/ExtantApe/MobSquad
 # Commands are registered with Brigadier in code, so there is no commands section.
 permissions:

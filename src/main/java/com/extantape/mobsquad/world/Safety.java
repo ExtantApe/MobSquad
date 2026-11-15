@@ -40,6 +40,7 @@ public final class Safety implements Listener {
     }
 
     private static Entity source(Entity damager) {
+        if (damager == null) return null;
         return damager instanceof Projectile p && p.getShooter() instanceof Entity s ? s : damager;
     }
 
@@ -47,8 +48,31 @@ public final class Safety implements Listener {
     public void onHit(EntityDamageByEntityEvent event) {
         Entity from = source(event.getDamager());
         if (critter(event.getEntity()) && from instanceof Player) event.setCancelled(true);
-        else if (critter(from) && event.getEntity() instanceof Player) event.setCancelled(true);
-        else if (critter(from) && critter(event.getEntity())) event.setCancelled(true);
+        else if (critter(from) && !squads.posse().fights().mayTarget(from, event.getEntity())) event.setCancelled(true); // hostile mobs only, by the same rules as picking a fight
+    }
+
+    /** Remembers which hostile mob really hurt a player or a critter, so critters know who started it. */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onHurt(EntityDamageByEntityEvent event) {
+        Entity from = source(event.getDamager());
+        if (from == null || critter(from) || !squads.posse().fights().fair(from)) return;
+        if (event.getEntity() instanceof Player p) squads.posse().fights().hurtBy(from, p.getUniqueId());
+        else {
+            Posse.Out o = squads.posse().of(event.getEntity());
+            if (o != null) squads.posse().fights().hurtBy(from, o.owner());
+        }
+    }
+
+    /** An axolotl critter doesn't dry out on land while it follows you. */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onDryOut(EntityDamageEvent event) {
+        if (critter(event.getEntity()) && event.getCause() == EntityDamageEvent.DamageCause.DRYOUT) event.setCancelled(true);
+    }
+
+    /** A critter's arrow never breaks a painting or an item frame. */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onHanging(org.bukkit.event.hanging.HangingBreakByEntityEvent event) {
+        if (critter(source(event.getRemover()))) event.setCancelled(true);
     }
 
     /** Out of health: tuckered out, never dead. */
@@ -64,7 +88,7 @@ public final class Safety implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onTarget(EntityTargetEvent event) {
-        if (critter(event.getEntity()) && (event.getTarget() instanceof Player || critter(event.getTarget()))) event.setCancelled(true);
+        if (critter(event.getEntity()) && event.getTarget() != null && !squads.posse().fights().mayTarget(event.getEntity(), event.getTarget())) event.setCancelled(true);
         if (critter(event.getTarget()) && event.getEntity() instanceof org.bukkit.entity.Tameable) event.setCancelled(true); // pets leave them be
     }
 

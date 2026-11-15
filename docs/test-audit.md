@@ -2,6 +2,13 @@
 
 Kept by this repo's owning session, per `~/Code/CLAUDE.md`, "Test self-audits". Newest first.
 
+## 2026-11-15: 0.2.0
+
+- Promises added: README "Coaxing", "Fighting" and "Vittles", CHANGELOG 0.2.0.
+- Covered by bots (111 checks on 26.1.2 and 26.2, 52 on 26.3): every launch puzzle succeeds; tier refusal; the creeper standoff never blows up, and standing up mid-swell, gunpowder too soon and forgetting the gunpowder each start it over; a refused or failed creeper doesn't go off afterward; the enderman coaxes when not looked at and starts over when stared at; the skeleton coaxes on three target hits; a village golem is refused and a player-built golem coaxes; the fox needs a crouch and coaxes after 15 seconds; the bee coaxes standing still and starts over when you move; the allay coaxes on three notes; the axolotl is refused out of water, coaxes in it, and the bucket is kept; every coaxed critter is saved; /mobsquad hints. Fighting: a golem critter kills a hostile husk and leaves a cow, a villager, a named husk, a neutral enderman and another player's wolf alone; a skeleton critter shoots a husk down and never hurts a nearby player; the allay never fights. Vittles: revive the latest tuckered critter and send it out, clear its rest in the file, use one bundle, and say so when nobody needs them.
+- Gaps skipped: real crouching (bots can't crouch where the server sees it; the creeper and fox puzzles use a test-only tag under a JVM flag); block-use sections on 26.3; crafting vittles (the recipe is registered from the same item the admin command gives; bots can't craft on 26.3); piglin and zombified piglin neutrality (same rule as the enderman, which is covered).
+- Gaps for later: critter levels and specials (0.3.0).
+
 ## 2026-11-15: 0.1.0
 
 - Promises: README "What it does", CHANGELOG 0.1.0, the brief's safety rules.
