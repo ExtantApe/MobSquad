@@ -11,3 +11,4 @@ Dated decisions for this repo, newest last.
 - 2026-11-15: a tier gates sending a critter out as well as coaxing it, so a critter an admin gives early waits for the level.
 - 2026-11-15: running on a seed trail means sprinting, riding, gliding, flying or crossing more than 1.35 blocks in a quarter second, about 1.25 times walking pace. A longer jump counts as a teleport, which loses the trail instead.
 - 2026-11-15: bot tests use port 25631.
+- 2026-11-15: public at the first release under the owner's standing yes of 2026-11-07, relayed by Simon: MIT, Copyright (c) 2026 EXTANT APE, after the first-public-push audit (no secrets, addresses, player data or build output; no private-term hits in any file, commit or message).

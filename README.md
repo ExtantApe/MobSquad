@@ -40,4 +40,4 @@ Settings are in `plugins/MobSquad/config.yml`: worlds where MobSquad is off, the
 
 ## License
 
-Not decided yet. Private repos carry no license.
+MIT. See [LICENSE](LICENSE).
