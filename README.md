@@ -38,6 +38,10 @@ Settings are in `plugins/MobSquad/config.yml`: worlds where MobSquad is off, the
 
 `test/suite.mjs` builds a throwaway Paper server on 127.0.0.1 from downloaded jars and drives it with bots. See the top of the file for what it can and can't check.
 
+## Not affiliated
+
+The tagline is a joke. MobSquad isn't affiliated with or endorsed by the makers of any creature-collecting game, and uses none of their names, art or designs.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
