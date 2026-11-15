@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0
+
+La Ménagerie and the Critterbook.
+
+- **La Ménagerie**, the journal: its own menu, opened with `/mobsquad journal` or from the book in the Bunkhouse menu. Each launch critter has a page with its Critterbook number, a half-ridiculous line about it, how to coax it, its special and your best one's level. Locked pages show only their number.
+- **Pages open when you meet a critter**: within 10 blocks with a clear line of sight, or when you coax or are given one. You're told, with a link to the journal. Pages are saved in the player's file as `page` lines; files from before 0.4.0 open pages for the critters already in them.
+- **Critterbook numbers** for all 88 mobs in Java Edition, in the order each first appeared, from the Minecraft Wiki's history sections. Same-version ties go by first snapshot, then alphabetically. The launch critters: creeper 1, skeleton 3, chicken 9, enderman 15, iron golem 25, fox 62, bee 63, axolotl 69, allay 75. The list ships in the jar as `critterbook.txt`.
+- Not yet: spirit coats (the page says they come later) and quest chapters opening pages.
+
 ## 0.3.0
 
 Levels and specials.

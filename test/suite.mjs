@@ -695,6 +695,73 @@ else if (want('specials')) {
   for (const g of ['randomTickSpeed 3', 'random_tick_speed 3']) await s.ask('gamerule ' + g, 150)
 }
 
+// ---------- La Ménagerie ----------
+if (want('journal')) {
+  section('La Ménagerie')
+  const scout = await bot('Scout', { physics: PHYSICS })
+  await uuidOf('Scout')
+  await s.ask('gamemode creative Scout', 200)
+  const JX = X + 60, JZ = Z + 60
+  await s.ask(`forceload add ${JX - 16} ${JZ - 16} ${JX + 16} ${JZ + 16}`, 800)
+  await stand(scout, 'Scout', JX, JZ, -90, 0)
+  await s.ask(`kill @e[type=!player,x=${JX},y=${Y},z=${JZ},distance=..40]`, 300)
+  async function journal() {
+    const opened = new Promise((ok, fail) => { scout.once('windowOpen', ok); setTimeout(() => fail(new Error('no journal')), 6000) })
+    scout.chat('/mobsquad journal')
+    return opened
+  }
+  let w = await journal()
+  check('/mobsquad journal opens La Ménagerie', JSON.stringify(w.title).includes('nagerie'), JSON.stringify(w.title))
+  check('a new player\'s pages are all locked', [0, 1, 2, 3, 4, 5, 6, 7, 8].every(i => egg(w, i) === 'gray_dye'), [0, 1, 2, 3, 4, 5, 6, 7, 8].map(i => egg(w, i)).join(','))
+  check('it lists the critters in Critterbook order, creeper first', /No\. 1 /.test(JSON.stringify(w.slots[0]?.customName ?? '')) && /No\. 75 /.test(JSON.stringify(w.slots[8]?.customName ?? '')), `${JSON.stringify(w.slots[0]?.customName)} / ${JSON.stringify(w.slots[8]?.customName)}`)
+  await closeMenu(scout)
+  let from = scout.chatLog.length
+  await s.ask(`summon fox ${JX + 5} ${Y} ${JZ} {NoAI:1b,PersistenceRequired:1b}`, 300)
+  check('meeting a fox opens its page', await waitSaid(scout, /New page in La Ménagerie: No\. 62, the fox!/, 6000, from), scout.chatLog.slice(from).join(' | '))
+  check('the page is saved', file('Scout').includes('page fox'), file('Scout'))
+  // a creeper behind a wall isn't met; with the wall gone, it is
+  await s.ask(`fill ${JX + 3} ${Y} ${JZ - 6} ${JX + 3} ${Y + 3} ${JZ - 2} stone`, 300)
+  await s.ask(`summon creeper ${JX + 6} ${Y} ${JZ - 4} {NoAI:1b,PersistenceRequired:1b}`, 300)
+  await s.ask(`summon chicken ${JX - 25} ${Y} ${JZ} {NoAI:1b,PersistenceRequired:1b}`, 300)
+  from = scout.chatLog.length
+  await sleep(5000)
+  check('a critter you can\'t see isn\'t met', !said(scout, /the creeper/, from))
+  check('one far away isn\'t either', !said(scout, /the chicken/, from))
+  await s.ask(`fill ${JX + 3} ${Y} ${JZ - 6} ${JX + 3} ${Y + 3} ${JZ - 2} air`, 300)
+  check('once it\'s in sight, it is', await waitSaid(scout, /No\. 1, the creeper!/, 6000, from), scout.chatLog.slice(from).join(' | '))
+  from = scout.chatLog.length
+  await s.ask('mobsquad give Scout bee', 400)
+  check('getting a critter opens its page', await waitSaid(scout, /No\. 63, the bee!/, 4000, from), scout.chatLog.slice(from).join(' | '))
+  w = await journal()
+  const order = ['creeper', 'skeleton', 'chicken', 'enderman', 'iron_golem', 'fox', 'bee', 'axolotl', 'allay']
+  const shown = order.map((k, i) => egg(w, i))
+  check('open pages show their critter, locked ones stay hidden',
+    shown[0] === 'creeper_spawn_egg' && shown[5] === 'fox_spawn_egg' && shown[6] === 'bee_spawn_egg' && shown[2] === 'gray_dye' && shown[8] === 'gray_dye', shown.join(','))
+  const book = new Promise(ok => { scout._client.once('open_book', () => ok(true)); setTimeout(() => ok(false), 5000) })
+  await scout.clickWindow(5, 0, 0)
+  check('clicking an open page opens it as a book', await book)
+  await closeMenu(scout)
+  w = await journal()
+  const noBook = new Promise(ok => { scout._client.once('open_book', () => ok(true)); setTimeout(() => ok(false), 2500) })
+  await scout.clickWindow(2, 0, 0)
+  check('a locked page doesn\'t open', !(await noBook))
+  await scout.clickWindow(5, 0, 0); await sleep(300)
+  check('nothing can be taken out of the journal', !scout.inventory.items().some(i => /spawn_egg|dye/.test(i.name)))
+  await closeMenu(scout)
+  if (MENU) {
+    await s.ask('gamemode survival Scout', 200)
+    await stand(scout, 'Scout', X - 2, Z, 0, 20)
+    const bw = await openBunkhouse(scout, vault)
+    const jopened = new Promise((ok) => { scout.once('windowOpen', ww => ok(ww)); setTimeout(() => ok(null), 5000) })
+    await scout.clickWindow(45, 0, 0)
+    const jw = await jopened
+    check('the Bunkhouse menu opens La Ménagerie', jw && JSON.stringify(jw.title).includes('nagerie'), jw && JSON.stringify(jw.title))
+    await closeMenu(scout)
+  }
+  await s.ask(`kill @e[type=!player,x=${JX},y=${Y},z=${JZ},distance=..40]`, 300)
+  await quit(scout)
+}
+
 // ---------- vittles ----------
 if (!MENU) skip('vittles')
 else if (want('vittles')) {

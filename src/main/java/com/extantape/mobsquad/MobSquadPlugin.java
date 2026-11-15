@@ -13,6 +13,7 @@ import com.extantape.mobsquad.world.Dinnerbell;
 import com.extantape.mobsquad.world.Posse;
 import com.extantape.mobsquad.world.Safety;
 import com.extantape.mobsquad.world.Specials;
+import com.extantape.mobsquad.world.Journal;
 import com.extantape.mobsquad.model.Growth;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -44,6 +45,7 @@ public final class MobSquadPlugin extends JavaPlugin {
     private Dinnerbell dinnerbell;
     private Coaxing coaxing;
     private Vittles vittles;
+    private Journal journal;
 
     @Override
     public void onEnable() {
@@ -62,7 +64,11 @@ public final class MobSquadPlugin extends JavaPlugin {
         var pm = getServer().getPluginManager();
         pm.registerEvents(specials, this);
         pm.registerEvents(new Safety(squads), this);
-        pm.registerEvents(new BunkhouseMenu(squads, bunkhouses), this);
+        Journal journal = new Journal(this, squads);
+        squads.pageOpener((p, s) -> journal.open(p, s, "got"));
+        this.journal = journal;
+        pm.registerEvents(journal, this);
+        pm.registerEvents(new BunkhouseMenu(squads, bunkhouses, journal), this);
         pm.registerEvents(dinnerbell, this);
         pm.registerEvents(coaxing, this);
         pm.registerEvents(vittles, this);
@@ -81,6 +87,7 @@ public final class MobSquadPlugin extends JavaPlugin {
         getServer().getScheduler().runTaskTimer(this, posse, Posse.FOLLOW_TICKS, Posse.FOLLOW_TICKS);
         getServer().getScheduler().runTaskTimer(this, coaxing, Coaxing.PERIOD, Coaxing.PERIOD);
         getServer().getScheduler().runTaskTimer(this, specials, Specials.PERIOD, Specials.PERIOD);
+        getServer().getScheduler().runTaskTimer(this, journal, Journal.PERIOD, Journal.PERIOD);
         getServer().getScheduler().runTaskTimer(this, squads::saveAll, 20L * 300, 20L * 300);
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, e -> e.registrar().register(
             Commands.literal("mobsquad")
@@ -88,6 +95,7 @@ public final class MobSquadPlugin extends JavaPlugin {
                 .executes(this::help)
                 .then(Commands.literal("list").executes(this::list))
                 .then(Commands.literal("hints").executes(this::hints))
+                .then(Commands.literal("journal").executes(this::journal))
                 .then(Commands.literal("dinnerbell").executes(this::giveBell))
                 .then(Commands.literal("bunkhouse").requires(src -> src.getSender().hasPermission("mobsquad.admin"))
                     .then(Commands.literal("add").executes(c -> bunkhouse(c, true)))
@@ -132,6 +140,7 @@ public final class MobSquadPlugin extends JavaPlugin {
         say(c, "MobSquad: coax a mob and it waits in your Bunkhouse. Right-click a Bunkhouse to send critters out and call them back.", NamedTextColor.GOLD);
         say(c, "/mobsquad list shows your critters. /mobsquad dinnerbell gives you a bell that calls them all home.", NamedTextColor.GRAY);
         say(c, "/mobsquad hints tells you how to coax each critter. Vittles perk up a tuckered-out critter on the spot.", NamedTextColor.GRAY);
+        say(c, "/mobsquad journal opens La Ménagerie, with a page for every critter you've met.", NamedTextColor.GRAY);
         return Command.SINGLE_SUCCESS;
     }
 
@@ -164,6 +173,15 @@ public final class MobSquadPlugin extends JavaPlugin {
             say(c, "  " + s.title() + " (" + s.tier.title + "): " + (open ? s.hint : "from Wranglin' level " + s.tier.level + "."),
                 open ? NamedTextColor.GRAY : NamedTextColor.DARK_GRAY);
         }
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private int journal(CommandContext<CommandSourceStack> c) {
+        if (!(c.getSource().getExecutor() instanceof Player p)) {
+            say(c, "Only a player has a journal.", NamedTextColor.YELLOW);
+            return 0;
+        }
+        journal.show(p);
         return Command.SINGLE_SUCCESS;
     }
 

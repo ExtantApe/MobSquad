@@ -18,10 +18,11 @@ import java.util.UUID;
  * <pre>
  * wranglin 150
  * critter 6b1f...  chicken 1 0 0 Clucky
+ * page chicken
  * </pre>
  *
  * A critter line is its id, species, level, experience, when it's rested (epoch milliseconds, 0 when ready) and its
- * name, URL-encoded. Written to a temporary file and moved into place, so a crash leaves the old file or the new one.
+ * name, URL-encoded. A page line is a La Ménagerie page the player has opened; owning a critter opens its page too. Written to a temporary file and moved into place, so a crash leaves the old file or the new one.
  * Lines that can't be read are skipped and counted, never guessed at.
  */
 public final class Store {
@@ -55,12 +56,18 @@ public final class Store {
                         w.critters.add(new Critter(UUID.fromString(p[1]), s, URLDecoder.decode(p[6], StandardCharsets.UTF_8),
                             Integer.parseInt(p[3]), Long.parseLong(p[4]), Long.parseLong(p[5])));
                     }
+                    case "page" -> {
+                        Species s = Species.byId(p[1]);
+                        if (s == null) throw new IllegalArgumentException();
+                        w.pages.add(s);
+                    }
                     default -> skipped++;
                 }
             } catch (RuntimeException e) {
                 skipped++;
             }
         }
+        for (Critter c : w.critters) w.pages.add(c.species()); // files from before 0.4.0 have no page lines
         return new Loaded(w, skipped);
     }
 
@@ -72,6 +79,7 @@ public final class Store {
             sb.append("critter ").append(c.id()).append(' ').append(c.species().id()).append(' ').append(c.level()).append(' ')
                 .append(c.xp()).append(' ').append(c.tuckeredUntil()).append(' ')
                 .append(URLEncoder.encode(c.name(), StandardCharsets.UTF_8)).append('\n');
+        for (Species s : w.pages) sb.append("page ").append(s.id()).append('\n');
         Path tmp = dir.resolve(w.player + ".txt.tmp");
         Files.writeString(tmp, sb.toString(), StandardCharsets.UTF_8);
         Files.move(tmp, file(w.player), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);

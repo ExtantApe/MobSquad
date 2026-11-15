@@ -9,6 +9,8 @@ public final class Wrangler {
     public final UUID player;
     public long wranglinXp;
     public final List<Critter> critters = new ArrayList<>();
+    /** The La Ménagerie pages this player has opened. */
+    public final java.util.Set<Species> pages = java.util.EnumSet.noneOf(Species.class);
 
     public Wrangler(UUID player) {
         this.player = player;

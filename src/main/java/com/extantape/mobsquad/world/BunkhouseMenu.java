@@ -33,13 +33,16 @@ import org.bukkit.inventory.ItemStack;
  * as items.
  */
 public final class BunkhouseMenu implements Listener {
-    public static final int SIZE = 54, CRITTER_SLOTS = 45, INFO_SLOT = 49, CALL_BACK_SLOT = 53;
+    public static final int SIZE = 54, CRITTER_SLOTS = 45, INFO_SLOT = 49, CALL_BACK_SLOT = 53, JOURNAL_SLOT = 45;
     private final Squads squads;
     private final Bunkhouses bunkhouses;
 
-    public BunkhouseMenu(Squads squads, Bunkhouses bunkhouses) {
+    private final Journal journal;
+
+    public BunkhouseMenu(Squads squads, Bunkhouses bunkhouses, Journal journal) {
         this.squads = squads;
         this.bunkhouses = bunkhouses;
+        this.journal = journal;
     }
 
     /** Ties an open menu to its viewer and the critters on each slot when it was drawn. */
@@ -112,13 +115,15 @@ public final class BunkhouseMenu implements Listener {
         inv.setItem(INFO_SLOT, item(Material.BOOK, Component.text(p.getName() + "'s Bunkhouse", NamedTextColor.GOLD), lore));
         inv.setItem(CALL_BACK_SLOT, item(Material.BELL, Component.text("Call everyone back", NamedTextColor.GOLD),
             List.of(line("Every critter out with you comes home.", NamedTextColor.GRAY))));
+        inv.setItem(JOURNAL_SLOT, item(Material.WRITTEN_BOOK, Component.text("La Ménagerie", NamedTextColor.GOLD),
+            List.of(line("Your journal: a page for every critter you've met.", NamedTextColor.GRAY))));
     }
 
     static Component line(String text, NamedTextColor color) {
         return Component.text(text, color).decoration(TextDecoration.ITALIC, false);
     }
 
-    private static ItemStack item(Material m, Component name, List<Component> lore) {
+    static ItemStack item(Material m, Component name, List<Component> lore) {
         ItemStack it = new ItemStack(m);
         it.editMeta(meta -> {
             meta.displayName(name.decoration(TextDecoration.ITALIC, false));
@@ -161,6 +166,10 @@ public final class BunkhouseMenu implements Listener {
         Wrangler w = squads.get(p);
         if (w == null) return;
         int slot = event.getSlot();
+        if (slot == JOURNAL_SLOT) {
+            org.bukkit.Bukkit.getScheduler().runTask(org.bukkit.plugin.java.JavaPlugin.getProvidingPlugin(BunkhouseMenu.class), () -> journal.show(p));
+            return;
+        }
         if (slot == CALL_BACK_SLOT) {
             int n = squads.posse().of(p.getUniqueId()).size();
             squads.posse().backAll(p.getUniqueId());

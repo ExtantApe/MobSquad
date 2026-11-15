@@ -3,6 +3,7 @@ package com.extantape.mobsquad;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.extantape.mobsquad.model.Critter;
+import com.extantape.mobsquad.model.Critterbook;
 import com.extantape.mobsquad.model.Growth;
 import com.extantape.mobsquad.model.Levels;
 import com.extantape.mobsquad.model.Species;
@@ -116,5 +117,47 @@ class ModelTest {
     @Test
     void everyCritterHasASpecial() {
         for (Species s : Species.values()) assertFalse(s.special.isBlank(), s.title());
+    }
+
+    @Test
+    void critterbookNumbersRunOneToTheEndWithNoGaps() {
+        var all = Critterbook.all();
+        assertEquals(88, all.size());
+        int expect = 1;
+        for (int n : all.values()) assertEquals(expect++, n);
+    }
+
+    @Test
+    void launchCritterNumbersNeverChange() {
+        assertEquals(1, Critterbook.number(Species.CREEPER));
+        assertEquals(3, Critterbook.number(Species.SKELETON));
+        assertEquals(9, Critterbook.number(Species.CHICKEN));
+        assertEquals(15, Critterbook.number(Species.ENDERMAN));
+        assertEquals(25, Critterbook.number(Species.IRON_GOLEM));
+        assertEquals(62, Critterbook.number(Species.FOX));
+        assertEquals(63, Critterbook.number(Species.BEE));
+        assertEquals(69, Critterbook.number(Species.AXOLOTL));
+        assertEquals(75, Critterbook.number(Species.ALLAY));
+        assertEquals(Species.CREEPER, Critterbook.inOrder().getFirst());
+    }
+
+    @Test
+    void journalPagesRoundTrip(@TempDir Path dir) throws Exception {
+        Store store = new Store(dir);
+        UUID p = UUID.randomUUID();
+        Wrangler w = new Wrangler(p);
+        w.pages.add(Species.FOX);
+        w.pages.add(Species.CREEPER);
+        store.save(w);
+        assertEquals(java.util.Set.of(Species.FOX, Species.CREEPER), store.load(p).wrangler().pages);
+    }
+
+    @Test
+    void anOlderFileOpensPagesForCrittersYouHave(@TempDir Path dir) throws Exception {
+        UUID p = UUID.randomUUID();
+        Files.writeString(dir.resolve(p + ".txt"), "wranglin 0\ncritter " + UUID.randomUUID() + " bee 1 0 0 Buzz\n");
+        Store.Loaded l = new Store(dir).load(p);
+        assertEquals(0, l.skipped());
+        assertEquals(java.util.Set.of(Species.BEE), l.wrangler().pages);
     }
 }
