@@ -1,0 +1,11 @@
+# MobSquad: coax mobs into critters that follow you.
+
+# Worlds where MobSquad is off, by folder name: no coaxing, and critters can't be sent out there. An adventure world
+# can be listed here.
+disabled-worlds: []
+
+# Real minutes a tuckered-out critter rests in the Bunkhouse before it can go out again.
+recovery-minutes: 5
+
+# Wranglin' experience for coaxing a critter.
+coax-xp: 100
