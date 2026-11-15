@@ -1,12 +1,14 @@
 # MobSquad
 
-Coax mobs into critters for Paper: they follow you, fight only hostile mobs and level up, and live safely in a shared Bunkhouse. No client mods. Gotta coax em all... Pokemob!
+Coax mobs into critters for Paper: they follow you, fight only hostile mobs, and live safely in a shared Bunkhouse. No client mods. Gotta coax em all... Pokemob!
 
-**Status:** 0.1.0, the core loop. Bunkhouses, sending critters out and calling them back, the safety rules, tuckering out, restarts and crashes, and the chicken's coaxing puzzle passed with bots on throwaway Paper 26.1.2 and 26.2 servers (60 checks each). On 26.3 the bots can't use blocks, so only the commands and coaxing ran there (16 checks). Nothing has been seen in a real game client yet. Only the chicken can be coaxed so far, and critters don't fight yet.
+**Status:** 0.2.0. Every launch critter can be coaxed, critters fight hostile mobs only, and vittles revive them. Passed with bots on throwaway Paper 26.1.2 and 26.2 servers (111 checks each). On 26.3 the bots can't use blocks, so only the commands and the coaxing puzzles ran there (52 checks). Bots can't crouch where the server sees it, so the creeper and fox puzzles were tested with a test-only stand-in for crouching; real crouching is untested. Nothing has been seen in a real game client yet. Six of the nine puzzles and the vittles recipe are proposals waiting for the owner's say.
 
 ## What it does
 
-- **Coaxing.** Each kind of mob has its own small puzzle. The chicken's: hold seeds, right-click it, and walk it 10 blocks within 40 seconds without running. Run, wander off or put the seeds away and it loses interest.
+- **Coaxing.** Each kind of mob has its own small puzzle, and you need its tier first. The chicken: walk it 10 blocks on a trail of seeds without running. The creeper: gunpowder starts a standoff; crouch while it swells, gunpowder when it calms, three times. The enderman: offer it a block, then stay near it for 20 seconds without looking it in the eye. `/mobsquad hints` lists all nine. Break a puzzle's rule and you start over. A mob being coaxed never turns on you, and after a failed try it leaves you alone for 10 seconds.
+- **Fighting.** Critters fight hostile mobs only: the ones after you or your critters, and other hostile mobs near you that aren't neutral or named. They never hurt players, pets, villagers or farm animals. The skeleton shoots and the allay never fights.
+- **Vittles.** Right-click them to perk up a tuckered-out critter on the spot. Craft two from bread, a carrot and sweet berries.
 - **Bunkhouses.** An admin marks a vault block as a Bunkhouse. Anyone who right-clicks it sees only their own critters. Click one to send it out or call it back. Critters never exist as items, so they can't be dropped, traded or duplicated.
 - **Following.** A critter out with you walks after you and steps beside you if it's left more than 24 blocks behind.
 - **Wranglin'.** Coaxing earns Wranglin' experience. One critter can be out at once, two from level 10 and three from level 25. Mob tiers unlock at levels 1, 10, 25 and 40.
@@ -26,9 +28,11 @@ Settings are in `plugins/MobSquad/config.yml`: worlds where MobSquad is off, the
 | --- | --- | --- |
 | `/mobsquad` | everyone | How it works, in three lines. |
 | `/mobsquad list` | everyone | Your critters and your Wranglin' level. |
+| `/mobsquad hints` | everyone | How to coax each critter. |
 | `/mobsquad dinnerbell` | everyone | Gives you a dinnerbell. |
 | `/mobsquad bunkhouse add` and `remove` | admins | Marks or unmarks the vault you're looking at. |
 | `/mobsquad give <player> <critter>` | admins | Puts a critter in a player's Bunkhouse. |
+| `/mobsquad vittles <player> [amount]` | admins | Gives vittles. |
 | `/mobsquad xp <player> <amount>` | admins | Sets a player's Wranglin' experience. |
 | `/mobsquad reload` | admins | Rereads config.yml. |
 

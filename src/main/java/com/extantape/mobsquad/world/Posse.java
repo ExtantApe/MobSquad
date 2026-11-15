@@ -33,6 +33,7 @@ public final class Posse implements Runnable {
     private final Map<UUID, Out> out = new HashMap<>();
     private final Consumer<Out> onGone;
     private boolean catchingUp;
+    private final Fights fights = new Fights(this);
 
     /** A critter out with its owner: which one, whose, and the mob standing in for it. */
     public record Out(UUID owner, Critter critter, Mob mob) {}
@@ -60,6 +61,10 @@ public final class Posse implements Runnable {
     /** True only while a critter is being moved beside its owner, so the safety rules let that teleport through. */
     public boolean catchingUp() {
         return catchingUp;
+    }
+
+    public Fights fights() {
+        return fights;
     }
 
     public boolean isOut(UUID critter) {
@@ -96,6 +101,7 @@ public final class Posse implements Runnable {
     public void back(UUID critter) {
         Out o = out.remove(critter);
         if (o == null) return;
+        fights.forget(critter);
         if (o.mob().isValid()) o.mob().remove();
         onGone.accept(o);
     }
@@ -125,6 +131,7 @@ public final class Posse implements Runnable {
                 continue;
             }
             double d = m.getLocation().distance(p.getLocation());
+            if (d <= Fights.LEASH && fights.step(o, p)) continue;
             if (d > CATCH_UP) {
                 catchingUp = true;
                 try {
@@ -135,7 +142,7 @@ public final class Posse implements Runnable {
             }
             else if (d > CLOSE) m.getPathfinder().moveTo(p.getLocation(), 1.2);
             else m.getPathfinder().stopPathfinding();
-            if (m.getTarget() instanceof Player) m.setTarget(null);
+            if (m.getTarget() != null && !fights.mayTarget(m, m.getTarget())) m.setTarget(null);
         }
     }
 }

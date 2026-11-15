@@ -24,7 +24,7 @@ const Y = -60
 
 const dir = freshServer('suite-' + MC, { paper: jar(`paper-${MC}.jar`),
   plugins: [jar('ViaVersion.jar'), jar('ViaBackwards.jar'), jar('GriefPrevention.jar')], props: { difficulty: 'easy' } })
-const s = new Server({ dir })
+const s = new Server({ dir, jvm: ['-Dmobsquad.test.sneak-tag=true'] }) // a tagged player counts as crouching; see Puzzles.crouching
 const cfgFile = path.join(dir, 'plugins/MobSquad/config.yml')
 const playersDir = path.join(dir, 'plugins/MobSquad/players')
 const baseConfig = readFileSync(DEFAULT_CONFIG, 'utf8')
@@ -49,12 +49,13 @@ function file(name) {
   return ''
 }
 const critterLines = name => file(name).split('\n').filter(l => l.startsWith('critter '))
-const uuids = {}
+const uuids = {}, intIds = {}
 async function uuidOf(name) {
   const out = (await s.ask(`data get entity ${name} UUID`, 400)).join(' ')
   const m = out.match(/\[I; (-?\d+), (-?\d+), (-?\d+), (-?\d+)\]/)
   if (!m) throw new Error('no UUID for ' + name + ': ' + out)
   const hex = m.slice(1).map(n => (Number(n) >>> 0).toString(16).padStart(8, '0')).join('')
+  intIds[name] = m.slice(1).join(', ')
   uuids[name] = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
 }
 /** Right-clicks an entity the way a real client does, with the spot on it that was clicked. */
@@ -77,6 +78,7 @@ await config({ 'recovery-minutes': 5 })
 
 let me = await bot('Wrangler', { physics: PHYSICS })
 let other = await bot('Neighbor', { physics: PHYSICS })
+if (process.env.MS_TEST_HURT) me.on('health', () => { if (me.health < 20) console.log(`    [hurt] health ${me.health}; server: ${s.log.slice(-3).join(' / ').slice(0, 300)}`) })
 await uuidOf('Wrangler'); await uuidOf('Neighbor')
 await s.ask('gamemode survival Wrangler'); await s.ask('gamemode survival Neighbor')
 
@@ -186,7 +188,7 @@ if (want('coax')) {
   await poke(me, c)
   await waitSaid(me, /interested/, 4000, from)
   await s.ask(`tp Wrangler ${cx + 30.5} ${Y} ${cz + 0.5}`, 300)
-  check('leaving the chicken behind ends the trail', await waitSaid(me, /lost the trail/, 4000, from), me.chatLog.slice(from).join(' | '))
+  check('leaving the chicken behind ends the trail', await waitSaid(me, /wandered off/, 4000, from), me.chatLog.slice(from).join(' | '))
   check('a failed trail coaxes nothing', critterLines('Wrangler').length === 1)
 
   if (PHYSICS) {
@@ -346,6 +348,228 @@ else if (want('safety')) {
   await config({ 'recovery-minutes': 0 })
 }
 
+// ---------- the other launch puzzles ----------
+if (want('puzzles')) {
+  section('Coaxing the other launch critters')
+  await s.ask('gamemode survival Wrangler', 200)
+  const px = X - 40, pz = Z - 40
+  const count = k => critterLines('Wrangler').filter(l => l.includes(' ' + k + ' ')).length
+  async function fresh(type, nbt = '', at = [px + 2.5, Y, pz + 0.5]) {
+    await s.ask(`kill @e[type=${type}]`, 300)
+    await until(() => !entity(me, e => e.name === type), 3000)
+    const before = Math.max(-1, ...Object.values(me.entities).filter(e => e.name === type).map(e => e.id))
+    await s.ask(`summon ${type} ${at.join(' ')} ${nbt}`, 600)
+    await until(() => entity(me, e => e.name === type && e.id > before), 5000)
+    return entity(me, e => e.name === type && e.id > before)
+  }
+  async function attempt(type, item, nbt, { face = [-90, 10], at, standAt = [px, pz] } = {}) {
+    await stand(me, 'Wrangler', standAt[0], standAt[1], face[0], face[1])
+    await hold(me, 'Wrangler', item)
+    const mob = await fresh(type, nbt, at)
+    const from = me.chatLog.length
+    await poke(me, mob)
+    return { mob, from }
+  }
+
+  await s.ask('mobsquad xp Wrangler 0', 300)
+  let { from } = await attempt('creeper', 'gunpowder', '{NoAI:0b}')
+  check('a Yonder mob needs Wranglin\' level 25 to coax', await waitSaid(me, /from Wranglin' level 25/, 4000, from), me.chatLog.slice(from).join(' | '))
+  await s.ask('mobsquad xp Wrangler 40000', 300) // level 40: every tier
+
+  // the creeper standoff
+  await s.ask('tag Wrangler add mobsquad-test-sneak', 200)
+  await sleep(300)
+  ;({ from } = await attempt('creeper', 'gunpowder', ''))
+  check('gunpowder starts the creeper standoff', await waitSaid(me, /Crouch while it swells/, 4000, from), me.chatLog.slice(from).join(' | '))
+  await s.ask('effect give Wrangler minecraft:instant_health 1 5', 600)
+  me.hurt = 0
+  const cr = () => entity(me, e => e.name === 'creeper')
+  for (let i = 0; i < 3; i++) { await sleep(2600); if (cr()) await poke(me, cr()) }
+  check('crouching through three swells and feeding it coaxes the creeper', await waitSaid(me, /You coaxed a creeper/, 4000, from), me.chatLog.slice(from).join(' | '))
+  const ground = (await s.ask(`execute if block ${px} ${Y - 1} ${pz} minecraft:grass_block`, 300)).join(' ')
+  check('the standoff never blows up', me.hurt === 0 && ground.includes('passed'), `hurt ${me.hurt}, ground ${ground.slice(0, 60)}`)
+  ;({ from } = await attempt('creeper', 'gunpowder', ''))
+  await waitSaid(me, /Crouch while it swells/, 4000, from)
+  await s.ask('tag Wrangler remove mobsquad-test-sneak', 200)
+  check('standing up mid-swell starts it over', await waitSaid(me, /stood up mid-swell/, 4000, from), me.chatLog.slice(from).join(' | '))
+  await s.ask('tag Wrangler add mobsquad-test-sneak', 200)
+  ;({ from } = await attempt('creeper', 'gunpowder', ''))
+  await waitSaid(me, /Crouch while it swells/, 4000, from)
+  await sleep(500); await poke(me, cr())
+  check('gunpowder mid-swell is too soon', await waitSaid(me, /Too soon/, 4000, from), me.chatLog.slice(from).join(' | '))
+  ;({ from } = await attempt('creeper', 'gunpowder', ''))
+  await waitSaid(me, /Crouch while it swells/, 4000, from)
+  await sleep(7500)
+  check('forgetting the gunpowder starts it over', said(me, /didn't give it gunpowder/, from), me.chatLog.slice(from).join(' | '))
+  check('a creeper left after a failed standoff hasn\'t gone off', me.hurt === 0, `hurt ${me.hurt}`)
+  await s.ask('tag Wrangler remove mobsquad-test-sneak', 200)
+  await s.ask('kill @e[type=creeper]', 300)
+
+  // the enderman: facing away from it the whole time
+  ;({ from } = await attempt('enderman', 'grass_block', '{NoAI:0b}', { face: [90, 0] }))
+  check('a block it could carry starts the enderman\'s puzzle', await waitSaid(me, /don't look it in the eye/, 4000, from), me.chatLog.slice(from).join(' | '))
+  check('not looking at it for 20 seconds coaxes the enderman', await waitSaid(me, /You coaxed an enderman/, 25000, from), me.chatLog.slice(from).join(' | '))
+  ;({ from } = await attempt('enderman', 'grass_block', '{NoAI:1b}', { face: [90, 0] }))
+  await waitSaid(me, /don't look it in the eye/, 4000, from)
+  await sleep(1500)
+  await s.ask(`tp Wrangler ${px + 0.5} ${Y} ${pz + 0.5} -90 -20`, 300) // facing east and up, at its face
+  check('looking it in the eye starts it over', await waitSaid(me, /looked it in the eye/, 5000, from), me.chatLog.slice(from).join(' | '))
+  await s.ask('kill @e[type=enderman]', 300)
+
+  // the skeleton: arrows from the player into a target block
+  await s.ask(`setblock ${px + 6} ${Y} ${pz + 4} minecraft:target`, 300)
+  ;({ from } = await attempt('skeleton', 'arrow', '{NoAI:1b}'))
+  check('an arrow starts the skeleton\'s puzzle', await waitSaid(me, /fair shot/, 4000, from), me.chatLog.slice(from).join(' | '))
+  for (let i = 0; i < 3; i++) {
+    await s.ask(`summon arrow ${px + 6.5} ${Y + 3} ${pz + 4.5} {Motion:[0.0,-1.5,0.0],Owner:[I; ${intIds.Wrangler}]}`, 900)
+  }
+  check('three hits on a target block coax the skeleton', await waitSaid(me, /You coaxed a skeleton/, 5000, from), me.chatLog.slice(from).join(' | '))
+
+  // the iron golem: only one a player built
+  ;({ from } = await attempt('iron_golem', 'iron_ingot', '{PlayerCreated:0b,NoAI:1b}'))
+  check('a village\'s golem can\'t be coaxed', await waitSaid(me, /belongs to the village/, 4000, from), me.chatLog.slice(from).join(' | '))
+  ;({ from } = await attempt('iron_golem', 'iron_ingot', '{PlayerCreated:1b,NoAI:1b}'))
+  const golem = entity(me, e => e.name === 'iron_golem')
+  for (let i = 0; i < 3; i++) { await sleep(700); await poke(me, golem) }
+  await sleep(500)
+  await hold(me, 'Wrangler', 'poppy', 1)
+  await poke(me, golem)
+  check('four iron ingots and a poppy coax a golem a player built', await waitSaid(me, /You coaxed an iron golem/, 4000, from), me.chatLog.slice(from).join(' | '))
+
+  // the fox: crouched the whole time
+  await s.ask('tag Wrangler add mobsquad-test-sneak', 200); await sleep(300)
+  ;({ from } = await attempt('fox', 'sweet_berries', '{NoAI:1b}'))
+  check('crouching with berries starts the fox\'s puzzle', await waitSaid(me, /Stay crouched/, 4000, from), me.chatLog.slice(from).join(' | '))
+  check('staying crouched for 15 seconds coaxes the fox', await waitSaid(me, /You coaxed a fox/, 20000, from), me.chatLog.slice(from).join(' | '))
+  await s.ask('tag Wrangler remove mobsquad-test-sneak', 200); await sleep(300)
+  ;({ from } = await attempt('fox', 'sweet_berries', '{NoAI:1b}'))
+  check('a fox won\'t listen unless you crouch', await waitSaid(me, /Crouch first/, 4000, from), me.chatLog.slice(from).join(' | '))
+
+  // the bee: standing still
+  ;({ from } = await attempt('bee', 'poppy', '{NoAI:0b}', { at: [px + 2.5, Y + 1, pz + 0.5] }))
+  check('a flower starts the bee\'s puzzle', await waitSaid(me, /Stand still/, 4000, from), me.chatLog.slice(from).join(' | '))
+  check('standing still for 10 seconds coaxes the bee', await waitSaid(me, /You coaxed a bee/, 15000, from), me.chatLog.slice(from).join(' | '))
+  ;({ from } = await attempt('bee', 'poppy', '{NoAI:0b}', { at: [px + 2.5, Y + 1, pz + 0.5] }))
+  await waitSaid(me, /Stand still/, 4000, from)
+  await s.ask(`tp Wrangler ${px + 3.5} ${Y} ${pz + 0.5}`, 300)
+  check('moving starts the bee\'s puzzle over', await waitSaid(me, /You moved/, 4000, from), me.chatLog.slice(from).join(' | '))
+
+  // the allay: three notes from a note block, played by redstone here
+  await s.ask(`setblock ${px + 4} ${Y} ${pz - 2} minecraft:note_block`, 300)
+  ;({ from } = await attempt('allay', 'amethyst_shard', '{NoAI:1b}'))
+  check('an amethyst shard starts the allay\'s puzzle', await waitSaid(me, /note block/, 4000, from), me.chatLog.slice(from).join(' | '))
+  for (let i = 0; i < 3; i++) {
+    await s.ask(`setblock ${px + 5} ${Y} ${pz - 2} minecraft:redstone_block`, 400)
+    await s.ask(`setblock ${px + 5} ${Y} ${pz - 2} minecraft:air`, 400)
+  }
+  check('three notes coax the allay', await waitSaid(me, /You coaxed an allay/, 4000, from), me.chatLog.slice(from).join(' | '))
+
+  // the axolotl: both in the water
+  await s.ask(`fill ${px + 1} ${Y - 3} ${pz - 2} ${px + 5} ${Y - 1} ${pz + 2} minecraft:water`, 400)
+  ;({ from } = await attempt('axolotl', 'tropical_fish_bucket', '{NoAI:1b}', { at: [px + 2.5, Y - 2, pz + 0.5], standAt: [px - 1, pz] }))
+  check('out of the water, the axolotl won\'t play', await waitSaid(me, /need to be in the water/, 4000, from), me.chatLog.slice(from).join(' | '))
+  await s.ask(`tp Wrangler ${px + 1.5} ${Y - 2} ${pz + 0.5} -90 20`, 600)
+  from = me.chatLog.length
+  await poke(me, entity(me, e => e.name === 'axolotl'))
+  check('in the water, a bucket of tropical fish starts it', await waitSaid(me, /wants to play/, 4000, from), me.chatLog.slice(from).join(' | '))
+  check('15 seconds in the water coaxes the axolotl', await waitSaid(me, /You coaxed an axolotl/, 20000, from), me.chatLog.slice(from).join(' | '))
+  check('the bucket of fish isn\'t used up', me.inventory.items().some(i => i.name === 'tropical_fish_bucket'))
+  await s.ask(`fill ${px + 1} ${Y - 3} ${pz - 2} ${px + 5} ${Y - 1} ${pz + 2} minecraft:dirt`, 400)
+
+  for (const k of ['creeper', 'enderman', 'skeleton', 'iron_golem', 'fox', 'bee', 'allay', 'axolotl'])
+    check(`a coaxed ${k.replace('_', ' ')} is saved`, count(k) >= 1, file('Wrangler'))
+  from = me.chatLog.length
+  me.chat('/mobsquad hints')
+  check('/mobsquad hints lists every critter', await until(() => me.chatLog.slice(from).filter(l => /^\s+\w/.test(l)).length >= 9, 4000), me.chatLog.slice(from).join(' | '))
+}
+
+// ---------- fighting ----------
+if (!MENU) skip('fighting')
+else if (want('fighting')) {
+  section('Fighting hostile mobs only')
+  await s.ask('mobsquad xp Wrangler 40000', 300)
+  await s.ask('gamemode creative Wrangler', 300) // so hostile mobs leave the player alone and the critters pick the fight
+  await s.ask('clear Wrangler', 200)
+  await s.ask('gamemode creative Neighbor', 300)
+  await stand(other, 'Neighbor', X - 20, Z + 20)
+  for (const k of ['iron_golem', 'skeleton', 'allay']) await s.ask(`mobsquad give Wrangler ${k}`, 300) // fresh ones, none resting
+  await stand(me, 'Wrangler', X, Z, 0, 20)
+  const lines = critterLines('Wrangler')
+  const slot = k => lines.map(l => l.includes(' ' + k + ' ')).lastIndexOf(true)
+  const fx = X + 4, fz = Z - 4
+  await s.ask('kill @e[type=!player]', 400)
+  let w = await openBunkhouse(me, vault); await me.clickWindow(slot('iron_golem'), 0, 0); await sleep(300); await closeMenu(me)
+  await s.ask(`summon cow ${fx} ${Y} ${fz}`, 200)
+  await s.ask(`summon villager ${fx + 1} ${Y} ${fz}`, 200)
+  await s.ask(`summon husk ${fx - 2} ${Y} ${fz} {CustomName:"Gerald",PersistenceRequired:1b,NoAI:1b}`, 200)
+  await s.ask(`summon enderman ${fx + 2} ${Y} ${fz - 2}`, 200)
+  await s.ask(`summon wolf ${fx} ${Y} ${fz + 2} {Owner:[I; ${intIds.Neighbor}]}`, 200)
+  await s.ask(`summon husk ${fx + 3} ${Y} ${fz + 1} {Tags:["foe"],PersistenceRequired:1b,NoAI:1b}`, 600) // still, so it can't go after the villager
+  const golemDown = await until(async () => await s.count('@e[type=husk,tag=foe]') === 0, 25000, 500)
+  check('a golem critter takes down a hostile husk near its owner', golemDown,
+    `golems ${await s.count('@e[type=iron_golem]')}, foe health ${await health('@e[type=husk,tag=foe,limit=1]')}, ${(await s.ask('execute as @e[type=iron_golem,limit=1] run data get entity @s Pos', 300)).join(' ').slice(0, 120)}`)
+  await sleep(4000)
+  const full = async (sel, hp) => (await health(sel)) === hp
+  check('it leaves the cow alone', await full('@e[type=cow,limit=1]', 10))
+  check('it leaves the villager alone', await full('@e[type=villager,limit=1]', 20))
+  check('it leaves a named husk alone unless it starts something', await s.count('@e[type=husk,name=Gerald]') === 1)
+  check('it leaves a neutral enderman alone', await full('@e[type=enderman,limit=1]', 40))
+  check('it leaves another player\'s pet alone', await full('@e[type=wolf,limit=1]', 8) || await full('@e[type=wolf,limit=1]', 40))
+  w = await openBunkhouse(me, vault); await me.clickWindow(53, 0, 0); await sleep(300)
+  await s.ask('kill @e[type=!player]', 400)
+  await me.clickWindow(slot('skeleton'), 0, 0); await sleep(300); await closeMenu(me)
+  await stand(other, 'Neighbor', X + 3, Z - 5) // near the fight, beside the line of fire
+  await s.ask('gamemode survival Neighbor', 200)
+  other.hurt = 0
+  await s.ask(`summon husk ${X} ${Y} ${Z - 8} {Tags:["foe"],PersistenceRequired:1b,NoAI:1b}`, 600)
+  const shot = await until(async () => await s.count('@e[type=husk,tag=foe]') === 0, 30000, 500)
+  check('a skeleton critter shoots a hostile husk down', shot, `skeletons ${await s.count('@e[type=skeleton]')}, foe health ${await health('@e[type=husk,tag=foe,limit=1]')}, hand ${(await s.ask('data get entity @e[type=skeleton,limit=1] equipment.mainhand.id', 300)).join(' ').slice(-40)}`)
+  check('its arrows never hurt a player nearby', other.hurt === 0, `health ${other.health}`)
+  w = await openBunkhouse(me, vault); await me.clickWindow(53, 0, 0); await sleep(300)
+  await s.ask('kill @e[type=!player]', 400)
+  await me.clickWindow(slot('allay'), 0, 0); await sleep(300); await closeMenu(me)
+  await s.ask(`summon husk ${X + 3} ${Y} ${Z - 3} {Tags:["foe"],PersistenceRequired:1b}`, 600)
+  await sleep(6000)
+  check('the allay never fights', await full('@e[type=husk,tag=foe,limit=1]', 20))
+  w = await openBunkhouse(me, vault); await me.clickWindow(53, 0, 0); await sleep(300); await closeMenu(me)
+  await s.ask('kill @e[type=!player]', 400)
+  await s.ask('gamemode survival Wrangler', 300)
+}
+
+// ---------- vittles ----------
+if (!MENU) skip('vittles')
+else if (want('vittles')) {
+  section('Vittles')
+  await config({ 'recovery-minutes': 5 })
+  await s.ask('clear Wrangler', 200)
+  await stand(me, 'Wrangler', X, Z, 0, 20)
+  let w = await openBunkhouse(me, vault); await me.clickWindow(53, 0, 0); await sleep(300)
+  await me.clickWindow(0, 0, 0); await sleep(300); await closeMenu(me)
+  const name = critterLines('Wrangler')[0].split(' ')[6]
+  let from = me.chatLog.length
+  await s.ask(`damage @e[name=${decodeURIComponent(name)},limit=1] 500 minecraft:generic`, 600)
+  check('a critter is tuckered out', await waitSaid(me, /tuckered out/, 4000, from))
+  await s.ask('mobsquad vittles Wrangler 2', 400)
+  await until(() => me.inventory.items().some(i => i.name === 'pumpkin_pie'), 4000)
+  await me.equip(me.inventory.items().find(i => i.name === 'pumpkin_pie'), 'hand')
+  from = me.chatLog.length
+  me.activateItem(); await sleep(300); me.deactivateItem()
+  check('vittles perk it up and it comes running', await waitSaid(me, /perked right up and came running/, 4000, from), me.chatLog.slice(from).join(' | '))
+  check('its rest is cleared in the file', +critterLines('Wrangler')[0].split(' ')[5] === 0, critterLines('Wrangler')[0])
+  check('one bundle is used', me.inventory.items().find(i => i.name === 'pumpkin_pie')?.count === 1)
+  const stillTired = critterLines('Wrangler').some(l => +l.split(' ')[5] > Date.now())
+  from = me.chatLog.length
+  me.activateItem(); await sleep(300); me.deactivateItem()
+  if (stillTired) check('a second bundle perks up the next tired critter', await waitSaid(me, /perked right up/, 4000, from), me.chatLog.slice(from).join(' | '))
+  from = me.chatLog.length
+  const left = me.inventory.items().find(i => i.name === 'pumpkin_pie')?.count ?? 0
+  if (left) { me.activateItem(); await sleep(300); me.deactivateItem() }
+  else { await s.ask('mobsquad vittles Wrangler 1', 400); await until(() => me.inventory.items().some(i => i.name === 'pumpkin_pie'), 4000); await me.equip(me.inventory.items().find(i => i.name === 'pumpkin_pie'), 'hand'); me.activateItem(); await sleep(300); me.deactivateItem() }
+  check('with nobody tuckered out, vittles say so and stay', await waitSaid(me, /needs vittles/, 4000, from) && (me.inventory.items().find(i => i.name === 'pumpkin_pie')?.count ?? 0) >= 1, me.chatLog.slice(from).join(' | '))
+  w = await openBunkhouse(me, vault); await me.clickWindow(53, 0, 0); await sleep(300); await closeMenu(me)
+  await config({ 'recovery-minutes': 0 })
+}
+
 // ---------- leaving, restarts and crashes ----------
 if (!MENU) skip('persist')
 else if (want('persist')) {
@@ -387,6 +611,7 @@ else if (want('persist')) {
   check('after a crash the critter isn\'t left in the world', await s.count('@e[type=chicken]') === 0)
   check('after a crash the list is whole, with no copy', critterLines('Wrangler').length === count)
 }
+
 
 // ---------- worlds where MobSquad is off ----------
 if (!MENU) skip('worlds')
