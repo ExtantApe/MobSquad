@@ -2,6 +2,14 @@
 
 Kept by this repo's owning session, per `~/Code/CLAUDE.md`, "Test self-audits". Newest first.
 
+## 2026-11-15: 0.5.0
+
+- Promises added: README "The sidekick" and the level 25 additions to four specials, CHANGELOG 0.5.0, the sidekick and later-specials decisions.
+- Covered by unit tests (ModelTest): 10 hours needed; a day with nobody eligible doesn't use the roll; the roll is small and once a day; one sidekick per player, only from critters out; sidekick, roll day and minutes round-trip; a sidekick not in the list is dropped; minutes out add up with their experience.
+- Covered by bots (164 checks on 26.1.2 and 26.2, 75 on 26.3): an admin sets and clears a sidekick; it comes out on its own and is saved; it doesn't count toward the posse; the menu, its bell and the dinnerbell leave it out (the menu parts on 26.1.2 and 26.2); it goes when its owner leaves and comes back when they return; tuckered out, it rests and comes back once rested; cleared, the dinnerbell calls it home. From level 25: the bee's sting makes a husk glow; the fox's first hit is double; the chicken lays a speedy egg at your feet, and using it gives speed without throwing it; the skeleton shares two arrows when you carry a bow.
+- Gaps skipped: the real daily roll (needs 10 hours out; the logic is unit tested and the server only feeds it the day and the critters out); milestone growth of the four additions (plain numbers from the stage, same path as covered); a sidekick following through a world change (the same keep-beside-you loop as rejoining, which is covered).
+- Gaps for later: travelling with a sidekick through a gate, when the Waystation hook lands.
+
 ## 2026-11-15: 0.4.0
 
 - Promises added: README "La Ménagerie", the journal command, CHANGELOG 0.4.0, the Critterbook decisions.

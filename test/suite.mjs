@@ -674,6 +674,34 @@ else if (want('specials')) {
   check('with a player close by it never blasts, only hits one at a time', firstHurt && firstHurt.some(h => h === 20), firstHurt)
   await s.ask(`tp Neighbor ${X - 20} ${Y} ${Z + 20}`, 300)
 
+  // the later parts of four specials, from level 25
+  await s.ask('mobsquad give Wrangler skeleton', 250)
+  for (const k of ['chicken', 'bee', 'fox', 'skeleton']) await s.ask(`mobsquad level Wrangler ${k} 25`, 250)
+  await sendOnly('bee')
+  await s.ask(`summon husk ${X + 3} ${Y} ${Z - 3} {Tags:["foe"],PersistenceRequired:1b,NoAI:1b}`, 300)
+  check('from level 25 the bee\'s sting makes a hostile mob glow', await until(async () => /glowing/.test(await effects('@e[tag=foe,limit=1]')), 15000, 500))
+  await sendOnly('fox')
+  await stand(me, 'Wrangler', X, Z, 0, 20)
+  await s.ask(`summon husk ${X} ${Y} ${Z - 6} {Tags:["foe"],PersistenceRequired:1b,NoAI:1b,attributes:[{id:"minecraft:armor",base:0}]}`, 200)
+  const drops = []; let last = 20
+  await until(async () => { const h = await health('@e[tag=foe,limit=1]'); if (h === null) return true; if (h < last) { drops.push(+(last - h).toFixed(2)); last = h } return drops.length >= 2 }, 20000, 150)
+  check('from level 25 the fox pounces for a double first hit', drops.length >= 2 && drops[0] > 1.7 * drops[1], drops.join(', '))
+  await sendOnly('chicken')
+  await s.ask('clear Wrangler', 200)
+  check('from level 25 the chicken lays a speedy egg at your feet', await until(() => me.inventory.items().some(i => i.name === 'egg'), 45000, 500))
+  if (me.inventory.items().some(i => i.name === 'egg')) {
+    await me.equip(me.inventory.items().find(i => i.name === 'egg'), 'hand')
+    await s.ask('effect clear Wrangler', 200)
+    me.activateItem(); await sleep(600)
+    check('using it gives a burst of speed, and it isn\'t thrown', /speed/.test(await effects('Wrangler')) && await s.count('@e[type=chicken]') === 1 && !me.inventory.items().some(i => i.name === 'egg'))
+  }
+  await sendOnly('skeleton')
+  await s.ask('clear Wrangler', 200)
+  await s.ask('give Wrangler minecraft:bow', 300)
+  check('from level 25 the skeleton shares arrows when you carry a bow', await until(() => (me.inventory.items().find(i => i.name === 'arrow')?.count ?? 0) === 2, 45000, 500),
+    me.inventory.items().map(i => i.name + 'x' + i.count).join(','))
+  await s.ask('clear Wrangler', 200)
+
   // the iron golem: experience, levels and its guard
   await sendOnly('iron_golem')
   await s.ask(`summon husk ${X + 3} ${Y} ${Z - 3} {Tags:["foe"],PersistenceRequired:1b,NoAI:1b}`, 600)
@@ -760,6 +788,59 @@ if (want('journal')) {
   }
   await s.ask(`kill @e[type=!player,x=${JX},y=${Y},z=${JZ},distance=..40]`, 300)
   await quit(scout)
+}
+
+// ---------- the sidekick ----------
+if (want('sidekick')) {
+  section('The sidekick')
+  await config({ 'recovery-minutes': 0 })
+  let buddy = await bot('Buddy', { physics: PHYSICS })
+  await uuidOf('Buddy')
+  await s.ask('gamemode creative Buddy', 200)
+  await stand(buddy, 'Buddy', X - 3, Z, 0, 20)
+  await s.ask(`kill @e[type=!player,x=${X},y=${Y},z=${Z},distance=..30]`, 300)
+  await s.ask('kill @e[type=bee]', 200); await s.ask('kill @e[type=chicken]', 200) // wild ones left by the coaxing section (name= matches them too)
+  for (const k of ['bee', 'chicken']) await s.ask(`mobsquad give Buddy ${k}`, 250)
+  const near = async (kind) => s.count(`@e[type=${kind},name=${kind === 'bee' ? 'Bee' : 'Chicken'},x=${X - 3},y=${Y},z=${Z},distance=..12]`) // critters carry their name; wild ones from coaxing don't
+  let out = (await s.ask('mobsquad sidekick Buddy bee', 400)).join(' ')
+  check('an admin can make a critter someone\'s sidekick', /is Buddy's sidekick now/.test(out), out)
+  check('the sidekick comes out on its own', await until(async () => await near('bee') === 1, 5000, 300))
+  check('it\'s saved', /^sidekick /m.test(file('Buddy')), file('Buddy'))
+  if (MENU) {
+    await openBunkhouse(buddy, vault)
+    const lines = critterLines('Buddy'), slot = k => lines.map(l => l.split(' ')[2] === k).indexOf(true)
+    let from = buddy.chatLog.length
+    await buddy.clickWindow(slot('chicken'), 0, 0); await sleep(500)
+    check('it doesn\'t count toward the posse', await waitSaid(buddy, /is out with you/, 3000, from), buddy.chatLog.slice(from).join(' | '))
+    from = buddy.chatLog.length
+    await buddy.clickWindow(slot('bee'), 0, 0); await sleep(500)
+    check('it won\'t go back into the Bunkhouse', await waitSaid(buddy, /won't leave your side/, 3000, from) && await near('bee') === 1, buddy.chatLog.slice(from).join(' | '))
+    await buddy.clickWindow(53, 0, 0); await sleep(600); await closeMenu(buddy)
+    check('the call-back bell leaves it out', await near('bee') === 1 && await near('chicken') === 0)
+  }
+  buddy.chat('/mobsquad dinnerbell')
+  await until(() => buddy.inventory.items().some(i => i.name === 'warped_fungus_on_a_stick'), 4000)
+  const bell = buddy.inventory.items().find(i => i.name === 'warped_fungus_on_a_stick')
+  if (bell) {
+    await buddy.equip(bell, 'hand'); buddy.activateItem(); await sleep(600); buddy.deactivateItem()
+    check('so does the dinnerbell', await near('bee') === 1)
+  }
+  await s.ask('kick Buddy', 300); await quit(buddy); await sleep(1000) // a kick, because a 26.3 bot's own disconnect can take a while to land
+  const gone = (await s.ask('list', 300)).join(' ')
+  check('it goes when you leave', await until(async () => await s.count('@e[type=bee,name=Bee]') === 0, 6000, 300), gone)
+  await sleep(61000) // GriefPrevention makes a brand-new player wait a minute before logging in again
+  buddy = await bot('Buddy', { physics: PHYSICS })
+  await stand(buddy, 'Buddy', X - 3, Z, 0, 20)
+  check('and comes back when you return', await until(async () => await near('bee') === 1, 6000, 300))
+  let from = buddy.chatLog.length
+  await s.ask(`damage @e[type=bee,name=Bee,x=${X - 3},y=${Y},z=${Z},distance=..12,limit=1] 500 minecraft:generic`, 600)
+  check('tuckered out, it rests', await waitSaid(buddy, /tuckered out/, 4000, from))
+  check('and comes back on its own once rested', await until(async () => await near('bee') === 1, 6000, 300))
+  out = (await s.ask('mobsquad sidekick Buddy none', 400)).join(' ')
+  check('an admin can clear it', /has no sidekick now/.test(out), out)
+  await buddy.equip(buddy.inventory.items().find(i => i.name === 'warped_fungus_on_a_stick'), 'hand'); buddy.activateItem(); await sleep(600); buddy.deactivateItem()
+  check('then the dinnerbell calls it home like anyone', await until(async () => await near('bee') === 0, 3000, 300))
+  await quit(buddy)
 }
 
 // ---------- vittles ----------

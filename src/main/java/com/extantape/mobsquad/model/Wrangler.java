@@ -10,6 +10,9 @@ public final class Wrangler {
     public long wranglinXp;
     public final List<Critter> critters = new ArrayList<>();
     /** The La Ménagerie pages this player has opened. */
+    /** This player's sidekick, if they have one, and the last day (epoch day) they rolled for one. */
+    public UUID sidekick;
+    public long sidekickRoll;
     public final java.util.Set<Species> pages = java.util.EnumSet.noneOf(Species.class);
 
     public Wrangler(UUID player) {

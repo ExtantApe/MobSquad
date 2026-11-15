@@ -51,8 +51,7 @@ public final class Dinnerbell implements Listener {
         if (!is(event.getItem())) return;
         event.setCancelled(true);
         Player p = event.getPlayer();
-        int n = squads.posse().of(p.getUniqueId()).size();
-        squads.posse().backAll(p.getUniqueId());
+        int n = squads.posse().recall(p.getUniqueId()); // a sidekick stays
         p.playSound(p.getLocation(), Sound.BLOCK_BELL_USE, 0.8f, 1.2f);
         p.sendMessage(Component.text(n == 0 ? "Nobody's out with you." : n == 1 ? "Your critter is headed home." : "All " + n + " critters are headed home.", NamedTextColor.GREEN));
     }

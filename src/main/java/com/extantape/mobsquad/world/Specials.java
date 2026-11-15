@@ -70,7 +70,7 @@ public final class Specials implements Runnable, Listener {
 
     private final Plugin plugin;
     private final Squads squads;
-    private final NamespacedKey fetchFor, fetched;
+    private final NamespacedKey fetchFor, fetched, speedy;
     /** Critters busy with a special right now, and what they're doing. */
     private final Map<UUID, Job> jobs = new HashMap<>();
     /** Which critters hit a hostile mob, and when. */
@@ -92,6 +92,7 @@ public final class Specials implements Runnable, Listener {
         this.squads = squads;
         this.fetchFor = new NamespacedKey(plugin, "fetch-for");
         this.fetched = new NamespacedKey(plugin, "fetched");
+        this.speedy = new NamespacedKey(plugin, "speedy");
     }
 
     private Posse posse() {
@@ -126,14 +127,76 @@ public final class Specials implements Runnable, Listener {
             Player p = Bukkit.getPlayer(o.owner());
             if (p == null || !o.mob().isValid()) continue;
             switch (o.critter().species()) {
-                case CHICKEN -> p.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_FALLING, 50, 0, true, false, true));
+                case CHICKEN -> {
+                    p.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_FALLING, 50, 0, true, false, true));
+                    speedyEgg(o, p, now);
+                }
+                case SKELETON -> shareArrows(o, p, now);
                 case AXOLOTL -> axolotl(o, p);
                 case BEE -> bee(o);
                 case FOX -> fox(o, p);
                 default -> {}
             }
-            if (minute) squads.critterXp(o, Growth.WALK_XP);
         }
+        if (minute) for (Player p : Bukkit.getOnlinePlayers()) squads.minuteOut(p, posse().of(p.getUniqueId()));
+        squads.keepSidekicks();
+    }
+
+    /** When a critter's next gift is due (the chicken's egg, the skeleton's arrows), by critter. */
+    private final Map<UUID, Long> nextGift = new HashMap<>();
+    /** The first gift comes this long after a critter goes out. */
+    static final long FIRST_GIFT_MS = 30_000;
+
+    private boolean giftDue(Posse.Out o, long now, long everyMs) {
+        Long due = nextGift.get(o.critter().id());
+        if (due == null) { nextGift.put(o.critter().id(), now + FIRST_GIFT_MS); return false; }
+        if (now < due) return false;
+        nextGift.put(o.critter().id(), now + everyMs);
+        return true;
+    }
+
+    /**
+     * From level 25, the chicken lays a speedy egg every 5 minutes, a minute sooner at each later milestone. Using one
+     * gives you Speed II for 10 seconds, Speed III from level 75. Only its owner can pick it up.
+     */
+    private void speedyEgg(Posse.Out o, Player p, long now) {
+        int s = stage(o);
+        if (s < 1 || !giftDue(o, now, (300 - 60L * (s - 1)) * 1000)) return;
+        ItemStack egg = new ItemStack(Material.EGG);
+        egg.editMeta(m -> {
+            m.customName(Component.text("Speedy egg", NamedTextColor.YELLOW).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false));
+            m.lore(List.of(Component.text("Right-click for a burst of speed.", NamedTextColor.GRAY).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false)));
+            m.getPersistentDataContainer().set(speedy, PersistentDataType.INTEGER, s >= 3 ? 2 : 1);
+        });
+        Item dropped = p.getWorld().dropItem(p.getLocation(), egg); // at your feet, so nobody has to hunt for it
+        dropped.setOwner(p.getUniqueId());
+        o.mob().getWorld().playSound(o.mob().getLocation(), Sound.ENTITY_CHICKEN_EGG, 1f, 1f);
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onEgg(PlayerInteractEvent event) {
+        if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+        ItemStack hand = event.getItem();
+        if (hand == null || hand.getType() != Material.EGG || !hand.hasItemMeta()) return;
+        Integer amp = hand.getItemMeta().getPersistentDataContainer().get(speedy, PersistentDataType.INTEGER);
+        if (amp == null) return;
+        event.setCancelled(true); // eaten for speed, never thrown
+        Player p = event.getPlayer();
+        if (p.getGameMode() != org.bukkit.GameMode.CREATIVE) hand.subtract();
+        p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 200, amp, false, true, true));
+        p.playSound(p.getLocation(), Sound.ENTITY_GENERIC_EAT, 0.6f, 1.6f);
+    }
+
+    /**
+     * From level 25, the skeleton shares arrows when you carry a bow or crossbow: two every 2 minutes, one more and 20
+     * seconds sooner at each later milestone.
+     */
+    private void shareArrows(Posse.Out o, Player p, long now) {
+        int s = stage(o);
+        if (s < 1 || !giftDue(o, now, (120 - 20L * (s - 1)) * 1000)) return;
+        if (!p.getInventory().contains(Material.BOW) && !p.getInventory().contains(Material.CROSSBOW)) return;
+        give(p, new ItemStack(Material.ARROW, 1 + s));
+        p.sendActionBar(Component.text(o.critter().name() + " shares " + (1 + s) + " arrows.", NamedTextColor.GRAY));
     }
 
     /** Water breathing and regeneration within 6 blocks, 2 more at each milestone; regeneration II from level 75. */
@@ -447,6 +510,7 @@ public final class Specials implements Runnable, Listener {
 
     void forget(UUID critter) {
         jobs.remove(critter);
+        nextGift.remove(critter);
         cooldowns.keySet().removeIf(k -> k.startsWith(critter.toString()));
         armed.values().removeIf(a -> a.critter.equals(critter));
     }

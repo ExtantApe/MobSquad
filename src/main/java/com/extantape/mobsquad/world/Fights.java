@@ -32,7 +32,8 @@ public final class Fights {
     private final Posse posse;
     private final Map<UUID, LivingEntity> targets = new HashMap<>();
     private final Map<UUID, Long> lastHit = new HashMap<>();
-    private final Map<UUID, Long> lastBlast = new HashMap<>();
+    private final Map<UUID, Long> lastBlast = new HashMap<>(), lastPounce = new HashMap<>();
+    private final Map<UUID, Boolean> pounced = new HashMap<>();
     static final long PROVOKED_MS = 30_000;
     private final Map<UUID, Long> provoked = new HashMap<>();
     private final Map<UUID, UUID> provokedOwner = new HashMap<>();
@@ -110,7 +111,16 @@ public final class Fights {
         double power = s.attack * Growth.attack(level);
         if (s == Species.CREEPER && m.getLocation().distance(t.getLocation()) <= 3 && blast(o, t, power, stage)) return true;
         double reach = 1.6 + (m.getWidth() + t.getWidth()) / 2;
-        if (m.getLocation().distance(t.getLocation()) > reach) {
+        double gap = m.getLocation().distance(t.getLocation());
+        if (s == Species.FOX && stage >= 1 && gap > reach && gap <= 6 && !m.equals(t instanceof Mob tm ? tm.getTarget() : null) && m.isOnGround()
+            && System.currentTimeMillis() - lastPounce.getOrDefault(id, 0L) >= 8000 - 1000L * (stage - 1)) {
+            lastPounce.put(id, System.currentTimeMillis()); // from hiding: a leap at a mob that isn't after it, and a double hit
+            pounced.put(id, Boolean.TRUE);
+            org.bukkit.util.Vector leap = t.getLocation().toVector().subtract(m.getLocation().toVector());
+            m.setVelocity(leap.setY(0).normalize().multiply(Math.min(1.2, gap * 0.22)).setY(0.45));
+            return true;
+        }
+        if (gap > reach) {
             m.getPathfinder().moveTo(t, 1.3);
         } else {
             long now = System.currentTimeMillis();
@@ -118,7 +128,10 @@ public final class Fights {
                 lastHit.put(id, now);
                 m.lookAt(t);
                 m.swingMainHand();
-                t.damage(power, DamageSource.builder(DamageType.MOB_ATTACK).withCausingEntity(m).withDirectEntity(m).build());
+                boolean pounce = pounced.remove(id) != null;
+                t.damage(pounce ? power * 2 : power, DamageSource.builder(DamageType.MOB_ATTACK).withCausingEntity(m).withDirectEntity(m).build());
+                if (s == Species.BEE && stage >= 1 && t.isValid()) // a sting that makes it glow
+                    t.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.GLOWING, 20 * (10 + 5 * (stage - 1)), 0));
                 if (s == Species.IRON_GOLEM && t.isValid()) { // throws it back
                     org.bukkit.util.Vector away = t.getLocation().toVector().subtract(m.getLocation().toVector()).setY(0);
                     if (away.lengthSquared() > 0) away.normalize();
@@ -204,5 +217,7 @@ public final class Fights {
         targets.remove(critter);
         lastHit.remove(critter);
         lastBlast.remove(critter);
+        lastPounce.remove(critter);
+        pounced.remove(critter);
     }
 }

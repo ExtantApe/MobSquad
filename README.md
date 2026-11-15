@@ -2,7 +2,7 @@
 
 Coax mobs into critters for Paper: they follow you, fight only hostile mobs, and live safely in a shared Bunkhouse. No client mods. Gotta coax em all... Pokemob!
 
-**Status:** 0.4.0. La Ménagerie, the journal, with Critterbook numbers. Passed with bots on throwaway Paper 26.1.2 and 26.2 servers (147 checks each). On 26.3 the bots can't use blocks, so the Bunkhouse menu and everything sent out from it didn't run there (65 checks ran). Bots can't crouch where the server sees it, so the creeper and fox puzzles were tested with a test-only stand-in for crouching; real crouching is untested. The skeleton's longer range and the enderman's teleport out of trouble have no bot test yet. Nothing has been seen in a real game client yet, including how the journal looks.
+**Status:** 0.5.0. The sidekick, and the later parts of four specials. Passed with bots on throwaway Paper 26.1.2 and 26.2 servers (164 checks each). On 26.3 the bots can't use blocks, so the Bunkhouse menu and everything sent out from it didn't run there (75 checks ran). Bots can't crouch where the server sees it, so the creeper and fox puzzles were tested with a test-only stand-in for crouching; real crouching is untested. The daily sidekick roll is covered by unit tests only, since it needs 10 hours out. Nothing has been seen in a real game client yet.
 
 ## What it does
 
@@ -10,16 +10,17 @@ Coax mobs into critters for Paper: they follow you, fight only hostile mobs, and
 - **Fighting.** Critters fight hostile mobs only: the ones after you or your critters, and other hostile mobs near you that aren't neutral or named. They never hurt players, pets, villagers or farm animals. The skeleton shoots and the allay never fights.
 - **Levels.** Each critter has its own level, 1 to 100. It earns experience for every hostile mob it helps beat (the mob's max health, so 20 for a zombie) and 2 for every minute out with you. Health, attack and speed grow a little each level and slow near the top: at level 100 a critter has four times its health, three times its attack and a fifth more speed. The Bunkhouse menu shows each critter's level, how far it is from the next and its special.
 - **Specials.** Every critter has one, and it grows at levels 25, 50, 75 and 100.
-  - Chicken: you fall slowly while it's out.
+  - Chicken: you fall slowly while it's out. From level 25 it lays a speedy egg at your feet every 5 minutes (a minute sooner at each later milestone); right-click it for Speed II for 10 seconds, Speed III from level 75.
   - Axolotl: water breathing and regeneration while you're within 6 blocks of it. It goes after drowned and guardians first, and plays dead and heals when it's badly hurt.
-  - Bee: crops near it grow faster, one crop a second.
-  - Fox: fetches items you drop or leave behind (drops from blocks you break and mobs you beat), after they've lain 5 seconds. It never touches anyone else's.
+  - Bee: crops near it grow faster, one crop a second. From level 25 its sting makes a hostile mob glow, so you can see it through walls.
+  - Fox: fetches items you drop or leave behind (drops from blocks you break and mobs you beat), after they've lain 5 seconds. It never touches anyone else's. From level 25 it pounces on a hostile mob that isn't after it, for a double first hit.
   - Allay: right-click it holding an ore, a raw ore or a gem, and it flies to the nearest matching ore within 8 blocks of you.
   - Creeper: a blast that hurts only the hostile mobs around its target and breaks nothing. It never goes off with a player within 6 blocks.
   - Enderman: right-click it, then swing at a block within 8 blocks, and it fetches it for you. Only blocks an enderman can carry, and only where you could dig yourself, so claims say no. When it's badly hurt, it teleports to you.
-  - Skeleton: covering fire from 15 blocks, reaching further and shooting faster at each milestone.
+  - Skeleton: covering fire from 15 blocks, reaching further and shooting faster at each milestone. From level 25 it shares two arrows every 2 minutes while you carry a bow or crossbow.
   - Iron golem: takes a quarter of any hostile mob's hit on you within 8 blocks, and throws the mobs it hits back.
 - **La Ménagerie.** Your journal, with a page for each critter: its Critterbook number, a line about it, how to coax it and its special. A page opens the first time you're within 10 blocks of that critter and can see it, or when you get one. `/mobsquad journal` or the book in the Bunkhouse menu opens it. Critterbook numbers follow the order each mob first appeared in Minecraft Java Edition, so the creeper is No. 1 and the allay No. 75. Every mob in the game has a number already, and the numbers never change.
+- **The sidekick.** A critter that has spent 10 hours out with you has a 1 in 10 chance each day of becoming your sidekick. It goes everywhere with you: it comes out when you join, after a world change and after a rest, and the Bunkhouse menu, its bell and the dinnerbell leave it be. It doesn't count toward your posse. One per player.
 - **Vittles.** Right-click them to perk up a tuckered-out critter on the spot. Craft two from bread, a carrot and sweet berries.
 - **Bunkhouses.** An admin marks a vault block as a Bunkhouse. Anyone who right-clicks it sees only their own critters. Click one to send it out or call it back. Critters never exist as items, so they can't be dropped, traded or duplicated.
 - **Following.** A critter out with you walks after you and steps beside you if it's left more than 24 blocks behind.
@@ -48,6 +49,7 @@ Settings are in `plugins/MobSquad/config.yml`: worlds where MobSquad is off, the
 | `/mobsquad vittles <player> [amount]` | admins | Gives vittles. |
 | `/mobsquad xp <player> <amount>` | admins | Sets a player's Wranglin' experience. |
 | `/mobsquad level <player> <critter> <level>` | admins | Sets every critter of that kind a player has to a level. |
+| `/mobsquad sidekick <player> <critter\|none>` | admins | Makes a player's critter of that kind their sidekick, or clears it. |
 | `/mobsquad reload` | admins | Rereads config.yml. |
 
 `/ms` works too. Permissions: `mobsquad.use` (everyone) and `mobsquad.admin` (ops).

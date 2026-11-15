@@ -119,6 +119,13 @@ public final class MobSquadPlugin extends JavaPlugin {
                             for (Species s : Species.values()) if (s.id().startsWith(b.getRemainingLowerCase())) b.suggest(s.id());
                             return b.buildFuture();
                         }).then(Commands.argument("level", IntegerArgumentType.integer(1, Growth.MAX)).executes(this::level)))))
+                .then(Commands.literal("sidekick").requires(src -> src.getSender().hasPermission("mobsquad.admin"))
+                    .then(Commands.argument("player", ArgumentTypes.player())
+                        .then(Commands.argument("critter", StringArgumentType.word()).suggests((c, b) -> {
+                            b.suggest("none");
+                            for (Species s : Species.values()) if (s.id().startsWith(b.getRemainingLowerCase())) b.suggest(s.id());
+                            return b.buildFuture();
+                        }).executes(this::sidekick))))
                 .then(Commands.literal("reload").requires(src -> src.getSender().hasPermission("mobsquad.admin")).executes(this::reload))
                 .build(),
             "Your critters, the dinnerbell, and admin tools for Bunkhouses.", List.of("ms")));
@@ -281,6 +288,31 @@ public final class MobSquadPlugin extends JavaPlugin {
         say(c, n == 0 ? p.getName() + " has no " + kind + "." : "[MobSquad] set " + n + " of " + p.getName() + "'s " + kind + (n == 1 ? "" : "s") + " to level " + level + ".",
             n == 0 ? NamedTextColor.YELLOW : NamedTextColor.GREEN);
         return n == 0 ? 0 : Command.SINGLE_SUCCESS;
+    }
+
+    /** Makes a player's first critter of a kind their sidekick, or clears it with "none". */
+    private int sidekick(CommandContext<CommandSourceStack> c) throws CommandSyntaxException {
+        Player p = c.getArgument("player", PlayerSelectorArgumentResolver.class).resolve(c.getSource()).getFirst();
+        Wrangler w = squads.get(p);
+        if (w == null) {
+            say(c, p.getName() + "'s Bunkhouse list can't be read right now; see the server log.", NamedTextColor.RED);
+            return 0;
+        }
+        String kind = c.getArgument("critter", String.class);
+        if (kind.equals("none")) {
+            squads.setSidekick(p, null);
+            say(c, "[MobSquad] " + p.getName() + " has no sidekick now.", NamedTextColor.GREEN);
+            return Command.SINGLE_SUCCESS;
+        }
+        Species s = Species.byId(kind);
+        Critter pick = s == null ? null : w.critters.stream().filter(cr -> cr.species() == s).findFirst().orElse(null);
+        if (pick == null) {
+            say(c, p.getName() + " has no " + kind.replace('_', ' ') + ".", NamedTextColor.YELLOW);
+            return 0;
+        }
+        squads.setSidekick(p, pick);
+        say(c, "[MobSquad] " + pick.name() + " is " + p.getName() + "'s sidekick now.", NamedTextColor.GREEN);
+        return Command.SINGLE_SUCCESS;
     }
 
     private int reload(CommandContext<CommandSourceStack> c) {

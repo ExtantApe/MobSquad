@@ -33,6 +33,7 @@ public final class Squads {
 
     public void posse(Posse posse) {
         this.posse = posse;
+        posse.sidekicks(id -> online.values().stream().anyMatch(w -> id.equals(w.sidekick)));
     }
 
     public void settings(Settings settings) {
@@ -115,10 +116,64 @@ public final class Squads {
         posse.update(n);
         if (n.level() == c.level()) return;
         save(w);
+        leveled(p, c, n);
+    }
+
+    private void leveled(Player p, Critter c, Critter n) {
         p.sendMessage(Component.text(n.name() + " is now level " + n.level() + ".", NamedTextColor.GOLD));
         if (com.extantape.mobsquad.model.Growth.stage(n.level()) > com.extantape.mobsquad.model.Growth.stage(c.level()))
             p.sendMessage(Component.text("Its special grows stronger: " + n.species().special, NamedTextColor.LIGHT_PURPLE));
         p.playSound(p.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 0.6f, 1.4f);
+    }
+
+    public boolean isSidekick(UUID owner, UUID critter) {
+        Wrangler w = online.get(owner);
+        return w != null && critter.equals(w.sidekick);
+    }
+
+    /** A minute out: time together and walking experience, then today's sidekick roll. */
+    public void minuteOut(Player p, java.util.List<Posse.Out> out) {
+        Wrangler w = get(p);
+        if (w == null || out.isEmpty()) return;
+        java.util.List<UUID> ids = new java.util.ArrayList<>();
+        for (Posse.Out o : out) {
+            Critter c = w.find(o.critter().id());
+            if (c == null) continue;
+            ids.add(c.id());
+            Critter n = c.minuteOut(com.extantape.mobsquad.model.Growth.WALK_XP);
+            w.replace(n);
+            posse.update(n);
+            if (n.level() > c.level()) leveled(p, c, n);
+        }
+        long day = java.time.LocalDate.now().toEpochDay();
+        Critter chosen = com.extantape.mobsquad.model.Sidekicks.roll(w, ids, day, java.util.concurrent.ThreadLocalRandom.current()::nextDouble);
+        if (chosen != null) {
+            p.sendMessage(Component.text(chosen.name() + " has decided you're its favorite person. It's your sidekick now: it goes everywhere with you and doesn't count toward your posse.", NamedTextColor.GOLD));
+            p.playSound(p.getLocation(), org.bukkit.Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.7f, 1.2f);
+        }
+        save(w);
+    }
+
+    /** Makes someone a player's sidekick, or nobody (admins). */
+    public void setSidekick(Player p, Critter c) {
+        Wrangler w = get(p);
+        if (w == null) return;
+        w.sidekick = c == null ? null : c.id();
+        save(w);
+    }
+
+    /** Puts each online player's sidekick beside them whenever it can be: after joining, a world change, a rest. */
+    public void keepSidekicks() {
+        long now = System.currentTimeMillis();
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            Wrangler w = online.get(p.getUniqueId());
+            if (w == null || w.sidekick == null || posse.isOut(w.sidekick)) continue;
+            Critter c = w.find(w.sidekick);
+            if (c == null || c.resting(now) || p.isDead() || p.getGameMode() == org.bukkit.GameMode.SPECTATOR) continue;
+            if (!settings.enabledIn(p.getWorld().getName()) || !p.hasPermission("mobsquad.use") || !Levels.unlocked(c.species().tier, wranglinLevel(p))) continue;
+            posse.send(p, c);
+            p.sendActionBar(Component.text(c.name() + " is at your side.", NamedTextColor.GOLD));
+        }
     }
 
     /** Out of health: back to the Bunkhouse to rest a few real minutes. */
