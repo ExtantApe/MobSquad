@@ -56,3 +56,14 @@ Kept by this repo's owning session, per `~/Code/CLAUDE.md`, "Test self-audits". 
 - Covered: none yet.
 - Gaps added: none.
 - Gaps skipped (and why): none.
+
+## 2026-11-15: API (0.7.0)
+
+| Promise | Test |
+| --- | --- |
+| The allay never fights; every other critter has damage | unit `theAllayNeverFightsAndEveryOtherCritterDoes` |
+| Stats grow the same way as in the world | unit `statsGrowWithLevelTheSameWayAsInTheWorld`, `theSkeletonsDamageIsItsArrow` |
+| An unknown species does no damage | unit `anUnknownSpeciesIsHarmless` |
+| The critter view is a read-only copy with the resting state | unit `infoCopiesTheCritterAndSaysWhenItsResting` |
+
+**Gaps:** the services-manager registration, `sendHome` and `keepOff` on a running server. MobShowdown's bot tests cover them, since they're what calls them.
