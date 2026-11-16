@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.0
+
+An API for other plugins, for MobShowdown.
+
+- **MobSquadApi**, from Bukkit's services manager: a player's critters (read-only), whether they have one out, sending them home, whether MobSquad is on in a world, keeping it off in another plugin's private world until the server stops, and a critter's strength at a level. Nothing in it lets another plugin add, remove or change a critter.
+- Nothing changes for players.
+
 ## 0.6.0
 
 Wranglin' in AuraSkills.

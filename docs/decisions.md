@@ -35,3 +35,8 @@ Dated decisions for this repo, newest last.
 - 2026-11-15: until the Waystation hook exists, a sidekick never goes into the Bunkhouse on a player's say. It still leaves the world like any critter when its owner leaves, the server stops, or it's tuckered out, and comes back on its own when it can. A disabled world or a locked tier keeps it home.
 - 2026-11-15: the brief's "later" parts of four specials unlock at level 25, the first milestone, and grow at the next ones: speedy eggs (first one 30 seconds after going out, then every 5 minutes, a minute sooner per later milestone; Speed II, III from level 75), the glowing sting (10 seconds, 5 more per later milestone), the pounce (a leap of up to 6 blocks at a mob not targeting the fox, double damage on the first hit, every 8 seconds, a second sooner per later milestone) and shared arrows (two every 2 minutes while carrying a bow or crossbow, one more and 20 seconds sooner per later milestone).
 - 2026-11-15: speedy eggs can be picked up only by the chicken's owner and are used, never thrown, so they can't hatch chickens.
+
+## 2026-11-15
+
+- **API for MobShowdown (K605):** MobSquad exposes a read-only API through Bukkit's services manager, so MobShowdown builds on it as the brief says ("MobShowdown: battles, built on MobSquad's API"). Arena fights use MobShowdown's own stand-in mobs, so MobSquad's safety rules (critters fight hostile mobs only, never players) stay exactly as they are, and MobSquad stays off in the arena world. Released as 0.7.0.
+
