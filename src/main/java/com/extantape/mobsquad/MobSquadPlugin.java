@@ -61,6 +61,8 @@ public final class MobSquadPlugin extends JavaPlugin {
         }
         Posse posse = new Posse(this, o -> {});
         squads.posse(posse);
+        getServer().getServicesManager().register(com.extantape.mobsquad.api.MobSquadApi.class,
+                new com.extantape.mobsquad.api.Api(squads), this, org.bukkit.plugin.ServicePriority.Normal);
         bunkhouses = new Bunkhouses(this);
         dinnerbell = new Dinnerbell(this, squads);
         Coaxing coaxing = new Coaxing(squads);

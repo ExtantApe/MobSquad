@@ -38,7 +38,16 @@ public final class Squads {
     }
 
     public void settings(Settings settings) {
+        settings.disabledWorlds().addAll(keptOff);
         this.settings = settings;
+    }
+
+    private final java.util.Set<String> keptOff = new java.util.HashSet<>();
+
+    /** Keeps MobSquad off in a world until the server stops, for another plugin's private world (API). */
+    public void keepOff(String world) {
+        keptOff.add(world);
+        settings.disabledWorlds().add(world);
     }
 
     public Settings settings() {

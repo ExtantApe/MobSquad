@@ -56,6 +56,10 @@ Settings are in `plugins/MobSquad/config.yml`: worlds where MobSquad is off, the
 
 `/ms` works too. Permissions: `mobsquad.use` (everyone) and `mobsquad.admin` (ops).
 
+## For other plugins
+
+MobSquad registers `com.extantape.mobsquad.api.MobSquadApi` with Bukkit's services manager. Another plugin can read a player's critters, check whether one is out, send them home, ask whether MobSquad is on in a world, keep it off in its own private world, and get a critter's health, damage and speed at a level. It can't add, remove or change critters. MobShowdown uses it for its battles. Call it on the main thread, and check `version()` before using anything newer than version 1.
+
 ## Tests
 
 `test/suite.mjs` builds a throwaway Paper server on 127.0.0.1 from downloaded jars and drives it with bots. See the top of the file for what it can and can't check.
