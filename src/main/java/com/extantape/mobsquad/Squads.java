@@ -23,6 +23,7 @@ public final class Squads {
     private final Map<UUID, Wrangler> online = new HashMap<>();
     private Posse posse;
     private Settings settings;
+    private com.extantape.mobsquad.hook.WranglinSkill skill;
     private java.util.function.BiConsumer<Player, com.extantape.mobsquad.model.Species> pageOpener;
 
     public Squads(Store store, Logger log, Settings settings) {
@@ -75,9 +76,23 @@ public final class Squads {
         save(online.remove(p.getUniqueId()));
     }
 
+    /** A skill plugin (AuraSkills) that shows Wranglin', or null. */
+    public void skill(com.extantape.mobsquad.hook.WranglinSkill skill) {
+        this.skill = skill;
+    }
+
+    public com.extantape.mobsquad.hook.WranglinSkill skill() {
+        return skill;
+    }
+
     public int wranglinLevel(Player p) {
         Wrangler w = get(p);
         return w == null ? 1 : Levels.level(w.wranglinXp);
+    }
+
+    /** Copies the player's Wranglin' level to the skill plugin, if there is one. */
+    public void showWranglin(Player p) {
+        if (skill != null) skill.show(p, wranglinLevel(p));
     }
 
     public void addWranglin(Player p, long xp) {
@@ -87,6 +102,7 @@ public final class Squads {
         w.wranglinXp += xp;
         int after = Levels.level(w.wranglinXp);
         save(w);
+        if (skill != null && after != before) skill.show(p, after);
         if (after > before) p.sendMessage(Component.text("Your Wranglin' is now level " + after + ".", NamedTextColor.GOLD));
     }
 

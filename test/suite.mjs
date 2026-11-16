@@ -8,7 +8,8 @@
 //   chicken is done with small /tp steps on every version, and the sprint check runs on 26.1.2 and 26.2 only.
 // - On 26.3 the bots can't use a block either (PaulBunyan's suite found this first), so the Bunkhouse menu and
 //   everything driven through it (sending out, following, safety, restarts) runs on 26.1.2 and 26.2 only.
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import path from 'node:path'
 import { Vec3 } from 'vec3'
 import { bot, check, DEFAULT_CONFIG, freshServer, jar, quit, section, Server, sleep, summary, until } from './harness.mjs'
@@ -16,14 +17,18 @@ import { bot, check, DEFAULT_CONFIG, freshServer, jar, quit, section, Server, sl
 const MC = process.argv[2]
 if (!['26.1.2', '26.2', '26.3'].includes(MC)) throw new Error('usage: node suite.mjs <26.1.2|26.2|26.3> [only=a,b]')
 const ONLY = (process.argv.find(a => a.startsWith('only=')) || '').slice(5).split(',').filter(Boolean)
-const want = n => ONLY.length === 0 || ONLY.includes(n)
+// MS_TEST_AURA=1 adds AuraSkills, so Wranglin' is an AuraSkills skill; run it with only=aura (and coax for coaxing XP).
+const AURA = !!process.env.MS_TEST_AURA
+// MS_TEST_MV=1 adds Multiverse-Core and Multiverse-Inventories; run it with only=bunkhouse,groups
+const MV = !!process.env.MS_TEST_MV
+const want = n => (ONLY.length === 0 && n !== 'aura' && n !== 'groups') || ONLY.includes(n)
 const PHYSICS = MC !== '26.3'
 const MENU = PHYSICS
 const skip = name => { if (want(name)) console.log(`\n# ${name}: skipped on ${MC}, where the bots can't use a block`) }
 const Y = -60
 
 const dir = freshServer('suite-' + MC, { paper: jar(`paper-${MC}.jar`),
-  plugins: [jar('ViaVersion.jar'), jar('ViaBackwards.jar'), jar('GriefPrevention.jar')], props: { difficulty: 'easy' } })
+  plugins: [jar('ViaVersion.jar'), jar('ViaBackwards.jar'), jar('GriefPrevention.jar'), ...(AURA ? [jar('AuraSkills.jar')] : []), ...(MV ? [jar('Multiverse-Core.jar'), jar('Multiverse-Inventories.jar')] : [])], props: { difficulty: 'easy' } })
 const s = new Server({ dir, jvm: ['-Dmobsquad.test.sneak-tag=true'] }) // a tagged player counts as crouching; see Puzzles.crouching
 const cfgFile = path.join(dir, 'plugins/MobSquad/config.yml')
 const playersDir = path.join(dir, 'plugins/MobSquad/players')
@@ -684,8 +689,11 @@ else if (want('specials')) {
   await stand(me, 'Wrangler', X, Z, 0, 20)
   await s.ask(`summon husk ${X} ${Y} ${Z - 6} {Tags:["foe"],PersistenceRequired:1b,NoAI:1b,attributes:[{id:"minecraft:armor",base:0}]}`, 200)
   const drops = []; let last = 20
-  await until(async () => { const h = await health('@e[tag=foe,limit=1]'); if (h === null) return true; if (h < last) { drops.push(+(last - h).toFixed(2)); last = h } return drops.length >= 2 }, 20000, 150)
-  check('from level 25 the fox pounces for a double first hit', drops.length >= 2 && drops[0] > 1.7 * drops[1], drops.join(', '))
+  await until(async () => { const h = await health('@e[tag=foe,limit=1]'); if (h === null) return true; if (h < last) { drops.push(+(last - h).toFixed(2)); last = h } return drops.length >= 3 }, 20000, 150)
+  // the pounce is the first hit after the fox has sized up a mob that isn't after it, which is usually but not always
+  // the very first hit, so look for one double hit among the first three
+  const d3 = drops.slice(0, 3)
+  check('from level 25 the fox pounces for a double hit', d3.length >= 2 && Math.max(...d3) > 1.7 * Math.min(...d3), drops.join(', '))
   await sendOnly('chicken')
   await s.ask('clear Wrangler', 200)
   check('from level 25 the chicken lays a speedy egg at your feet', await until(() => me.inventory.items().some(i => i.name === 'egg'), 45000, 500))
@@ -841,6 +849,97 @@ if (want('sidekick')) {
   await buddy.equip(buddy.inventory.items().find(i => i.name === 'warped_fungus_on_a_stick'), 'hand'); buddy.activateItem(); await sleep(600); buddy.deactivateItem()
   check('then the dinnerbell calls it home like anyone', await until(async () => await near('bee') === 0, 3000, 300))
   await quit(buddy)
+}
+
+// ---------- world groups ----------
+if (want('groups') && MV) {
+  section('World groups (Multiverse-Inventories)')
+  await s.ask('mv create elsewhere normal --world-type flat --no-structures', 500)
+  check('a second world, outside the default inventory group', await until(async () => (await s.ask('mv list', 400)).join(' ').includes('elsewhere'), 60000, 2000), (await s.ask('mv list', 400)).join(' '))
+  // Multiverse-Inventories keeps a world outside the default group apart; the diamond check below proves it
+  const countIn = async (world, sel) => { const out = (await s.ask(`execute in minecraft:${world === 'testworld' ? 'overworld' : world} if entity ${sel.includes('distance=') ? sel : sel.replace(']', ',distance=0..]')}`, 400)).join(' '); const m = out.match(/count: (\d+)/i); return m ? +m[1] : 0 }
+  const tp = async (name, world) => { const out = (await s.ask(`mv tp ${name} ${world}`, 1500)).join(' '); await sleep(2500); return out }
+  const tv = await bot('Traveler', { physics: PHYSICS })
+  await uuidOf('Traveler')
+  await s.ask('gamemode survival Traveler', 200); await s.ask('clear Traveler', 200)
+  await s.ask('mobsquad xp Traveler 40000', 300)
+  await stand(tv, 'Traveler', X, Z, 0, 20)
+  await s.ask('give Traveler diamond 1', 300); await sleep(500)
+  let out = await tp('Traveler', 'elsewhere')
+  const inElsewhere = (await s.ask('data get entity Traveler Dimension', 400)).join(' ')
+  check('the groups really keep inventories apart', /elsewhere/.test(inElsewhere) && !tv.inventory.items().some(i => i.name === 'diamond'), out + ' / ' + inElsewhere)
+  await tp('Traveler', 'testworld')
+  await stand(tv, 'Traveler', X, Z, 0, 20)
+  check('and give them back', await until(() => tv.inventory.items().some(i => i.name === 'diamond'), 4000))
+  await s.ask('clear Traveler', 200)
+  for (const k of ['chicken', 'enderman', 'bee']) await s.ask(`mobsquad give Traveler ${k}`, 250)
+  await s.ask('mobsquad sidekick Traveler bee', 400)
+  check('the sidekick comes out', await until(async () => await countIn('testworld', '@e[type=bee,name=Bee]') === 1, 5000, 300))
+  const lines = critterLines('Traveler'), slot = k => lines.map(l => l.split(' ')[2] === k).indexOf(true)
+  await openBunkhouse(tv, vault); await tv.clickWindow(slot('chicken'), 0, 0); await sleep(500); await closeMenu(tv)
+  check('a critter goes out from the Bunkhouse', await until(async () => await countIn('testworld', '@e[type=chicken,name=Chicken]') === 1, 4000, 250))
+  out = await tp('Traveler', 'elsewhere')
+  const where = async () => `tp: ${out.slice(0, 120)}; dim ${(await s.ask('data get entity Traveler Dimension', 400)).join(' ').slice(-40)}; chickens ${await countIn('testworld', '@e[type=chicken,name=Chicken]')}/${await countIn('elsewhere', '@e[type=chicken,name=Chicken]')}, bees ${await countIn('testworld', '@e[type=bee,name=Bee]')}/${await countIn('elsewhere', '@e[type=bee,name=Bee]')}`
+  check('crossing to another group sends a critter home, in neither world', await countIn('testworld', '@e[type=chicken,name=Chicken]') === 0 && await countIn('elsewhere', '@e[type=chicken,name=Chicken]') === 0, await where())
+  check('the sidekick comes along, one copy', await until(async () => await countIn('elsewhere', '@e[type=bee,name=Bee]') === 1, 5000, 300) && await countIn('testworld', '@e[type=bee,name=Bee]') === 0, await where())
+  check('no critter turns into an item on the way', !tv.inventory.items().some(i => /spawn_egg|egg|lead/.test(i.name)), tv.inventory.items().map(i => i.name).join(','))
+  check('the critters are still in the Bunkhouse file, once each', ['chicken', 'enderman', 'bee'].every(k => critterLines('Traveler').filter(l => l.split(' ')[2] === k).length === 1), critterLines('Traveler').join(' / '))
+  await tp('Traveler', 'testworld')
+  await stand(tv, 'Traveler', X, Z, 0, 20)
+  check('coming back, the sidekick returns and the other critter stays home', await until(async () => await countIn('testworld', '@e[type=bee,name=Bee]') === 1, 5000, 300) && await countIn('testworld', '@e[type=chicken,name=Chicken]') === 0 && await countIn('elsewhere', '@e[type=bee,name=Bee]') === 0, await where())
+  // the enderman's fetched block stays in the world it came from
+  await openBunkhouse(tv, vault); await tv.clickWindow(slot('enderman'), 0, 0); await sleep(500); await closeMenu(tv)
+  await until(async () => await countIn('testworld', '@e[type=enderman,name=Enderman]') === 1, 4000, 250)
+  const at = new Vec3(X + 3, Y, Z)
+  await s.ask(`setblock ${at.x} ${at.y} ${at.z} pumpkin`, 300)
+  await poke(tv, entity(tv, e => e.name === 'enderman')); await sleep(500)
+  await tv.lookAt(at.offset(0.5, 0.5, 0.5), true); await sleep(300)
+  tv.swingArm()
+  await s.ask(`mv tp Traveler elsewhere`, 200); await sleep(3000)
+  check('the enderman took the block', (await s.ask(`execute in minecraft:overworld if block ${at.x} ${at.y} ${at.z} air`, 200)).join(' ').includes('passed'))
+  check('a block fetched as you cross groups doesn\'t follow you', !tv.inventory.items().some(i => i.name === 'pumpkin'), tv.inventory.items().map(i => i.name).join(','))
+  check('it drops where it was taken', await countIn('testworld', `@e[type=item,x=${at.x},y=${at.y},z=${at.z},distance=..3,nbt={Item:{id:"minecraft:pumpkin"}}]`) === 1)
+  await tp('Traveler', 'testworld')
+  await s.ask('kick Traveler', 300); await quit(tv); await sleep(1000)
+}
+
+// ---------- AuraSkills ----------
+if (want('aura') && AURA) {
+  section('Wranglin\' as an AuraSkills skill')
+  check('MobSquad registers Wranglin\' with AuraSkills', s.log.some(l => /Wranglin' is an AuraSkills skill/.test(l)) && s.log.some(l => /Loaded 12 skills/.test(l)))
+  const auraFile = name => { const f = path.join(dir, 'plugins/AuraSkills/userdata', uuids[name] + '.yml'); return existsSync(f) ? readFileSync(f, 'utf8') : '' }
+  // AuraSkills writes its file when a player quits, so the checks read it after a kick
+  const auraLevel = text => { const m = text.match(/mobsquad\/wranglin:\s*\n\s*level: (\d+)\s*\n\s*xp: ([\d.]+)/) || text.match(/wranglin[^\n]*\n[^\n]*?(\d+)[^\n]*\n[^\n]*?([\d.]+)/); return m ? { level: +m[1], xp: +m[2] } : null }
+  if (want('coax')) {
+    // the coaxing section coaxed a chicken as Wrangler: 100 experience, MobSquad level 2
+    await s.ask('kick Wrangler', 300); await quit(me); await sleep(2500)
+    const a = auraLevel(auraFile('Wrangler'))
+    check('a Wranglin\' level-up from coaxing shows in AuraSkills', a && a.level === 2, auraFile('Wrangler').slice(0, 600))
+  }
+  // a player with a MobSquad level from before AuraSkills sees it there
+  const offline = name => { const h = createHash('md5').update('OfflinePlayer:' + name).digest(); h[6] = (h[6] & 0x0f) | 0x30; h[8] = (h[8] & 0x3f) | 0x80; const x = h.toString('hex'); return `${x.slice(0, 8)}-${x.slice(8, 12)}-${x.slice(12, 16)}-${x.slice(16, 20)}-${x.slice(20)}` }
+  mkdirSync(playersDir, { recursive: true })
+  writeFileSync(path.join(playersDir, offline('Veteran') + '.txt'), 'wranglin 15000\n') // level 25
+  const vet = await bot('Veteran', { physics: PHYSICS })
+  await uuidOf('Veteran')
+  check('the test file is the one the server reads', uuids.Veteran === offline('Veteran'), uuids.Veteran)
+  await sleep(5000)
+  const level = async () => { const from = vet.chatLog.length; vet.chat('/mobsquad list'); await waitSaid(vet, /Wranglin' level \d+/, 4000, from); const m = vet.chatLog.slice(from).join(' ').match(/Wranglin' level (\d+)/); return m ? +m[1] : null }
+  check('MobSquad keeps the level from its own file', await level() === 25)
+  await s.ask('skills skill setlevel Veteran mobsquad/wranglin 30', 600)
+  check('MobSquad\'s own level counts, whatever AuraSkills says', await level() === 25)
+  await s.ask('mobsquad xp Veteran 2250', 400)
+  check('/mobsquad xp sets the level', await level() === 10)
+  await s.ask('kick Veteran', 300); await quit(vet); await sleep(2500)
+  const v = auraLevel(auraFile('Veteran'))
+  check('/mobsquad xp sets the AuraSkills level too (it was 30 there)', v && v.level === 10, auraFile('Veteran').slice(0, 600))
+  check('MobSquad still keeps its own count', file('Veteran').includes('wranglin 2250'), file('Veteran'))
+  writeFileSync(path.join(playersDir, offline('Oldtimer') + '.txt'), 'wranglin 15000\n')
+  const old = await bot('Oldtimer', { physics: PHYSICS })
+  await uuidOf('Oldtimer'); await sleep(6000)
+  await s.ask('kick Oldtimer', 300); await quit(old); await sleep(2500)
+  const o = auraLevel(auraFile('Oldtimer'))
+  check('a MobSquad level shows in AuraSkills when they join', o && o.level === 25, auraFile('Oldtimer').slice(0, 400))
 }
 
 // ---------- vittles ----------

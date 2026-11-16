@@ -396,12 +396,16 @@ public final class Specials implements Runnable, Listener {
         posse().moveCritter(e, b.getLocation().add(0.5, 1, 0.5));
         b.setType(Material.AIR, true);
         b.getWorld().spawnParticle(Particle.PORTAL, b.getLocation().add(0.5, 0.5, 0.5), 30, 0.3, 0.5, 0.3);
+        Location spot = b.getLocation().add(0.5, 0.5, 0.5);
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            // the block is the owner's even if the enderman went home meanwhile, but only in the world it came from, so
+            // nothing crosses world groups (Multiverse-Inventories); otherwise it drops where the block was
+            boolean here = p.isOnline() && p.getWorld().equals(spot.getWorld());
+            if (here) give(p, new ItemStack(item));
+            else spot.getWorld().dropItem(spot, new ItemStack(item));
             if (!e.isValid()) return;
             e.setCarriedBlock(null);
-            Location home = p.isOnline() && p.getWorld().equals(e.getWorld()) ? p.getLocation() : back;
-            posse().moveCritter(e, home);
-            if (p.isOnline()) give(p, new ItemStack(item));
+            posse().moveCritter(e, here && p.getWorld().equals(e.getWorld()) ? p.getLocation() : back);
         }, 20L);
         return true;
     }
