@@ -67,3 +67,9 @@ Kept by this repo's owning session, per `~/Code/CLAUDE.md`, "Test self-audits". 
 | The critter view is a read-only copy with the resting state | unit `infoCopiesTheCritterAndSaysWhenItsResting` |
 
 **Gaps:** the services-manager registration, `sendHome` and `keepOff` on a running server. MobShowdown's bot tests cover them, since they're what calls them.
+
+## 2026-11-16: cleanup (D226)
+
+- **Covered:** the harness records each server folder it creates and each Java process it starts. When the run ends (pass, fail, an uncaught error, Ctrl-C, SIGTERM or SIGHUP) it kills those processes and deletes those folders, and nothing else. A folder from an earlier run that's in the way stops the run; it isn't deleted. `KEEP_TEST_SERVERS=1` keeps the folders for debugging.
+- **Checked by hand:** on MobShowdown, a full run (42/42) and a run interrupted after 45 seconds both left the work folder empty, with no Java left and the test port closed. The other harnesses use the same code.
+- **Gap skipped:** the suite can't check its own leftovers, because cleanup runs as the process exits. A wrapper that checks after the suite exits would add more machinery than the check is worth here.
