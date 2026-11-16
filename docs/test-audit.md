@@ -2,6 +2,15 @@
 
 Kept by this repo's owning session, per `~/Code/CLAUDE.md`, "Test self-audits". Newest first.
 
+## 2026-11-15: 0.6.0
+
+- Promises added: README "AuraSkills" and "World groups", CHANGELOG 0.6.0, the 0.6.0 AuraSkills decision.
+- Covered by bots with AuraSkills 2.4.0 (30 checks on 26.1.2 and 26.2, 25 on 26.3): Wranglin' registers as a skill; a level-up from coaxing shows in AuraSkills; a MobSquad level shows in AuraSkills when a player joins; MobSquad's own level counts whatever AuraSkills says; `/mobsquad xp` sets both; MobSquad keeps its own count.
+- Covered by bots with Multiverse-Core 5.8.2 and Multiverse-Inventories 5.3.6 (22 checks on 26.2): inventories are really kept apart; crossing sends a critter home, in neither world; the sidekick comes along as one copy and comes back; nothing turns into an item; every critter stays in the file once; an enderman block fetched as you cross groups stays behind and drops where it was taken.
+- Full suite after the change: 164 on 26.1.2 and 26.2, 75 on 26.3. The fox pounce check now looks for one double hit among the first three, since a plain hit can land first; the README says so.
+- Gaps skipped: AuraSkills' own menus and messages (AuraSkills draws them from the registered skill); the world-group checks on 26.1.2 and 26.3 (the same MobSquad code as 26.2; on 26.3 the bots can't open the Bunkhouse).
+- Gaps for later: crossing groups through a Waystation gate, with the Waystation hook.
+
 ## 2026-11-15: 0.5.0
 
 - Promises added: README "The sidekick" and the level 25 additions to four specials, CHANGELOG 0.5.0, the sidekick and later-specials decisions.

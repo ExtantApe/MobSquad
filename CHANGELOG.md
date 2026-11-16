@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.0
+
+Wranglin' in AuraSkills.
+
+- **With AuraSkills installed**, Wranglin' is one of its skills, with a lead as its icon and MobSquad's level. MobSquad still keeps the level in the player's file and copies it to AuraSkills when it changes, when the player joins and when an admin uses `/mobsquad xp`. A level set with AuraSkills' commands is put back at the next change or join. AuraSkills' XP multipliers and rewards don't apply.
+- The skill's AuraSkills settings are written to `plugins/MobSquad/auraskills` the first time. MobSquad declares `auraskills.skill.wranglin` (default true), which AuraSkills checks for each skill.
+- Without AuraSkills nothing changes. Built against AuraSkills 2.4.0.
+- **World groups.** Tested with Multiverse-Inventories 5.3.6: crossing to another inventory group sends critters home, the sidekick comes along as one copy, and nothing turns into an item.
+- **Fixed:** a block the enderman fetched went into your inventory in whatever world you were in a second later, so it could cross world groups, and it was lost if the enderman went home in that second. It now goes to you only in the world it came from, and otherwise drops where the block was.
+
 ## 0.5.0
 
 The sidekick and the later parts of four specials.

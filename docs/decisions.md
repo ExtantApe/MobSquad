@@ -9,6 +9,7 @@ Dated decisions for this repo, newest last.
 - 2026-11-15: 0.1.0 builds the core loop from plan.md step 1. Wranglin' is MobSquad's own level in 0.1.0; the AuraSkills hook follows once it can be tested on a throwaway server with AuraSkills installed.
 - 2026-11-15: critters out in the world are non-persistent mobs; only the player's Bunkhouse file is saved. A critter left in a chunk after a crash is removed when the chunk loads.
 - 2026-11-15: a tier gates sending a critter out as well as coaxing it, so a critter an admin gives early waits for the level.
+- 2026-11-15, 0.6.0: MobSquad keeps the Wranglin' level and copies it to AuraSkills, rather than handing AuraSkills the experience. On a test server, AuraSkills 2.4.0 dropped experience given to a skill from another plugin: `addSkillXp` gave none at all, and `addSkillXpRaw` lost it when the skill levelled up. Copying the level also keeps posse sizes and tiers on one curve. This replaces the earlier AuraSkills decision above.
 - 2026-11-15: running on a seed trail means sprinting, riding, gliding, flying or crossing more than 1.35 blocks in a quarter second, about 1.25 times walking pace. A longer jump counts as a teleport, which loses the trail instead.
 - 2026-11-15: bot tests use port 25631.
 - 2026-11-15: public at the first release under the owner's standing yes of 2026-11-07, relayed by Simon: MIT, Copyright (c) 2026 EXTANT APE, after the first-public-push audit (no secrets, addresses, player data or build output; no private-term hits in any file, commit or message).

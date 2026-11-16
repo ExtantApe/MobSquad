@@ -4,6 +4,13 @@ main: com.extantape.mobsquad.MobSquadPlugin
 api-version: '26.1'
 description: "Coax mobs into critters that follow you, fight only hostile mobs and rest in a Bunkhouse. Gotta coax em all... Pokemob!"
 website: https://github.com/ExtantApe/MobSquad
+# Optional: with AuraSkills installed, Wranglin' is an AuraSkills skill.
+dependencies:
+  server:
+    AuraSkills:
+      load: BEFORE
+      required: false
+      join-classpath: true
 # Commands are registered with Brigadier in code, so there is no commands section.
 permissions:
   mobsquad.use:
@@ -12,3 +19,6 @@ permissions:
   mobsquad.admin:
     description: Mark Bunkhouses and use /mobsquad admin commands.
     default: op
+  auraskills.skill.wranglin:
+    description: Earn Wranglin' in AuraSkills. AuraSkills checks this for each skill but doesn't declare it for skills other plugins add, so MobSquad does.
+    default: true

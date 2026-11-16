@@ -51,6 +51,14 @@ public final class MobSquadPlugin extends JavaPlugin {
     public void onEnable() {
         saveDefaultConfig();
         squads = new Squads(new Store(getDataFolder().toPath().resolve("players")), getLogger(), Settings.read(getConfig(), getLogger()));
+        if (getServer().getPluginManager().getPlugin("AuraSkills") != null) {
+            try {
+                squads.skill(com.extantape.mobsquad.hook.AuraSkillsWranglin.register(this));
+                getLogger().info("Wranglin' is an AuraSkills skill.");
+            } catch (RuntimeException | LinkageError e) {
+                getLogger().log(java.util.logging.Level.WARNING, "Couldn't register Wranglin' with AuraSkills, so MobSquad keeps its own level.", e);
+            }
+        }
         Posse posse = new Posse(this, o -> {});
         squads.posse(posse);
         bunkhouses = new Bunkhouses(this);
@@ -76,6 +84,8 @@ public final class MobSquadPlugin extends JavaPlugin {
             @EventHandler
             public void onJoin(org.bukkit.event.player.PlayerJoinEvent e) {
                 e.getPlayer().discoverRecipe(vittles.key());
+                if (squads.skill() != null) // a few seconds on, once AuraSkills has loaded the player
+                    getServer().getScheduler().runTaskLater(MobSquadPlugin.this, () -> { if (e.getPlayer().isOnline()) squads.showWranglin(e.getPlayer()); }, 60L);
             }
 
             /** A critter left behind by a crash is never saved, but if one turns up, it goes. */
@@ -258,6 +268,7 @@ public final class MobSquadPlugin extends JavaPlugin {
         }
         w.wranglinXp = c.getArgument("amount", Integer.class);
         squads.save(w);
+        squads.showWranglin(p);
         say(c, "[MobSquad] " + p.getName() + " has " + w.wranglinXp + " Wranglin' experience, level " + Levels.level(w.wranglinXp) + ".", NamedTextColor.GREEN);
         return Command.SINGLE_SUCCESS;
     }

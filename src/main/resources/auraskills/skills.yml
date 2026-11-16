@@ -1,0 +1,10 @@
+# Wranglin' in AuraSkills, read by AuraSkills when MobSquad registers the skill.
+# MobSquad's posse sizes and tiers use these levels: 2 critters out from level 10, 3 from 25; tiers at 1, 10, 25 and 40.
+skills:
+  mobsquad/wranglin:
+    abilities: []
+    options:
+      enabled: true
+      max_level: 100
+      check_cancelled: true
+      check_multiplier_permissions: true

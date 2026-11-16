@@ -2,7 +2,7 @@
 
 Coax mobs into critters for Paper: they follow you, fight only hostile mobs, and live safely in a shared Bunkhouse. No client mods. Gotta coax em all... Pokemob!
 
-**Status:** 0.5.0. The sidekick, and the later parts of four specials. Passed with bots on throwaway Paper 26.1.2 and 26.2 servers (164 checks each). On 26.3 the bots can't use blocks, so the Bunkhouse menu and everything sent out from it didn't run there (75 checks ran). Bots can't crouch where the server sees it, so the creeper and fox puzzles were tested with a test-only stand-in for crouching; real crouching is untested. The daily sidekick roll is covered by unit tests only, since it needs 10 hours out. Nothing has been seen in a real game client yet.
+**Status:** 0.6.0. Wranglin' in AuraSkills, and world groups tested with Multiverse-Inventories. Passed with bots on throwaway Paper 26.1.2 and 26.2 servers (164 checks each, plus 30 with AuraSkills and 22 with Multiverse on 26.2). On 26.3 the bots can't use blocks, so the Bunkhouse menu and everything sent out from it didn't run there (75 checks ran). Bots can't crouch where the server sees it, so the creeper and fox puzzles were tested with a test-only stand-in for crouching; real crouching is untested. The daily sidekick roll is covered by unit tests only, since it needs 10 hours out. Nothing has been seen in a real game client yet.
 
 ## What it does
 
@@ -13,7 +13,7 @@ Coax mobs into critters for Paper: they follow you, fight only hostile mobs, and
   - Chicken: you fall slowly while it's out. From level 25 it lays a speedy egg at your feet every 5 minutes (a minute sooner at each later milestone); right-click it for Speed II for 10 seconds, Speed III from level 75.
   - Axolotl: water breathing and regeneration while you're within 6 blocks of it. It goes after drowned and guardians first, and plays dead and heals when it's badly hurt.
   - Bee: crops near it grow faster, one crop a second. From level 25 its sting makes a hostile mob glow, so you can see it through walls.
-  - Fox: fetches items you drop or leave behind (drops from blocks you break and mobs you beat), after they've lain 5 seconds. It never touches anyone else's. From level 25 it pounces on a hostile mob that isn't after it, for a double first hit.
+  - Fox: fetches items you drop or leave behind (drops from blocks you break and mobs you beat), after they've lain 5 seconds. It never touches anyone else's. From level 25 it pounces on a hostile mob that isn't after it, and the hit it lands with the pounce does double damage.
   - Allay: right-click it holding an ore, a raw ore or a gem, and it flies to the nearest matching ore within 8 blocks of you.
   - Creeper: a blast that hurts only the hostile mobs around its target and breaks nothing. It never goes off with a player within 6 blocks.
   - Enderman: right-click it, then swing at a block within 8 blocks, and it fetches it for you. Only blocks an enderman can carry, and only where you could dig yourself, so claims say no. When it's badly hurt, it teleports to you.
@@ -25,6 +25,8 @@ Coax mobs into critters for Paper: they follow you, fight only hostile mobs, and
 - **Bunkhouses.** An admin marks a vault block as a Bunkhouse. Anyone who right-clicks it sees only their own critters. Click one to send it out or call it back. Critters never exist as items, so they can't be dropped, traded or duplicated.
 - **Following.** A critter out with you walks after you and steps beside you if it's left more than 24 blocks behind.
 - **Wranglin'.** Coaxing earns Wranglin' experience. One critter can be out at once, two from level 10 and three from level 25. Mob tiers unlock at levels 1, 10, 25 and 40.
+- **AuraSkills.** If AuraSkills is installed, Wranglin' shows up as one of its skills, with MobSquad's level. MobSquad keeps the level in the player's file and copies it to AuraSkills when it changes and when the player joins, so a level set with AuraSkills' own commands is put back. AuraSkills' XP multipliers and rewards don't apply to Wranglin'. The skill's AuraSkills settings are in `plugins/MobSquad/auraskills`. Without AuraSkills, nothing changes.
+- **World groups.** With Multiverse-Inventories, critters cross to another inventory group only through the Bunkhouse: crossing sends the ones out with you home, and you can send them out again from a Bunkhouse there. The sidekick comes along, one copy. A block the enderman fetches only goes into your inventory in the world it came from.
 - **Safety.** A critter never targets or hurts a player, and players can't hurt it. It never changes a block on its own, explodes, burns in the sun or wanders off by teleporting. The two specials that touch blocks go through the server's own checks: the bee's crops grow through the same event as natural growth, and the enderman takes a block only where a block-break check as you passes. Out of health, it's tuckered out: it drops nothing and rests in the Bunkhouse for 5 real minutes.
 - **The dinnerbell.** Ring it and every critter out with you heads home.
 - **Plain files.** One text file per player in `plugins/MobSquad/players`. A critter out in the world is never saved with the world, so after a restart, a crash or the player leaving, it's back in the Bunkhouse exactly once.
