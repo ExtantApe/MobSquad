@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.1
+
+- Menu and chat hints are easier to read (K681). Lore lines in the Bunkhouse, Critterbook and vittles menus, and the locked lines in the coaxing list, move from dark gray (under 3:1 on the dark tooltip) to gray (about 9:1). Unlocked coaxing hints are now white so they still stand apart. Critterbook book pages keep dark gray, since they sit on a light page.
+- Tested: unit tests. Not seen in a real game client.
+
 ## 0.7.0
 
 An API for other plugins, for MobShowdown.

@@ -128,22 +128,22 @@ public final class Journal implements Runnable, Listener {
         }
         h.inventory.setItem(INFO_SLOT, BunkhouseMenu.item(Material.WRITTEN_BOOK, Component.text("La Ménagerie", NamedTextColor.GOLD), List.of(
             BunkhouseMenu.line("You've met " + w.pages.size() + " of " + order.size() + " critters.", NamedTextColor.GRAY),
-            BunkhouseMenu.line("Get close to a critter, or coax one, to open its page.", NamedTextColor.DARK_GRAY),
-            BunkhouseMenu.line("Numbers follow the order each mob first came to Minecraft.", NamedTextColor.DARK_GRAY))));
+            BunkhouseMenu.line("Get close to a critter, or coax one, to open its page.", NamedTextColor.GRAY),
+            BunkhouseMenu.line("Numbers follow the order each mob first came to Minecraft.", NamedTextColor.GRAY))));
         p.openInventory(h.inventory);
     }
 
     private static ItemStack icon(Species s, Wrangler w) {
         int n = Critterbook.number(s);
         if (!w.pages.contains(s))
-            return BunkhouseMenu.item(Material.GRAY_DYE, Component.text("No. " + n + "  ???", NamedTextColor.DARK_GRAY),
+            return BunkhouseMenu.item(Material.GRAY_DYE, Component.text("No. " + n + "  ???", NamedTextColor.GRAY),
                 List.of(BunkhouseMenu.line("You haven't met this one yet.", NamedTextColor.GRAY)));
         Material egg = Material.matchMaterial(s.entity + "_SPAWN_EGG");
         long have = w.critters.stream().filter(c -> c.species() == s).count();
         return BunkhouseMenu.item(egg == null ? Material.EGG : egg, Component.text("No. " + n + "  " + s.title(), NamedTextColor.WHITE), List.of(
             BunkhouseMenu.line(s.tier.title + " critter", NamedTextColor.GRAY),
             BunkhouseMenu.line(have == 0 ? "None in your Bunkhouse yet" : have + " in your Bunkhouse", NamedTextColor.GRAY),
-            BunkhouseMenu.line("Click to read its page.", NamedTextColor.DARK_GRAY)));
+            BunkhouseMenu.line("Click to read its page.", NamedTextColor.GRAY)));
     }
 
     /** A critter's page, as a book: who it is, how to coax it, and its special. */

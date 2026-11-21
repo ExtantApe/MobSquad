@@ -50,7 +50,7 @@ public final class Vittles implements Listener {
         it.editMeta(meta -> {
             meta.displayName(BunkhouseMenu.line("Vittles", NamedTextColor.GOLD));
             meta.lore(List.of(BunkhouseMenu.line("Right-click to perk up a tuckered-out critter.", NamedTextColor.GRAY),
-                BunkhouseMenu.line("Critter food. Not for people.", NamedTextColor.DARK_GRAY)));
+                BunkhouseMenu.line("Critter food. Not for people.", NamedTextColor.GRAY)));
             meta.getPersistentDataContainer().set(key, PersistentDataType.BYTE, (byte) 1);
         });
         return it;

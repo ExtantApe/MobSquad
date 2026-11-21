@@ -138,17 +138,17 @@ public final class BunkhouseMenu implements Listener {
         if (squads.posse().isSidekick(c.id())) lore.add(line("Your sidekick", NamedTextColor.GOLD));
         lore.add(line(c.species().title() + ", level " + c.level(), NamedTextColor.GRAY));
         if (c.level() < com.extantape.mobsquad.model.Growth.MAX)
-            lore.add(line(String.format(java.util.Locale.US, "%,d experience to level %d", com.extantape.mobsquad.model.Growth.xpFor(c.level() + 1) - c.xp(), c.level() + 1), NamedTextColor.DARK_GRAY));
+            lore.add(line(String.format(java.util.Locale.US, "%,d experience to level %d", com.extantape.mobsquad.model.Growth.xpFor(c.level() + 1) - c.xp(), c.level() + 1), NamedTextColor.GRAY));
         lore.add(line(c.species().special, NamedTextColor.LIGHT_PURPLE));
         if (out) {
             lore.add(line("Out with you", NamedTextColor.GREEN));
-            lore.add(line("Click to call it back.", NamedTextColor.DARK_GRAY));
+            lore.add(line("Click to call it back.", NamedTextColor.GRAY));
         } else if (c.resting(now)) {
             long minutes = Math.max(1, (c.tuckeredUntil() - now + 59_999) / 60_000);
             lore.add(line("Resting, ready in about " + minutes + (minutes == 1 ? " minute" : " minutes"), NamedTextColor.YELLOW));
         } else {
             lore.add(line("Ready", NamedTextColor.GREEN));
-            lore.add(line("Click to send it out.", NamedTextColor.DARK_GRAY));
+            lore.add(line("Click to send it out.", NamedTextColor.GRAY));
         }
         return item(egg == null ? Material.EGG : egg, Component.text(c.name(), NamedTextColor.WHITE), lore);
     }
