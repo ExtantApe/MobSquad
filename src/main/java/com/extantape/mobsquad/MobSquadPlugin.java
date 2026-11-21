@@ -190,7 +190,7 @@ public final class MobSquadPlugin extends JavaPlugin {
         for (Species s : Species.values()) {
             boolean open = Levels.unlocked(s.tier, level);
             say(c, "  " + s.title() + " (" + s.tier.title + "): " + (open ? s.hint : "from Wranglin' level " + s.tier.level + "."),
-                open ? NamedTextColor.GRAY : NamedTextColor.DARK_GRAY);
+                open ? NamedTextColor.WHITE : NamedTextColor.GRAY);
         }
         return Command.SINGLE_SUCCESS;
     }
