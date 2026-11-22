@@ -38,8 +38,10 @@ public final class BunkhouseMenu implements Listener {
     private final Bunkhouses bunkhouses;
 
     private final Journal journal;
+    private final CoatMenu coatMenu;
 
-    public BunkhouseMenu(Squads squads, Bunkhouses bunkhouses, Journal journal) {
+    public BunkhouseMenu(Squads squads, Bunkhouses bunkhouses, Journal journal, CoatMenu coatMenu) {
+        this.coatMenu = coatMenu;
         this.squads = squads;
         this.bunkhouses = bunkhouses;
         this.journal = journal;
@@ -140,6 +142,15 @@ public final class BunkhouseMenu implements Listener {
         if (c.level() < com.extantape.mobsquad.model.Growth.MAX)
             lore.add(line(String.format(java.util.Locale.US, "%,d experience to level %d", com.extantape.mobsquad.model.Growth.xpFor(c.level() + 1) - c.xp(), c.level() + 1), NamedTextColor.GRAY));
         lore.add(line(c.species().special, NamedTextColor.LIGHT_PURPLE));
+        int coat = com.extantape.mobsquad.model.Coats.worn(c);
+        if (coat == 0) {
+            lore.add(line("First spirit coat at level " + com.extantape.mobsquad.model.Coats.levelFor(1), NamedTextColor.GRAY));
+        } else {
+            var look = squads.coatData().coat(coat);
+            lore.add(line("Spirit coat: ", NamedTextColor.GRAY).append(Component.text(look.name(), com.extantape.mobsquad.model.Coats.readable(look.color()))
+                .decoration(TextDecoration.ITALIC, false)));
+            lore.add(line("Right-click to change its coat.", NamedTextColor.GRAY));
+        }
         if (out) {
             lore.add(line("Out with you", NamedTextColor.GREEN));
             lore.add(line("Click to call it back.", NamedTextColor.GRAY));
@@ -176,6 +187,12 @@ public final class BunkhouseMenu implements Listener {
             p.sendMessage(Component.text(n == 0 ? "Nobody's out with you." : "Everyone's back in the Bunkhouse.", NamedTextColor.GREEN));
         } else if (slot < h.slots.size()) {
             Critter c = w.find(h.slots.get(slot));
+            if (c != null && event.isRightClick()) {
+                if (com.extantape.mobsquad.model.Coats.earned(c.level()) == 0)
+                    p.sendMessage(Component.text(c.name() + " earns its first spirit coat at level " + com.extantape.mobsquad.model.Coats.levelFor(1) + ".", NamedTextColor.YELLOW));
+                else Bukkit.getScheduler().runTask(org.bukkit.plugin.java.JavaPlugin.getProvidingPlugin(BunkhouseMenu.class), () -> coatMenu.open(p, c.id(), this::open));
+                return;
+            }
             if (c != null) toggle(p, c);
         }
         draw(h, w, p);

@@ -22,6 +22,7 @@ public final class Squads {
     private final Logger log;
     private final Map<UUID, Wrangler> online = new HashMap<>();
     private Posse posse;
+    private com.extantape.mobsquad.model.CoatData coatData = com.extantape.mobsquad.model.CoatData.EMPTY;
     private Settings settings;
     private com.extantape.mobsquad.hook.WranglinSkill skill;
     private java.util.function.BiConsumer<Player, com.extantape.mobsquad.model.Species> pageOpener;
@@ -48,6 +49,27 @@ public final class Squads {
     public void keepOff(String world) {
         keptOff.add(world);
         settings.disabledWorlds().add(world);
+    }
+
+    public void coatData(com.extantape.mobsquad.model.CoatData data) {
+        this.coatData = data;
+    }
+
+    public com.extantape.mobsquad.model.CoatData coatData() {
+        return coatData;
+    }
+
+    /** Picks the coat a critter wears (1 to 10, only one it has earned), or 0 for its newest. Returns false if it can't be worn. */
+    public boolean pickCoat(Player p, UUID critter, int coat) {
+        Wrangler w = get(p);
+        if (w == null) return false;
+        Critter c = w.find(critter);
+        if (c == null || coat < 0 || coat > com.extantape.mobsquad.model.Coats.earned(c.level())) return false;
+        Critter n = c.withCoat(coat);
+        w.replace(n);
+        save(w);
+        posse.update(n);
+        return true;
     }
 
     public Settings settings() {
@@ -148,6 +170,13 @@ public final class Squads {
         p.sendMessage(Component.text(n.name() + " is now level " + n.level() + ".", NamedTextColor.GOLD));
         if (com.extantape.mobsquad.model.Growth.stage(n.level()) > com.extantape.mobsquad.model.Growth.stage(c.level()))
             p.sendMessage(Component.text("Its special grows stronger: " + n.species().special, NamedTextColor.LIGHT_PURPLE));
+        int coat = com.extantape.mobsquad.model.Coats.earned(n.level());
+        if (coat > com.extantape.mobsquad.model.Coats.earned(c.level())) {
+            var look = coatData.coat(coat);
+            p.sendMessage(Component.text(n.name() + " earned a spirit coat: ", NamedTextColor.GOLD)
+                .append(Component.text(look.name(), com.extantape.mobsquad.model.Coats.readable(look.color())))
+                .append(Component.text(settings.coatWorlds().isEmpty() ? ". Pick it in the Bunkhouse." : ". It shows in magic worlds. Pick it in the Bunkhouse.", NamedTextColor.GOLD)));
+        }
         p.playSound(p.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 0.6f, 1.4f);
     }
 

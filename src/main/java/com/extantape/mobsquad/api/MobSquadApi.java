@@ -12,7 +12,7 @@ import org.bukkit.entity.Player;
  */
 public interface MobSquadApi {
     /** Bumped when a method is added or changes; check it before relying on anything newer. */
-    int VERSION = 1;
+    int VERSION = 2; // 2: CritterInfo has the spirit coat
 
     default int version() {
         return VERSION;

@@ -1,6 +1,8 @@
 package com.extantape.mobsquad.world;
 
 import com.extantape.mobsquad.Squads;
+import com.extantape.mobsquad.model.CoatData;
+import com.extantape.mobsquad.model.Coats;
 import com.extantape.mobsquad.model.Critter;
 import com.extantape.mobsquad.model.Critterbook;
 import com.extantape.mobsquad.model.Species;
@@ -147,7 +149,7 @@ public final class Journal implements Runnable, Listener {
     }
 
     /** A critter's page, as a book: who it is, how to coax it, and its special. */
-    static Book page(Species s, Wrangler w) {
+    static Book page(Species s, Wrangler w, CoatData data) {
         int n = Critterbook.number(s);
         Component first = Component.text()
             .append(Component.text("No. " + n + "\n", NamedTextColor.DARK_GRAY))
@@ -164,10 +166,22 @@ public final class Journal implements Runnable, Listener {
         Component special = Component.text()
             .append(Component.text("Special\n\n", NamedTextColor.BLACK, TextDecoration.BOLD))
             .append(Component.text(s.special + "\n\n", NamedTextColor.BLACK))
-            .append(Component.text("It grows at levels 25, 50, 75 and 100." + (best > 0 ? " Your best is level " + best + "." : "") + "\n\n", NamedTextColor.DARK_GRAY))
-            .append(Component.text("Spirit coats come later.", NamedTextColor.DARK_GRAY))
+            .append(Component.text("It grows at levels 25, 50, 75 and 100." + (best > 0 ? " Your best is level " + best + "." : ""), NamedTextColor.DARK_GRAY))
             .build();
-        return Book.book(Component.text("No. " + n + " " + s.title()), Component.text("La Ménagerie"), first, coax, special);
+        return Book.book(Component.text("No. " + n + " " + s.title()), Component.text("La Ménagerie"), first, coax, special, coatsPage(best, data));
+    }
+
+    /**
+     * The spirit coats page: ten coats, the earned ones by name and the rest as the level that earns them, going by this
+     * player's best critter of the kind. Plain text on the light page, so contrast holds, and no meaning rides on color.
+     */
+    static Component coatsPage(int bestLevel, CoatData data) {
+        int earned = Coats.earned(bestLevel);
+        var b = Component.text().append(Component.text("Spirit coats\n", NamedTextColor.BLACK, TextDecoration.BOLD));
+        for (int i = 1; i <= Coats.COUNT; i++)
+            b.append(i <= earned ? Component.text(i + ". " + data.name(i) + "\n", NamedTextColor.BLACK)
+                : Component.text(i + ". Level " + Coats.levelFor(i) + "\n", NamedTextColor.DARK_GRAY));
+        return b.append(Component.text("Never lost. Worn in magic worlds.", NamedTextColor.DARK_GRAY)).build();
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
@@ -186,7 +200,7 @@ public final class Journal implements Runnable, Listener {
         if (w == null || !w.pages.contains(s)) return;
         Bukkit.getScheduler().runTask(plugin, () -> {
             p.closeInventory();
-            p.openBook(page(s, w));
+            p.openBook(page(s, w, squads.coatData()));
         });
     }
 }

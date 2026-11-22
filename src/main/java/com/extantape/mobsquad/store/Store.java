@@ -1,5 +1,6 @@
 package com.extantape.mobsquad.store;
 
+import com.extantape.mobsquad.model.Coats;
 import com.extantape.mobsquad.model.Critter;
 import com.extantape.mobsquad.model.Species;
 import com.extantape.mobsquad.model.Wrangler;
@@ -24,7 +25,7 @@ import java.util.UUID;
  * </pre>
  *
  * A critter line is its id, species, level, experience, when it's rested (epoch milliseconds, 0 when ready) and its
- * name, URL-encoded, then its minutes out with its owner (missing in files from before 0.5.0, read as 0). A page line is a La Ménagerie page the player has opened; owning a critter opens its page too. Written to a temporary file and moved into place, so a crash leaves the old file or the new one.
+ * name, URL-encoded, then its minutes out with its owner (missing in files from before 0.5.0, read as 0), then the spirit coat its owner picked, 0 to 10 (missing in files from before 0.8.0, read as 0, which wears the newest earned). A page line is a La Ménagerie page the player has opened; owning a critter opens its page too. Written to a temporary file and moved into place, so a crash leaves the old file or the new one.
  * Lines that can't be read are skipped and counted, never guessed at.
  */
 public final class Store {
@@ -56,7 +57,7 @@ public final class Store {
                         Species s = Species.byId(p[2]);
                         if (s == null || p.length < 7) throw new IllegalArgumentException();
                         w.critters.add(new Critter(UUID.fromString(p[1]), s, URLDecoder.decode(p[6], StandardCharsets.UTF_8),
-                            Integer.parseInt(p[3]), Long.parseLong(p[4]), Long.parseLong(p[5]), p.length > 7 ? Long.parseLong(p[7]) : 0));
+                            Integer.parseInt(p[3]), Long.parseLong(p[4]), Long.parseLong(p[5]), p.length > 7 ? Long.parseLong(p[7]) : 0, coat(p)));
                     }
                     case "sidekick" -> w.sidekick = UUID.fromString(p[1]);
                     case "sidekick-roll" -> w.sidekickRoll = Long.parseLong(p[1]);
@@ -76,6 +77,17 @@ public final class Store {
         return new Loaded(w, skipped);
     }
 
+    /** The picked coat on a critter line (ninth field, 0 to 10). Missing in files from before 0.8.0, and a bad one reads as 0 rather than losing the critter. */
+    private static int coat(String[] p) {
+        if (p.length < 9) return 0;
+        try {
+            int c = Integer.parseInt(p[8]);
+            return c >= 0 && c <= Coats.COUNT ? c : 0;
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
     public void save(Wrangler w) throws IOException {
         Files.createDirectories(dir);
         StringBuilder sb = new StringBuilder("# MobSquad: one player's critters. Plain text; don't edit it while the server is running.\n");
@@ -83,7 +95,7 @@ public final class Store {
         for (Critter c : w.critters)
             sb.append("critter ").append(c.id()).append(' ').append(c.species().id()).append(' ').append(c.level()).append(' ')
                 .append(c.xp()).append(' ').append(c.tuckeredUntil()).append(' ')
-                .append(URLEncoder.encode(c.name(), StandardCharsets.UTF_8)).append(' ').append(c.minutes()).append('\n');
+                .append(URLEncoder.encode(c.name(), StandardCharsets.UTF_8)).append(' ').append(c.minutes()).append(' ').append(c.coat()).append('\n');
         if (w.sidekick != null) sb.append("sidekick ").append(w.sidekick).append('\n');
         if (w.sidekickRoll > 0) sb.append("sidekick-roll ").append(w.sidekickRoll).append('\n');
         for (Species s : w.pages) sb.append("page ").append(s.id()).append('\n');

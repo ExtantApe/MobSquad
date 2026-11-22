@@ -35,6 +35,7 @@ public final class Posse implements Runnable {
     private boolean catchingUp;
     private final Fights fights = new Fights(this);
     private Specials specials;
+    private SpiritCoats coats;
     private java.util.function.Predicate<UUID> sidekick = id -> false;
 
     /** A critter out with its owner: which one, whose, and the mob standing in for it. */
@@ -96,6 +97,10 @@ public final class Posse implements Runnable {
         this.specials = specials;
     }
 
+    public void coats(SpiritCoats coats) {
+        this.coats = coats;
+    }
+
     public java.util.Collection<Out> all() {
         return out.values();
     }
@@ -111,6 +116,7 @@ public final class Posse implements Runnable {
         Out n = new Out(o.owner(), c, o.mob());
         out.put(c.id(), n);
         if (c.level() != o.critter().level()) grow(n);
+        if (coats != null) coats.apply(n); // a new level or a new pick can change the coat
     }
 
     /** Moves a critter somewhere on purpose (catching up, an enderman's fetch), letting the safety rules allow it. */
@@ -179,6 +185,7 @@ public final class Posse implements Runnable {
         out.put(c.id(), o);
         grow(o);
         o.mob().setHealth(o.mob().getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).getValue());
+        if (coats != null) coats.apply(o);
         return o;
     }
 
@@ -189,6 +196,7 @@ public final class Posse implements Runnable {
         fights.forget(critter);
         bases.remove(critter);
         if (specials != null) specials.forget(critter);
+        if (coats != null) coats.forget(o);
         if (o.mob().isValid()) o.mob().remove();
         onGone.accept(o);
     }

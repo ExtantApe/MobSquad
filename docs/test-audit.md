@@ -73,3 +73,22 @@ Kept by this repo's owning session, per `~/Code/CLAUDE.md`, "Test self-audits". 
 - **Covered:** the harness records each server folder it creates and each Java process it starts. When the run ends (pass, fail, an uncaught error, Ctrl-C, SIGTERM or SIGHUP) it kills those processes and deletes those folders, and nothing else. A folder from an earlier run that's in the way stops the run; it isn't deleted. `KEEP_TEST_SERVERS=1` keeps the folders for debugging.
 - **Checked by hand:** on MobShowdown, a full run (42/42) and a run interrupted after 45 seconds both left the work folder empty, with no Java left and the test port closed. The other harnesses use the same code.
 - **Gap skipped:** the suite can't check its own leftovers, because cleanup runs as the process exits. A wrapper that checks after the suite exits would add more machinery than the check is worth here.
+
+## 2026-11-22: spirit coats (0.8.0)
+
+| Promise | Test |
+| --- | --- |
+| A coat every 10 levels, 1 at level 10, 10 at level 100, never more | unit `aCoatIsEarnedEveryTenLevels` (9, 10, 99, 100, 150) |
+| The default is the newest earned; a pick counts only if earned | unit `theNewestEarnedCoatIsTheDefault`, `aChosenCoatIsWornOnlyIfEarned`; bot "picking an earned coat", "a locked coat can't be picked" |
+| The choice is saved with the critter and survives growth | unit `theChoiceIsSavedWithTheCritter`, `aCoatChoiceSurvivesLevelingAndRestingAndStaysInRange`; bot "the choice is saved with the critter" |
+| Existing saves stay valid; a bad field never costs a critter | unit `savesFromBeforeCoatsStillLoad`, `aBadCoatFieldNeverCostsTheCritter` |
+| Coats show nowhere until an admin lists a world | unit `coatsShowNowhereUntilAnAdminListsAWorld`, `theBundledConfigListsNoWorlds`; bot "by default no world is magic" |
+| Leaving or unlisting a world takes the look off at once; entering applies it | bot: unlist and relist, and the nether hop |
+| Real variants for chickens (and the other five, in the data file) | bot (chicken, 26.1.2, 26.2, 26.3); unit data tests for the rest |
+| Glow and trail for the others; cheap; none beyond view distance or on minimal | bot: team and glow, packet counts, a far bot, minimal particles |
+| Bad lines in coats.yml are skipped with a warning, never a crash | unit `badEntriesAreSkippedWithAWarningAndTheRestLoad`, `aFileThatIsNotYamlLeavesTheBuiltInCoats`, `theBundledCoatsLoadCleanlyAndReadWell` |
+| Journal shows earned coats by name and locked ones as "Level 30" | unit `CoatJournalTest` |
+| Names and menu text readable, never color alone | unit `theBundledCoatsLoadCleanlyAndReadWell` (readable colors, distinct names); every coat line carries its name |
+| API shows the coat index and name | unit `theApiReportsTheWornCoatByNumberAndName` |
+
+**Gaps:** how it looks in a real client (glow, trail, variants, menu icons); the level-up chat message (not exercised by a bot, since the admin commands skip it); the coat menu on 26.3, where bots can't use a block; world changes between two listed worlds (the suite has only the nether to hop to); wolves, cats, pigs, cows and frogs on a server, since they aren't critters yet.
