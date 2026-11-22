@@ -24,12 +24,14 @@ public final class Api implements MobSquadApi {
         if (player == null || !player.isOnline()) return List.of();
         long now = System.currentTimeMillis();
         List<CritterInfo> list = new ArrayList<>();
-        for (Critter c : squads.get(player).critters) list.add(info(c, now));
+        for (Critter c : squads.get(player).critters) list.add(info(c, now, squads.coatData()));
         return List.copyOf(list);
     }
 
-    static CritterInfo info(Critter c, long now) {
-        return new CritterInfo(c.id(), c.species().id(), c.species().entity, c.name(), c.level(), c.resting(now), fights(c.species()));
+    static CritterInfo info(Critter c, long now, com.extantape.mobsquad.model.CoatData coats) {
+        int coat = com.extantape.mobsquad.model.Coats.worn(c);
+        return new CritterInfo(c.id(), c.species().id(), c.species().entity, c.name(), c.level(), c.resting(now), fights(c.species()),
+            coat, coat == 0 ? "" : coats.name(coat));
     }
 
     static boolean fights(Species s) {

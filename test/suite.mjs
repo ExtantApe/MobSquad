@@ -19,6 +19,7 @@ if (!['26.1.2', '26.2', '26.3'].includes(MC)) throw new Error('usage: node suite
 const ONLY = (process.argv.find(a => a.startsWith('only=')) || '').slice(5).split(',').filter(Boolean)
 // MS_TEST_AURA=1 adds AuraSkills, so Wranglin' is an AuraSkills skill; run it with only=aura (and coax for coaxing XP).
 const AURA = !!process.env.MS_TEST_AURA
+// Spirit coats: run with only=bunkhouse,coats (the menu part needs the Bunkhouse from the first section).
 // MS_TEST_MV=1 adds Multiverse-Core and Multiverse-Inventories; run it with only=bunkhouse,groups
 const MV = !!process.env.MS_TEST_MV
 const want = n => (ONLY.length === 0 && n !== 'aura' && n !== 'groups') || ONLY.includes(n)
@@ -849,6 +850,163 @@ if (want('sidekick')) {
   await buddy.equip(buddy.inventory.items().find(i => i.name === 'warped_fungus_on_a_stick'), 'hand'); buddy.activateItem(); await sleep(600); buddy.deactivateItem()
   check('then the dinnerbell calls it home like anyone', await until(async () => await near('bee') === 0, 3000, 300))
   await quit(buddy)
+}
+
+// ---------- spirit coats ----------
+// Coats use the sidekick to get a critter out, so they run on 26.3 too. Picking a coat in the Bunkhouse menu needs a
+// block use, so that part runs on 26.1.2 and 26.2 only. What a coat looks like in a real client is untested.
+if (want('coats')) {
+  section('Spirit coats')
+  const CX = X + 40, CZ = Z - 40
+  const writeWorlds = async list => {
+    writeFileSync(cfgFile, baseConfig.replace(/^  worlds: .*$/m, `  worlds: [${list}]`))
+    const out = (await s.ask('mobsquad reload', 900)).join(' ')
+    if (!/reloaded/.test(out)) throw new Error('reload failed: ' + out)
+  }
+  const coater = await bot('Coater', { physics: PHYSICS })
+  await uuidOf('Coater')
+  await s.ask('gamemode creative Coater', 200)
+  await s.ask(`forceload add ${CX - 16} ${CZ - 16} ${CX + 16} ${CZ + 16}`, 800)
+  await stand(coater, 'Coater', CX, CZ, 0, 20)
+  await s.ask(`kill @e[type=!player,x=${CX},y=${Y},z=${CZ},distance=..40]`, 300)
+  await s.ask('kill @e[type=bee]', 200); await s.ask('kill @e[type=chicken]', 200)
+  await s.ask('mobsquad xp Coater 100000', 300) // every tier is open, so any critter may go out
+  await s.ask('mobsquad give Coater chicken', 300)
+  await s.ask('mobsquad give Coater bee', 300)
+  // count the particle packets each bot is sent
+  let packets = 0, farPackets = 0
+  coater._client.on('packet', (d, m) => { if (/particle/.test(m.name)) packets++ })
+  const sel = (k, extra = '') => `@e[type=${k},name=${k === 'bee' ? 'Bee' : 'Chicken'}${extra}]`
+  const variantOf = async () => ((await s.ask(`data get entity ${sel('chicken', ',limit=1')} variant`, 400)).join(' ').match(/entity data: "?([\w:]+)"?/) || [])[1]
+  const glows = async k => (await s.count(sel(k, ',nbt={Glowing:1b}'))) > 0
+  const teamOf = async (k, n) => (await s.count(sel(k, `,team=ms_coat_${n}`))) > 0
+  const level = async (k, n) => { await s.ask(`mobsquad level Coater ${k} ${n}`, 400) }
+  const trail = async (ms = 3000) => { const m = packets; await sleep(ms); return packets - m }
+
+  await level('chicken', 45); await level('bee', 45)
+  await s.ask('mobsquad sidekick Coater chicken', 300)
+  check('the chicken comes out as the sidekick', await until(async () => (await s.count(sel('chicken'))) === 1, 6000, 300))
+  await s.ask('mobsquad sidekick Coater bee', 300)
+  check('and the bee', await until(async () => (await s.count(sel('bee'))) === 1, 6000, 300))
+  const plain = await variantOf()
+  check('by default no world is magic, so a level 45 chicken looks as it spawned', !!plain, plain)
+  check('and a level 45 bee doesn\'t glow, wear a team or leave a trail', !(await glows('bee')) && !(await teamOf('bee', 4)) && (await trail(2500)) === 0, `packets ${packets}`)
+
+  // magic worlds
+  await writeWorlds('testworld')
+  check('listing the world gives the chicken its level 45 coat (coat 4) at once', await until(async () => (await variantOf()) === 'minecraft:warm', 3000, 200), await variantOf())
+  check('the bee glows in coat 4\'s team (Meadow)', await until(() => glows('bee'), 3000, 200) && await teamOf('bee', 4))
+  check('a variant critter wears no glow', !(await glows('chicken')))
+  const n = await trail(3000)
+  check('the bee\'s trail is a few particles a second, not a flood', n >= 2 && n <= 20, `${n} packets in 3 s`)
+  await level('chicken', 100)
+  check('level 100 earns coat 10 and the chicken wears it', await until(async () => (await variantOf()) === 'minecraft:cold', 3000, 200), await variantOf())
+  await level('bee', 100)
+  check('the bee moves to coat 10 (Starlight)', await until(() => teamOf('bee', 10), 3000, 200) && !(await teamOf('bee', 4)))
+  await level('bee', 9)
+  check('below level 10 there\'s no coat to show', await until(async () => !(await glows('bee')), 3000, 200) && !(await teamOf('bee', 10)))
+  await level('bee', 45)
+  await until(() => glows('bee'), 3000, 200)
+
+  // who sees particles
+  let far = await bot('Farther', { physics: PHYSICS })
+  await s.ask('gamemode creative Farther', 200)
+  far._client.on('packet', (d, m) => { if (/particle/.test(m.name)) farPackets++ })
+  await s.ask(`tp Farther ${CX + 250} ${Y} ${CZ} 0 0`, 600)
+  await sleep(1000); farPackets = 0
+  const before = packets
+  await sleep(3000)
+  check('a player beyond view distance is sent no particles, a player near still is', farPackets === 0 && packets - before > 0, `far ${farPackets}, near ${packets - before}`)
+  // a player who set particles to minimal: the client sends this in its options
+  const send = particleStatus => coater._client.write('settings', { locale: 'en_US', viewDistance: 6, chatFlags: 0, chatColors: true, skinParts: 127, mainHand: 1,
+    enableTextFiltering: false, enableServerListing: true, particleStatus })
+  let sent = true
+  try { send(2) } catch (e) { sent = false; console.log('    (couldn\'t send the options packet: ' + e.message + ')') }
+  if (sent) {
+    await sleep(800)
+    const quiet = await trail(3000)
+    check('a player with particles set to minimal is sent none', quiet === 0, `${quiet} packets`)
+    send(0); await sleep(800)
+    check('and gets them again when they turn them back on', (await trail(3000)) > 0)
+  }
+  await quit(far)
+
+  // leaving a magic world takes the look off at once, entering applies it
+  await writeWorlds('')
+  check('unlisting the world takes the chicken\'s coat off at once', await until(async () => (await variantOf()) === plain, 3000, 200), `${await variantOf()} vs ${plain}`)
+  check('and the bee\'s glow, team and trail', !(await glows('bee')) && !(await teamOf('bee', 4)) && (await trail(2500)) === 0)
+  await writeWorlds('testworld')
+  check('listing it again brings them back', await until(() => glows('bee'), 3000, 200) && await variantOf() === 'minecraft:cold')
+  const hop = async dim => { await s.ask(`execute in minecraft:${dim} run tp Coater 8 100 8`, 800); await sleep(2500) }
+  await hop('the_nether')
+  check('in a world that isn\'t listed, critters look plain', await until(async () => (await s.count(sel('bee'))) === 1 && !(await glows('bee')), 12000, 400), `bees ${await s.count(sel('bee'))}`)
+  await writeWorlds('testworld, testworld_nether')
+  check('listing the nether gives it back there', await until(() => glows('bee'), 5000, 200))
+  await hop('overworld')
+  await stand(coater, 'Coater', CX, CZ, 0, 20)
+  check('back in the overworld the coat is there', await until(async () => (await glows('bee')) && (await s.count(sel('bee'))) === 1, 12000, 400))
+
+  // the choice
+  if (MENU) {
+    // a fresh player for the menu: Coater's bot has been to the nether, and its block use stopped working after that
+    await quit(coater); await sleep(1500)
+    const picker = await bot('Picker', { physics: PHYSICS })
+    await uuidOf('Picker')
+    await s.ask('mobsquad xp Picker 100000', 300)
+    await s.ask('mobsquad give Picker chicken', 300)
+    await s.ask('mobsquad give Picker bee', 300)
+    await s.ask('mobsquad level Picker bee 45', 300)
+    await s.ask('mobsquad sidekick Picker bee', 300)
+    await stand(picker, 'Picker', X, Z, 0, 20)
+    await until(async () => (await s.count(sel('bee'))) === 1 && await glows('bee'), 8000, 300)
+    const nbefore = critterLines('Picker').length
+    check('both critters are saved with a coat field', critterLines('Picker').every(l => l.split(' ').length === 9 && l.split(' ')[8] === '0'), critterLines('Picker').join(' | '))
+    const lines = critterLines('Picker'), slot = k => lines.map(l => l.split(' ')[2] === k).indexOf(true)
+    await s.ask('gamemode survival Picker', 200)
+    await until(() => picker.blockAt(vault)?.name === 'vault', 15000, 300) // the chunks load after the teleport
+    await openBunkhouse(picker, vault)
+    const opened = new Promise(ok => { picker.once('windowOpen', w => ok(w)); setTimeout(() => ok(null), 5000) })
+    await picker.clickWindow(slot('bee'), 1, 0) // right-click
+    const cw = await opened
+    check('right-clicking a critter opens its spirit coats', cw && /Spirit coats/.test(JSON.stringify(cw.title)), cw && JSON.stringify(cw.title))
+    if (cw) {
+      const nameOf = i => JSON.stringify(cw.slots[i]?.customName ?? '')
+      check('earned coats are named and locked ones say their level', /Coat 1: Ember/.test(nameOf(10)) && /Coat 4: Meadow/.test(nameOf(13)) && /Coat 5: Level 50/.test(nameOf(14)) && /Coat 10: Level 100/.test(nameOf(23)),
+        [10, 13, 14, 23].map(nameOf).join(' | '))
+      check('locked coats are a pane and earned ones a dye', cw.slots[14]?.name === 'gray_stained_glass_pane' && cw.slots[10]?.name === 'red_dye' && cw.slots[13]?.name === 'lime_dye', [10, 13, 14].map(i => cw.slots[i]?.name).join(','))
+      await picker.clickWindow(14, 0, 0); await sleep(500) // a locked coat
+      check('a locked coat can\'t be picked', critterLines('Picker')[slot('bee')].split(' ')[8] === '0' && await teamOf('bee', 4), critterLines('Picker').join(' | '))
+      let from = picker.chatLog.length
+      await picker.clickWindow(11, 0, 0) // coat 2, Marigold
+      check('picking an earned coat says so', await waitSaid(picker, /wears Marigold/, 3000, from), picker.chatLog.slice(from).join(' | '))
+      check('the choice is saved with the critter', await until(() => critterLines('Picker')[slot('bee')]?.split(' ')[8] === '2', 3000, 200), critterLines('Picker').join(' | '))
+      check('and the bee changes to it', await until(() => teamOf('bee', 2), 3000, 200) && !(await teamOf('bee', 4)))
+      await picker.clickWindow(25, 0, 0); await sleep(500) // newest
+      check('"Newest coat" goes back to the newest', await until(() => teamOf('bee', 4), 3000, 200) && critterLines('Picker')[slot('bee')].split(' ')[8] === '0')
+      check('nothing can be taken out of the coat menu', !picker.inventory.items().some(i => /dye|pane|nether_star/.test(i.name)), JSON.stringify(picker.inventory.items().map(i => i.name)))
+      await picker.clickWindow(11, 0, 0); await sleep(400)
+      const back = new Promise(ok => { picker.once('windowOpen', w => ok(w)); setTimeout(() => ok(null), 5000) })
+      await picker.clickWindow(31, 0, 0)
+      const bw = await back
+      check('Back returns to the Bunkhouse', bw && /Bunkhouse/.test(JSON.stringify(bw.title)), bw && JSON.stringify(bw.title))
+      // a young critter has no coats to pick
+      await s.ask('mobsquad level Picker bee 5', 400)
+      from = picker.chatLog.length
+      await picker.clickWindow(slot('bee'), 1, 0)
+      check('a critter under level 10 says when its first coat comes', await waitSaid(picker, /first spirit coat at level 10/, 3000, from), picker.chatLog.slice(from).join(' | '))
+    }
+    await closeMenu(picker)
+    check('no other lines were lost or changed', critterLines('Picker').length === nbefore)
+    await s.ask('mobsquad sidekick Picker none', 300)
+    await quit(picker)
+  } else console.log(`\n# picking a coat in the menu: skipped on ${MC}, where the bots can't use a block`)
+  await s.ask('mobsquad sidekick Coater none', 300)
+  await s.ask(`kill @e[type=!player,x=${CX},y=${Y},z=${CZ},distance=..40]`, 300)
+  await s.ask(`forceload remove ${CX - 16} ${CZ - 16} ${CX + 16} ${CZ + 16}`, 300)
+  await s.ask('team list', 300)
+  check('the bundled coats.yml loaded with no warnings', !s.all.some(l => /coats\.yml/.test(l) && /WARN/.test(l)), s.all.filter(l => /coats\.yml/.test(l)).slice(0, 3).join(' | '))
+  await quit(coater)
+  await config({})
 }
 
 // ---------- world groups ----------

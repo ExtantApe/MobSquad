@@ -1,0 +1,36 @@
+# MobSquad spirit coats: a new coat every 10 levels, coat 1 at level 10 up to coat 10 at level 100.
+# Coats show only in the worlds listed under spirit-coats.worlds in config.yml.
+#
+# To change one, copy this file into plugins/MobSquad and edit it there. Any entry you leave out or get wrong keeps
+# the built-in one, and the log says which line was skipped.
+#
+# coats: a plain name (up to 24 characters), a glow color (one of Minecraft's 16 team colors: red, gold, yellow,
+#   green, dark_green, aqua, dark_aqua, blue, dark_blue, dark_purple, light_purple, white, gray, dark_gray,
+#   dark_red, black) and a particle (a key such as flame; leave it out for none). Critters without real variants
+#   glow in the color and leave a light trail of the particle. The name always goes with the color in menus and
+#   chat, so no one has to tell colors apart.
+# variants: for wolves, cats, pigs, cows, chickens and frogs, the real variant each coat wears, by coat number.
+#   A coat left out wears the critter's normal look.
+
+coats:
+  1: { name: Ember, color: red, particle: flame }
+  2: { name: Marigold, color: gold, particle: wax_on }
+  3: { name: Sunbeam, color: yellow, particle: glow }
+  4: { name: Meadow, color: green, particle: happy_villager }
+  5: { name: Pine, color: dark_green, particle: composter }
+  6: { name: Lagoon, color: aqua, particle: bubble_pop }
+  7: { name: Frost, color: blue, particle: snowflake }
+  8: { name: Twilight, color: dark_purple, particle: witch }
+  9: { name: Blossom, color: light_purple, particle: cherry_leaves }
+  10: { name: Starlight, color: white, particle: end_rod }
+
+variants:
+  # Wolves have nine variants, so coat 10 repeats the pale wolf.
+  wolf: { 1: rusty, 2: chestnut, 3: woods, 4: striped, 5: spotted, 6: ashen, 7: snowy, 8: black, 9: pale, 10: pale }
+  # Cats have eleven; the all-black cat is the top coat.
+  cat: { 1: tabby, 2: red, 3: siamese, 4: british_shorthair, 5: calico, 6: persian, 7: ragdoll, 8: white, 9: jellie, 10: all_black }
+  # Pigs, cows, chickens and frogs have three, so each look lasts for a few coats in a row.
+  pig: { 1: temperate, 2: temperate, 3: temperate, 4: warm, 5: warm, 6: warm, 7: cold, 8: cold, 9: cold, 10: cold }
+  cow: { 1: temperate, 2: temperate, 3: temperate, 4: warm, 5: warm, 6: warm, 7: cold, 8: cold, 9: cold, 10: cold }
+  chicken: { 1: temperate, 2: temperate, 3: temperate, 4: warm, 5: warm, 6: warm, 7: cold, 8: cold, 9: cold, 10: cold }
+  frog: { 1: temperate, 2: temperate, 3: temperate, 4: warm, 5: warm, 6: warm, 7: cold, 8: cold, 9: cold, 10: cold }

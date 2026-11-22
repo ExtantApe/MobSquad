@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.8.0
+
+Spirit coats.
+
+- **A new coat every 10 levels**, ten per critter: coat 1 at level 10 up to coat 10 at level 100. Coats are earned by level and a critter keeps them. Leveling past a multiple of 10 tells the owner the coat's name.
+- **Shown only in magic worlds.** `spirit-coats.worlds` in `config.yml` lists them, by folder name, and it's empty by default, so nobody sees a coat until an admin lists a world. Elsewhere critters look as they always did. Unlisting a world (`/mobsquad reload`) or leaving one takes the look off at once, and entering one puts it on.
+- **What a coat looks like** is in the new `coats.yml` (copied to `plugins/MobSquad` the first time; edit it there). Each coat has a plain name, a glow color and a particle: Ember, Marigold, Sunbeam, Meadow, Pine, Lagoon, Frost, Twilight, Blossom and Starlight. Wolves, cats, pigs, cows, chickens and frogs wear a real variant, set per coat in the same file. Every other critter glows in the coat's color and leaves a light particle trail. A bad line in the file is skipped with a warning in the log, and the built-in value stays.
+- **Cheap particles.** About 4 a second per glowing critter, sent only to players inside their own view distance, and never to a player who set particles to minimal in their game options. Players on decreased get half.
+- **Choosing a coat.** Right-click a critter in the Bunkhouse for its coats: earned ones by name, locked ones as "Level 30", the one it wears marked in words, and "Newest coat", which is the default and follows each new coat. Left-click still sends it out. The choice is saved with the critter as a ninth field on its line in the player's file; older files read as "newest", so every existing save loads unchanged.
+- **La Ménagerie** has a fourth page for each critter that lists its coats (earned ones by name, the rest as the level that earns them), in place of "Spirit coats come later."
+- **API version 2.** `CritterInfo` has `coat` (0 before level 10, otherwise 1 to 10) and `coatName`, for MobShowdown. It's the coat the owner picked or the newest earned, whether or not the world shows it. The old seven-argument constructor still works.
+- Colors never carry the meaning: every menu line, chat message and journal line has the coat's name, and the menu's dark glow colors are written in a lighter color so they read on the dark background.
+- Tested: unit tests (earning at levels 9, 10, 99 and 100, the choice and the migration, magic-world gating, the data file with bad entries, the journal page, the API) and the bot suite (see the README for versions and counts). Not seen in a real game client: how the glow, the trail and the variants look. Wolves, cats, pigs, cows and frogs aren't critters yet, so their variants are covered by the data file's tests only; the chicken's variants ran for real.
+
 ## 0.7.1
 
 - Menu and chat hints are easier to read (K681). Lore lines in the Bunkhouse, Critterbook and vittles menus, and the locked lines in the coaxing list, move from dark gray (under 3:1 on the dark tooltip) to gray (about 9:1). Unlocked coaxing hints are now white so they still stand apart. Critterbook book pages keep dark gray, since they sit on a light page.

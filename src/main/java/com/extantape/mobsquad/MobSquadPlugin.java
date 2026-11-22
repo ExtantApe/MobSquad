@@ -14,6 +14,9 @@ import com.extantape.mobsquad.world.Posse;
 import com.extantape.mobsquad.world.Safety;
 import com.extantape.mobsquad.world.Specials;
 import com.extantape.mobsquad.world.Journal;
+import com.extantape.mobsquad.world.CoatMenu;
+import com.extantape.mobsquad.world.SpiritCoats;
+import com.extantape.mobsquad.model.CoatData;
 import com.extantape.mobsquad.model.Growth;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -46,6 +49,7 @@ public final class MobSquadPlugin extends JavaPlugin {
     private Coaxing coaxing;
     private Vittles vittles;
     private Journal journal;
+    private SpiritCoats coats;
 
     @Override
     public void onEnable() {
@@ -71,14 +75,22 @@ public final class MobSquadPlugin extends JavaPlugin {
         vittles.register();
         Specials specials = new Specials(this, squads);
         posse.specials(specials);
+        SpiritCoats coats = new SpiritCoats(squads, posse);
+        this.coats = coats;
+        posse.coats(coats);
+        squads.coatData(loadCoats());
+        coats.data(squads.coatData());
         var pm = getServer().getPluginManager();
         pm.registerEvents(specials, this);
+        pm.registerEvents(coats, this);
         pm.registerEvents(new Safety(squads), this);
+        CoatMenu coatMenu = new CoatMenu(squads);
         Journal journal = new Journal(this, squads);
         squads.pageOpener((p, s) -> journal.open(p, s, "got"));
         this.journal = journal;
         pm.registerEvents(journal, this);
-        pm.registerEvents(new BunkhouseMenu(squads, bunkhouses, journal), this);
+        pm.registerEvents(new BunkhouseMenu(squads, bunkhouses, journal, coatMenu), this);
+        pm.registerEvents(coatMenu, this);
         pm.registerEvents(dinnerbell, this);
         pm.registerEvents(coaxing, this);
         pm.registerEvents(vittles, this);
@@ -99,6 +111,7 @@ public final class MobSquadPlugin extends JavaPlugin {
         getServer().getScheduler().runTaskTimer(this, posse, Posse.FOLLOW_TICKS, Posse.FOLLOW_TICKS);
         getServer().getScheduler().runTaskTimer(this, coaxing, Coaxing.PERIOD, Coaxing.PERIOD);
         getServer().getScheduler().runTaskTimer(this, specials, Specials.PERIOD, Specials.PERIOD);
+        getServer().getScheduler().runTaskTimer(this, coats, SpiritCoats.PERIOD, SpiritCoats.PERIOD);
         getServer().getScheduler().runTaskTimer(this, journal, Journal.PERIOD, Journal.PERIOD);
         getServer().getScheduler().runTaskTimer(this, squads::saveAll, 20L * 300, 20L * 300);
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, e -> e.registrar().register(
@@ -148,7 +161,30 @@ public final class MobSquadPlugin extends JavaPlugin {
         if (coaxing != null) coaxing.stop();
         if (squads == null) return;
         if (squads.posse() != null) squads.posse().backEveryone();
+        if (coats != null) coats.removeTeams();
         squads.saveAll();
+    }
+
+    /**
+     * The coats: the ones in the jar, with anything valid in plugins/MobSquad/coats.yml laid over them. The file is
+     * copied there the first time so an admin can edit it, and a bad entry in it is skipped with a warning.
+     */
+    private CoatData loadCoats() {
+        var validator = SpiritCoats.validator();
+        CoatData data = CoatData.EMPTY;
+        try (java.io.InputStream in = getResource("coats.yml")) {
+            if (in != null) data = CoatData.parse(new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8), validator, getLogger(), data);
+        } catch (java.io.IOException e) {
+            getLogger().log(java.util.logging.Level.WARNING, "Couldn't read the built-in coats.yml.", e);
+        }
+        java.io.File file = new java.io.File(getDataFolder(), "coats.yml");
+        if (!file.exists()) saveResource("coats.yml", false);
+        try {
+            data = CoatData.parse(java.nio.file.Files.readString(file.toPath()), validator, getLogger(), data);
+        } catch (java.io.IOException e) {
+            getLogger().log(java.util.logging.Level.WARNING, "Couldn't read plugins/MobSquad/coats.yml, so the built-in coats are used.", e);
+        }
+        return data;
     }
 
     private static void say(CommandContext<CommandSourceStack> c, String text, NamedTextColor color) {
@@ -331,6 +367,8 @@ public final class MobSquadPlugin extends JavaPlugin {
     private int reload(CommandContext<CommandSourceStack> c) {
         reloadConfig();
         squads.settings(Settings.read(getConfig(), getLogger()));
+        squads.coatData(loadCoats());
+        coats.data(squads.coatData());
         say(c, "MobSquad reloaded.", NamedTextColor.GREEN);
         return Command.SINGLE_SUCCESS;
     }
