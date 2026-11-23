@@ -223,8 +223,8 @@ public final class BunkhouseMenu implements Listener {
         long now = System.currentTimeMillis();
         if (c.resting(now)) return c.name() + " is still resting.";
         int level = squads.wranglinLevel(p);
-        if (!Levels.unlocked(c.species().tier, level))
-            return c.name() + " is a " + c.species().tier.title + " critter. It can go out from Wranglin' level " + c.species().tier.level + ".";
+        if (!squads.tierOpen(p, c.species().tier))
+            return c.name() + " is a " + c.species().tier.title + " critter. It can go out " + squads.tierWhen(c.species().tier) + ".";
         int max = Levels.posse(level);
         if (squads.posse().counted(p.getUniqueId()) >= max)
             return "You can have " + max + (max == 1 ? " critter" : " critters") + " out at once at Wranglin' level " + level + ". Call one back first.";

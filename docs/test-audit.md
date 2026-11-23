@@ -74,6 +74,19 @@ Kept by this repo's owning session, per `~/Code/CLAUDE.md`, "Test self-audits". 
 - **Checked by hand:** on MobShowdown, a full run (42/42) and a run interrupted after 45 seconds both left the work folder empty, with no Java left and the test port closed. The other harnesses use the same code.
 - **Gap skipped:** the suite can't check its own leftovers, because cleanup runs as the process exits. A wrapper that checks after the suite exits would add more machinery than the check is worth here.
 
+## 2026-11-22: quest chapters (0.9.0)
+
+| Promise | Test |
+| --- | --- |
+| By default tiers open by level alone; quest unlocks change nothing | unit `levelModeIgnoresQuestsSoNothingChangesByDefault`, `theSettingDefaultsToLevelAndABadValueIsWarnedAbout` (shipped config is `level`) |
+| `either`: a quest opens a tier early, the level still works, one tier's quest doesn't open another | unit `eitherModeLetsAQuestOpenATierEarly` |
+| `quest`: level alone doesn't open a tier; Yard always open in every mode (fails safe, nobody locked out) | unit `questModeNeedsTheQuestButYardIsAlwaysOpen` |
+| Locked messages say how a tier opens | unit `theLockedMessageSaysHowToOpenIt` |
+| Quest unlocks are saved; old files load with none; a bad tier line is skipped, never guessed | unit `questUnlocksAreSavedWithThePlayer`, `filesFromBeforeQuestsLoadWithNoneAndABadTierLineIsSkipped` |
+| Placeholders give only the player's own progress; unknown ones are left as written | unit `placeholdersReportOnlyThePlayersOwnProgress` |
+
+**Gaps:** the `unlock`, `lock` and `page` commands and the PlaceholderAPI registration haven't run on a server (no throwaway servers on 2026-11-22); bot checks for them go in with the next bot run. Who may run the commands is `mobsquad.admin`, the same Brigadier `requires` as the other admin commands, which the bot suite already checks for a player without it. A real BetonQuest chapter is untested until one is written.
+
 ## 2026-11-22: spirit coats (0.8.0)
 
 | Promise | Test |

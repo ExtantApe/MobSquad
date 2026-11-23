@@ -116,6 +116,18 @@ public final class Squads {
         return skill;
     }
 
+    /** Whether this player may coax and send out critters of a tier, by level and quests as config says. */
+    public boolean tierOpen(Player p, com.extantape.mobsquad.model.Tier tier) {
+        Wrangler w = get(p);
+        return com.extantape.mobsquad.model.Unlocks.open(settings.tierUnlock(), tier, wranglinLevel(p),
+            w == null ? java.util.Set.of() : w.questTiers);
+    }
+
+    /** When a locked tier opens, to finish a sentence ("from Wranglin' level 25"). */
+    public String tierWhen(com.extantape.mobsquad.model.Tier tier) {
+        return com.extantape.mobsquad.model.Unlocks.when(settings.tierUnlock(), tier);
+    }
+
     public int wranglinLevel(Player p) {
         Wrangler w = get(p);
         return w == null ? 1 : Levels.level(w.wranglinXp);
@@ -224,7 +236,7 @@ public final class Squads {
             if (w == null || w.sidekick == null || posse.isOut(w.sidekick)) continue;
             Critter c = w.find(w.sidekick);
             if (c == null || c.resting(now) || p.isDead() || p.getGameMode() == org.bukkit.GameMode.SPECTATOR) continue;
-            if (!settings.enabledIn(p.getWorld().getName()) || !p.hasPermission("mobsquad.use") || !Levels.unlocked(c.species().tier, wranglinLevel(p))) continue;
+            if (!settings.enabledIn(p.getWorld().getName()) || !p.hasPermission("mobsquad.use") || !tierOpen(p, c.species().tier)) continue;
             posse.send(p, c);
             p.sendActionBar(Component.text(c.name() + " is at your side.", NamedTextColor.GOLD));
         }

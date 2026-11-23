@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.9.0
+
+Quest chapters.
+
+- **Quests can open tiers.** `quests.tier-unlock` in `config.yml`: `level` (the default; tiers open by Wranglin' level, as before), `either` (the level, or sooner through a quest) or `quest` (only a quest opens Holler, Yonder and Backcountry; Yard is always open, so nobody is locked out of everything). Messages about a locked critter say which way opens it.
+- **New admin commands for quests:** `/mobsquad unlock <player> <tier>`, `/mobsquad lock <player> <tier>` and `/mobsquad page <player> <critter>`. A quest plugin runs them from the console, for example through BetonQuest's command event. The player is told when a tier or page opens. A quest unlock is saved in the player's file as a `tier` line; older versions skip that line, and older files load with none.
+- **Placeholders, if PlaceholderAPI is installed:** `%mobsquad_level%`, `critters`, `pages`, `tier_<tier>`, `page_<critter>`, `has_<critter>` and `best_<critter>`, for quest conditions. Only the player's own progress, only while they're online, and nothing about anyone else or where they are.
+- MobSquad doesn't link to BetonQuest's code, so it works with any BetonQuest version (the live server runs a 3.3 development build) and with other quest plugins.
+- Tested: unit tests (54: every unlock mode, Yard always open, the setting and a bad value, saving and old files, every placeholder and unknown ones). Not run on a server yet: the commands, the PlaceholderAPI registration and a real BetonQuest chapter. No chapters are written yet; they're server content.
+
 ## 0.8.1
 
 - **Pigs, cows, chickens and frogs also glow in their coat.** They have only three looks each, so a look repeats for three or four coats; now they also glow in the coat's color and leave its trail, so every coat looks different. Wolves and cats keep the variant only. The list is `glow-too` in `coats.yml`. A copy of `coats.yml` already in `plugins/MobSquad` without that line gets the built-in list. A name that isn't a variant critter is skipped with a warning.

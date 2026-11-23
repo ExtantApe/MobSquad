@@ -90,8 +90,8 @@ public final class Coaxing implements Listener, Runnable {
             : mob.isLeashed() ? "That " + what + "'s on a lead. It belongs to somebody already."
             : mob.isInsideVehicle() || !mob.getPassengers().isEmpty() ? "That " + what + "'s busy."
             : on(mob) != null ? "Somebody's already coaxing that " + what + "."
-            : !Levels.unlocked(puzzle.species().tier, level) ? "A " + what + " is a " + puzzle.species().tier.title
-                + " critter. You can coax one from Wranglin' level " + puzzle.species().tier.level + "."
+            : !squads.tierOpen(p, puzzle.species().tier) ? "A " + what + " is a " + puzzle.species().tier.title
+                + " critter. You can coax one " + squads.tierWhen(puzzle.species().tier) + "."
             : squads.get(p) == null ? "Your Bunkhouse list can't be read right now. Ask an admin to check the server log."
             : puzzle.refuse(p, mob);
         if (refusal != null) {
