@@ -37,6 +37,7 @@ for (const [project, name, pick] of [
   ['auraskills', 'AuraSkills.jar', { version: '2.4.0' }], // the version the hook is built against; lists 26.1.2 to 26.3
   ['multiverse-core', 'Multiverse-Core.jar', { version: '5.8.2' }], // world groups test
   ['multiverse-inventories', 'Multiverse-Inventories.jar', { version: '5.3.6' }],
+  ['placeholderapi', 'PlaceholderAPI.jar', { version: '2.12.3' }], // the version the hook is built against
 ]) {
   const versions = await json(`https://api.modrinth.com/v2/project/${project}/version`)
   const v = pick.version ? versions.find(x => x.version_number === pick.version)
