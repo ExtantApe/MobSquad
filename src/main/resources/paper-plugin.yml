@@ -4,10 +4,15 @@ main: com.extantape.mobsquad.MobSquadPlugin
 api-version: '26.1'
 description: "Coax mobs into critters that follow you, fight only hostile mobs and rest in a Bunkhouse. Gotta coax em all... Pokemob!"
 website: https://github.com/ExtantApe/MobSquad
-# Optional: with AuraSkills installed, Wranglin' is an AuraSkills skill.
+# Optional: with AuraSkills installed, Wranglin' is an AuraSkills skill. With PlaceholderAPI, quests can check
+# %mobsquad_...% placeholders.
 dependencies:
   server:
     AuraSkills:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    PlaceholderAPI:
       load: BEFORE
       required: false
       join-classpath: true

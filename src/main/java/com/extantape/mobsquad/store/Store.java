@@ -20,12 +20,13 @@ import java.util.UUID;
  * wranglin 150
  * critter 6b1f...  chicken 1 0 0 Clucky
  * page chicken
+ * tier yonder
  * sidekick 6b1f...
  * sidekick-roll 20407
  * </pre>
  *
  * A critter line is its id, species, level, experience, when it's rested (epoch milliseconds, 0 when ready) and its
- * name, URL-encoded, then its minutes out with its owner (missing in files from before 0.5.0, read as 0), then the spirit coat its owner picked, 0 to 10 (missing in files from before 0.8.0, read as 0, which wears the newest earned). A page line is a La Ménagerie page the player has opened; owning a critter opens its page too. Written to a temporary file and moved into place, so a crash leaves the old file or the new one.
+ * name, URL-encoded, then its minutes out with its owner (missing in files from before 0.5.0, read as 0), then the spirit coat its owner picked, 0 to 10 (missing in files from before 0.8.0, read as 0, which wears the newest earned). A page line is a La Ménagerie page the player has opened; owning a critter opens its page too. A tier line is a tier a quest unlocked (0.9.0); older versions skip it. Written to a temporary file and moved into place, so a crash leaves the old file or the new one.
  * Lines that can't be read are skipped and counted, never guessed at.
  */
 public final class Store {
@@ -61,6 +62,7 @@ public final class Store {
                     }
                     case "sidekick" -> w.sidekick = UUID.fromString(p[1]);
                     case "sidekick-roll" -> w.sidekickRoll = Long.parseLong(p[1]);
+                    case "tier" -> w.questTiers.add(com.extantape.mobsquad.model.Tier.valueOf(p[1].toUpperCase(java.util.Locale.ROOT)));
                     case "page" -> {
                         Species s = Species.byId(p[1]);
                         if (s == null) throw new IllegalArgumentException();
@@ -99,6 +101,7 @@ public final class Store {
         if (w.sidekick != null) sb.append("sidekick ").append(w.sidekick).append('\n');
         if (w.sidekickRoll > 0) sb.append("sidekick-roll ").append(w.sidekickRoll).append('\n');
         for (Species s : w.pages) sb.append("page ").append(s.id()).append('\n');
+        for (com.extantape.mobsquad.model.Tier t : w.questTiers) sb.append("tier ").append(t.name().toLowerCase(java.util.Locale.ROOT)).append('\n');
         Path tmp = dir.resolve(w.player + ".txt.tmp");
         Files.writeString(tmp, sb.toString(), StandardCharsets.UTF_8);
         Files.move(tmp, file(w.player), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);

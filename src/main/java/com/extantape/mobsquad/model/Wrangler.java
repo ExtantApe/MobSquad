@@ -14,6 +14,8 @@ public final class Wrangler {
     public UUID sidekick;
     public long sidekickRoll;
     public final java.util.Set<Species> pages = java.util.EnumSet.noneOf(Species.class);
+    /** Tiers a quest has unlocked for this player (0.9.0). Used when quests.tier-unlock is either or quest. */
+    public final java.util.Set<Tier> questTiers = java.util.EnumSet.noneOf(Tier.class);
 
     public Wrangler(UUID player) {
         this.player = player;

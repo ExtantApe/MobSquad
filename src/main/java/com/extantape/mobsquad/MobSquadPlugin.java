@@ -85,6 +85,13 @@ public final class MobSquadPlugin extends JavaPlugin {
         pm.registerEvents(coats, this);
         pm.registerEvents(new Safety(squads), this);
         CoatMenu coatMenu = new CoatMenu(squads);
+        if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            try {
+                if (com.extantape.mobsquad.hook.Placeholders.register(this, squads)) getLogger().info("Quest placeholders (%mobsquad_...%) are registered with PlaceholderAPI.");
+            } catch (Throwable e) {
+                getLogger().log(java.util.logging.Level.WARNING, "Couldn't register placeholders with PlaceholderAPI. Quests can still use the /mobsquad unlock and page commands.", e);
+            }
+        }
         Journal journal = new Journal(this, squads);
         squads.pageOpener((p, s) -> journal.open(p, s, "got"));
         this.journal = journal;
@@ -151,6 +158,19 @@ public final class MobSquadPlugin extends JavaPlugin {
                             for (Species s : Species.values()) if (s.id().startsWith(b.getRemainingLowerCase())) b.suggest(s.id());
                             return b.buildFuture();
                         }).executes(this::sidekick))))
+                // Quest hooks (0.9.0): BetonQuest's command event, or any other quest plugin, runs these from the console.
+                .then(Commands.literal("unlock").requires(src -> src.getSender().hasPermission("mobsquad.admin"))
+                    .then(Commands.argument("player", ArgumentTypes.player())
+                        .then(Commands.argument("tier", StringArgumentType.word()).suggests(this::suggestTiers).executes(c -> unlock(c, true)))))
+                .then(Commands.literal("lock").requires(src -> src.getSender().hasPermission("mobsquad.admin"))
+                    .then(Commands.argument("player", ArgumentTypes.player())
+                        .then(Commands.argument("tier", StringArgumentType.word()).suggests(this::suggestTiers).executes(c -> unlock(c, false)))))
+                .then(Commands.literal("page").requires(src -> src.getSender().hasPermission("mobsquad.admin"))
+                    .then(Commands.argument("player", ArgumentTypes.player())
+                        .then(Commands.argument("critter", StringArgumentType.word()).suggests((c, b) -> {
+                            for (Species s : Species.values()) if (s.id().startsWith(b.getRemainingLowerCase())) b.suggest(s.id());
+                            return b.buildFuture();
+                        }).executes(this::page))))
                 .then(Commands.literal("reload").requires(src -> src.getSender().hasPermission("mobsquad.admin")).executes(this::reload))
                 .build(),
             "Your critters, the dinnerbell, and admin tools for Bunkhouses.", List.of("ms")));
@@ -224,8 +244,8 @@ public final class MobSquadPlugin extends JavaPlugin {
         int level = c.getSource().getExecutor() instanceof Player p ? squads.wranglinLevel(p) : 100;
         say(c, "How to coax them (Wranglin' level " + level + "):", NamedTextColor.GOLD);
         for (Species s : Species.values()) {
-            boolean open = Levels.unlocked(s.tier, level);
-            say(c, "  " + s.title() + " (" + s.tier.title + "): " + (open ? s.hint : "from Wranglin' level " + s.tier.level + "."),
+            boolean open = c.getSource().getExecutor() instanceof Player hp ? squads.tierOpen(hp, s.tier) : true;
+            say(c, "  " + s.title() + " (" + s.tier.title + "): " + (open ? s.hint : squads.tierWhen(s.tier) + "."),
                 open ? NamedTextColor.WHITE : NamedTextColor.GRAY);
         }
         return Command.SINGLE_SUCCESS;
@@ -361,6 +381,64 @@ public final class MobSquadPlugin extends JavaPlugin {
         }
         squads.setSidekick(p, pick);
         say(c, "[MobSquad] " + pick.name() + " is " + p.getName() + "'s sidekick now.", NamedTextColor.GREEN);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private java.util.concurrent.CompletableFuture<com.mojang.brigadier.suggestion.Suggestions> suggestTiers(
+            CommandContext<CommandSourceStack> c, com.mojang.brigadier.suggestion.SuggestionsBuilder b) {
+        for (com.extantape.mobsquad.model.Tier t : com.extantape.mobsquad.model.Tier.values()) {
+            String id = t.name().toLowerCase(Locale.ROOT);
+            if (t != com.extantape.mobsquad.model.Tier.YARD && id.startsWith(b.getRemainingLowerCase())) b.suggest(id);
+        }
+        return b.buildFuture();
+    }
+
+    /** /mobsquad unlock|lock <player> <tier>: a quest opens a tier for a player (or an admin takes it back). */
+    private int unlock(CommandContext<CommandSourceStack> c, boolean open) throws CommandSyntaxException {
+        Player p = c.getArgument("player", PlayerSelectorArgumentResolver.class).resolve(c.getSource()).getFirst();
+        Wrangler w = squads.get(p);
+        if (w == null) {
+            say(c, p.getName() + "'s Bunkhouse list can't be read right now; see the server log.", NamedTextColor.RED);
+            return 0;
+        }
+        String name = c.getArgument("tier", String.class);
+        com.extantape.mobsquad.model.Tier t;
+        try {
+            t = com.extantape.mobsquad.model.Tier.valueOf(name.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            t = null;
+        }
+        if (t == null || t == com.extantape.mobsquad.model.Tier.YARD) {
+            say(c, "\"" + name + "\" isn't a tier a quest can open. Use holler, yonder or backcountry.", NamedTextColor.YELLOW);
+            return 0;
+        }
+        boolean changed = open ? w.questTiers.add(t) : w.questTiers.remove(t);
+        if (changed) squads.save(w);
+        var mode = squads.settings().tierUnlock();
+        String note = mode == com.extantape.mobsquad.model.Unlocks.Mode.LEVEL ? " (quests.tier-unlock is level, so only Wranglin' level counts right now)" : "";
+        say(c, "[MobSquad] " + p.getName() + (open ? " has the " : " no longer has the ") + t.title + " tier from a quest"
+            + (changed ? "" : " (no change)") + "." + note, NamedTextColor.GREEN);
+        if (open && changed && mode != com.extantape.mobsquad.model.Unlocks.Mode.LEVEL)
+            p.sendMessage(Component.text("The " + t.title + " tier is open! You can coax " + t.title + " critters now. /mobsquad hints says how.", NamedTextColor.GOLD));
+        return Command.SINGLE_SUCCESS;
+    }
+
+    /** /mobsquad page <player> <critter>: a quest chapter introduces a critter and opens its journal page. */
+    private int page(CommandContext<CommandSourceStack> c) throws CommandSyntaxException {
+        Player p = c.getArgument("player", PlayerSelectorArgumentResolver.class).resolve(c.getSource()).getFirst();
+        Wrangler w = squads.get(p);
+        Species s = Species.byId(c.getArgument("critter", String.class));
+        if (w == null) {
+            say(c, p.getName() + "'s Bunkhouse list can't be read right now; see the server log.", NamedTextColor.RED);
+            return 0;
+        }
+        if (s == null) {
+            say(c, "\"" + c.getArgument("critter", String.class) + "\" isn't a critter.", NamedTextColor.YELLOW);
+            return 0;
+        }
+        boolean had = w.pages.contains(s);
+        journal.open(p, s, "quest");
+        say(c, "[MobSquad] " + p.getName() + (had ? " already had" : " has") + " the " + s.title().toLowerCase(Locale.ROOT) + "'s page.", NamedTextColor.GREEN);
         return Command.SINGLE_SUCCESS;
     }
 

@@ -93,7 +93,7 @@ public final class Vittles implements Listener {
         p.playSound(p.getLocation(), Sound.ENTITY_GENERIC_EAT, 0.8f, 1.3f);
         int max = Levels.posse(squads.wranglinLevel(p));
         boolean room = squads.settings().enabledIn(p.getWorld().getName()) && squads.posse().counted(p.getUniqueId()) < max
-            && Levels.unlocked(ready.species().tier, squads.wranglinLevel(p));
+            && squads.tierOpen(p, ready.species().tier);
         if (room) {
             Posse.Out o = squads.posse().send(p, ready);
             o.mob().getWorld().spawnParticle(Particle.HAPPY_VILLAGER, o.mob().getLocation().add(0, 0.6, 0), 8, 0.4, 0.4, 0.4);
