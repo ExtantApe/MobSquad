@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.1
+
+- **Pigs, cows, chickens and frogs also glow in their coat.** They have only three looks each, so a look repeats for three or four coats; now they also glow in the coat's color and leave its trail, so every coat looks different. Wolves and cats keep the variant only. The list is `glow-too` in `coats.yml`. A copy of `coats.yml` already in `plugins/MobSquad` without that line gets the built-in list. A name that isn't a variant critter is skipped with a warning.
+- **No-glow worlds.** A glow outline shows through walls, so in a kids' world it could lead others to where a kid is building. Worlds listed under `spirit-coats.no-glow-worlds` in `config.yml` show coats without the outline: critters keep their variant and their coat's trail, and particles don't show through blocks. The outline goes off as soon as the owner enters such a world, the trail there is sent only within 32 blocks, and a no-glow world that isn't also a coat world (a likely typo) is warned about in the log. Empty by default.
+- Tested: unit tests (46). The bot suite's coat checks were updated for the chicken's glow and no-glow worlds but haven't been rerun yet; that run comes before any live install. Not seen in a real game client.
+
 ## 0.8.0
 
 Spirit coats.

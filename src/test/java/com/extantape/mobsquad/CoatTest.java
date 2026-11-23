@@ -173,6 +173,26 @@ class CoatTest {
     }
 
     @Test
+    void noGlowWorldsTurnOnlyTheOutlineOff() {
+        Settings none = Settings.read(new YamlConfiguration(), Logger.getAnonymousLogger());
+        assertTrue(none.glowIn("magic"), "glow is allowed unless a world is listed");
+        YamlConfiguration y = new YamlConfiguration();
+        y.set("spirit-coats.worlds", List.of("magic", "ninos_magic"));
+        y.set("spirit-coats.no-glow-worlds", List.of("ninos_magic"));
+        Settings s = Settings.read(y, Logger.getAnonymousLogger());
+        assertTrue(s.coatsIn("ninos_magic"), "coats still show there");
+        assertFalse(s.glowIn("ninos_magic"), "without the outline");
+        assertTrue(s.glowIn("magic"));
+
+        Warnings warn = new Warnings();
+        YamlConfiguration typo = new YamlConfiguration();
+        typo.set("spirit-coats.worlds", List.of("ninos_magic"));
+        typo.set("spirit-coats.no-glow-worlds", List.of("ninos_majic"));
+        Settings.read(typo, logger(warn));
+        assertEquals(1, warn.messages.size(), "a no-glow world that isn't a coat world is warned about: " + warn.messages);
+    }
+
+    @Test
     void theBundledConfigListsNoWorlds() throws Exception {
         YamlConfiguration y = new YamlConfiguration();
         try (InputStream in = CoatTest.class.getResourceAsStream("/config.yml")) {
@@ -180,6 +200,8 @@ class CoatTest {
         }
         assertTrue(y.contains("spirit-coats.worlds"));
         assertTrue(Settings.read(y, Logger.getAnonymousLogger()).coatWorlds().isEmpty());
+        assertTrue(y.contains("spirit-coats.no-glow-worlds"));
+        assertTrue(Settings.read(y, Logger.getAnonymousLogger()).noGlowWorlds().isEmpty());
     }
 
     // ---- the data file ----
@@ -207,6 +229,9 @@ class CoatTest {
             for (int i = 1; i <= Coats.COUNT; i++) assertNotNull(d.variant(species, i), species + " coat " + i);
         }
         assertFalse(d.hasVariants("creeper"), "a creeper glows instead");
+        assertTrue(d.glows("creeper"), "a critter without variants glows");
+        for (String species : Set.of("pig", "cow", "chicken", "frog")) assertTrue(d.glows(species), species + " glows too (owner, 2026-11-22)");
+        for (String species : Set.of("wolf", "cat")) assertFalse(d.glows(species), species + " wears its variant only");
         assertNull(d.variant("creeper", 1));
     }
 
@@ -258,5 +283,27 @@ class CoatTest {
         assertEquals("Coat 3", CoatData.EMPTY.name(3));
         assertNull(CoatData.EMPTY.coat(3).particle());
         assertNull(CoatData.EMPTY.variant("wolf", 3));
+    }
+
+    @Test
+    void glowTooCanBeChangedAndBadEntriesAreSkipped() throws Exception {
+        CoatData base = CoatData.parse(bundled(), allow(Set.of()), logger(new Warnings()), CoatData.EMPTY);
+        Warnings warn = new Warnings();
+        CoatData d = CoatData.parse("glow-too: [wolf, Cow, creeper, dragon]\n", allow(Set.of()), logger(warn), base);
+        assertTrue(d.glows("wolf"));
+        assertTrue(d.glows("cow"), "names are read without regard to case");
+        assertFalse(d.glows("pig"), "a list replaces the built-in one");
+        assertTrue(d.glows("creeper"), "a critter without variants glows anyway");
+        assertEquals(2, warn.messages.size(), "creeper and dragon are skipped with a warning: " + warn.messages);
+
+        Warnings warn2 = new Warnings();
+        CoatData kept = CoatData.parse("glow-too: pig\n", allow(Set.of()), logger(warn2), base);
+        assertTrue(kept.glows("frog"), "a value that isn't a list keeps the built-in list");
+        assertEquals(1, warn2.messages.size());
+
+        CoatData none = CoatData.parse("glow-too: []\n", allow(Set.of()), logger(new Warnings()), base);
+        assertFalse(none.glows("pig"), "an empty list turns it off");
+        assertTrue(CoatData.parse("coats: {}\n", allow(Set.of()), logger(new Warnings()), base).glows("pig"),
+            "a file without glow-too keeps the built-in list");
     }
 }

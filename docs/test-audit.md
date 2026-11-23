@@ -86,6 +86,8 @@ Kept by this repo's owning session, per `~/Code/CLAUDE.md`, "Test self-audits". 
 | Leaving or unlisting a world takes the look off at once; entering applies it | bot: unlist and relist, and the nether hop |
 | Real variants for chickens (and the other five, in the data file) | bot (chicken, 26.1.2, 26.2, 26.3); unit data tests for the rest |
 | Glow and trail for the others; cheap; none beyond view distance or on minimal | bot: team and glow, packet counts, a far bot, minimal particles |
+| Pigs, cows, chickens and frogs also glow (glow-too, 0.8.1); wolves and cats don't; the list can be changed and bad entries are skipped | unit `theBundledCoatsLoadCleanlyAndReadWell`, `glowTooCanBeChangedAndBadEntriesAreSkipped`; bot: the chicken's glow and team (written 2026-11-22, not yet run) |
+| No-glow worlds drop only the outline, keeping the coat and trail (kids' safety) | unit `noGlowWorldsTurnOnlyTheOutlineOff`, `theBundledConfigListsNoWorlds`; bot: no-glow on and off with the bee and chicken (written 2026-11-22, not yet run) |
 | Bad lines in coats.yml are skipped with a warning, never a crash | unit `badEntriesAreSkippedWithAWarningAndTheRestLoad`, `aFileThatIsNotYamlLeavesTheBuiltInCoats`, `theBundledCoatsLoadCleanlyAndReadWell` |
 | Journal shows earned coats by name and locked ones as "Level 30" | unit `CoatJournalTest` |
 | Names and menu text readable, never color alone | unit `theBundledCoatsLoadCleanlyAndReadWell` (readable colors, distinct names); every coat line carries its name |

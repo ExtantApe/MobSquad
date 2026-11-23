@@ -24,8 +24,10 @@ import org.bukkit.scoreboard.Team;
 
 /**
  * Shows each out critter's spirit coat, only in the worlds listed under {@code spirit-coats.worlds}. Wolves, cats, pigs,
- * cows, chickens and frogs wear a real variant; every other critter gets a glow in the coat's color (a scoreboard team
- * color) and a light particle trail. Nothing here is saved: the look is put on when a critter goes out and whenever its
+ * cows, chickens and frogs wear a real variant. Every other critter, and the variant critters listed under glow-too
+ * (pigs, cows, chickens and frogs by default), gets a glow in the coat's color (a scoreboard team color) and a light
+ * particle trail; in worlds under spirit-coats.no-glow-worlds they keep the trail but get no outline, which shows
+ * through walls. Nothing here is saved: the look is put on when a critter goes out and whenever its
  * coat or world changes, and taken off at once when its owner leaves a magic world.
  *
  * The trail is a couple of particles every half second, sent only to players within their own view distance, and never
@@ -34,6 +36,8 @@ import org.bukkit.scoreboard.Team;
 public final class SpiritCoats implements Runnable, Listener {
     public static final long PERIOD = 10;
     private static final String TEAM = "ms_coat_";
+    /** How far a trail is sent in a no-glow world, in blocks. */
+    static final double NO_GLOW_TRAIL_RANGE = 32;
     private final Squads squads;
     private final Posse posse;
     private CoatData data = CoatData.EMPTY;
@@ -41,7 +45,10 @@ public final class SpiritCoats implements Runnable, Listener {
     private final Map<UUID, Integer> shown = new HashMap<>();
     /** A variant critter's look before the coat, to put back. */
     private final Map<UUID, String> originals = new HashMap<>();
+    /** Critters with the outline glow on (never in a no-glow world). */
     private final Set<UUID> glowing = new HashSet<>();
+    /** Critters that leave their coat's trail. */
+    private final Set<UUID> trailing = new HashSet<>();
     private final Map<String, Particle> particles = new HashMap<>();
     private int beat;
 
@@ -82,22 +89,29 @@ public final class SpiritCoats implements Runnable, Listener {
     public void apply(Posse.Out o) {
         UUID id = o.critter().id();
         int want = wanted(o);
-        if (want == shown.getOrDefault(id, 0)) return;
+        Player owner = Bukkit.getPlayer(o.owner());
+        // Both the critter's world and its owner's, so the outline is off the moment the owner enters a no-glow world,
+        // before the critter follows.
+        boolean glow = want != 0 && data.glows(o.critter().species().id()) && squads.settings().glowIn(o.mob().getWorld().getName())
+            && owner != null && squads.settings().glowIn(owner.getWorld().getName());
+        if (want == shown.getOrDefault(id, 0) && glow == glowing.contains(id)) return;
         take(o);
-        if (want != 0) put(o, want);
+        if (want != 0) put(o, want, glow);
         if (want == 0) shown.remove(id);
         else shown.put(id, want);
     }
 
-    private void put(Posse.Out o, int coat) {
+    private void put(Posse.Out o, int coat, boolean glow) {
         Mob m = o.mob();
         String species = o.critter().species().id();
         if (data.hasVariants(species)) {
             String key = data.variant(species, coat);
             String before = Variants.current(m);
             if (key != null && Variants.set(m, key)) originals.putIfAbsent(o.critter().id(), before);
-            return;
         }
+        if (!data.glows(species)) return;
+        trailing.add(o.critter().id());
+        if (!glow) return;
         m.setGlowing(true);
         glowing.add(o.critter().id());
         Team t = team(coat);
@@ -111,6 +125,7 @@ public final class SpiritCoats implements Runnable, Listener {
             String was = originals.remove(id);
             if (was != null && m.isValid()) Variants.set(m, was);
         }
+        trailing.remove(id);
         if (glowing.remove(id)) {
             Integer coat = shown.get(id);
             if (m.isValid()) m.setGlowing(false);
@@ -163,14 +178,14 @@ public final class SpiritCoats implements Runnable, Listener {
         return particles.computeIfAbsent(key, k -> Registry.PARTICLE_TYPE.get(NamespacedKey.minecraft(k)));
     }
 
-    /** Every half second: checks each critter's look, then leaves a light trail behind the ones that glow. */
+    /** Every half second: checks each critter's look, then leaves a light trail behind the ones that have one. */
     @Override
     public void run() {
         beat++;
         for (Posse.Out o : List.copyOf(posse.all())) {
             apply(o);
             UUID id = o.critter().id();
-            if (!glowing.contains(id)) continue;
+            if (!trailing.contains(id)) continue;
             String key = data.coat(shown.getOrDefault(id, 0)).particle();
             Particle particle = key == null ? null : particle(key);
             Mob m = o.mob();
@@ -181,6 +196,8 @@ public final class SpiritCoats implements Runnable, Listener {
                 if (vis == ClientOption.ParticleVisibility.MINIMAL) continue;
                 if (vis == ClientOption.ParticleVisibility.DECREASED && beat % 2 == 0) continue;
                 double range = Math.min(p.getViewDistance(), Bukkit.getViewDistance()) * 16.0;
+                // In a no-glow world (a kids' world) the trail is kept close, so it can't mark an owner from far off.
+                if (!squads.settings().glowIn(m.getWorld().getName())) range = Math.min(range, NO_GLOW_TRAIL_RANGE);
                 if (p.getLocation().distanceSquared(at) > range * range || !p.canSee(m)) continue;
                 p.spawnParticle(particle, at, 2, 0.3, 0.3, 0.3, 0);
             }
