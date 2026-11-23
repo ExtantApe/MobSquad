@@ -183,6 +183,13 @@ class CoatTest {
         assertTrue(s.coatsIn("ninos_magic"), "coats still show there");
         assertFalse(s.glowIn("ninos_magic"), "without the outline");
         assertTrue(s.glowIn("magic"));
+
+        Warnings warn = new Warnings();
+        YamlConfiguration typo = new YamlConfiguration();
+        typo.set("spirit-coats.worlds", List.of("ninos_magic"));
+        typo.set("spirit-coats.no-glow-worlds", List.of("ninos_majic"));
+        Settings.read(typo, logger(warn));
+        assertEquals(1, warn.messages.size(), "a no-glow world that isn't a coat world is warned about: " + warn.messages);
     }
 
     @Test

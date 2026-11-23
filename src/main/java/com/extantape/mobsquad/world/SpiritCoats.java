@@ -36,6 +36,8 @@ import org.bukkit.scoreboard.Team;
 public final class SpiritCoats implements Runnable, Listener {
     public static final long PERIOD = 10;
     private static final String TEAM = "ms_coat_";
+    /** How far a trail is sent in a no-glow world, in blocks. */
+    static final double NO_GLOW_TRAIL_RANGE = 32;
     private final Squads squads;
     private final Posse posse;
     private CoatData data = CoatData.EMPTY;
@@ -87,7 +89,11 @@ public final class SpiritCoats implements Runnable, Listener {
     public void apply(Posse.Out o) {
         UUID id = o.critter().id();
         int want = wanted(o);
-        boolean glow = want != 0 && data.glows(o.critter().species().id()) && squads.settings().glowIn(o.mob().getWorld().getName());
+        Player owner = Bukkit.getPlayer(o.owner());
+        // Both the critter's world and its owner's, so the outline is off the moment the owner enters a no-glow world,
+        // before the critter follows.
+        boolean glow = want != 0 && data.glows(o.critter().species().id()) && squads.settings().glowIn(o.mob().getWorld().getName())
+            && owner != null && squads.settings().glowIn(owner.getWorld().getName());
         if (want == shown.getOrDefault(id, 0) && glow == glowing.contains(id)) return;
         take(o);
         if (want != 0) put(o, want, glow);
@@ -190,6 +196,8 @@ public final class SpiritCoats implements Runnable, Listener {
                 if (vis == ClientOption.ParticleVisibility.MINIMAL) continue;
                 if (vis == ClientOption.ParticleVisibility.DECREASED && beat % 2 == 0) continue;
                 double range = Math.min(p.getViewDistance(), Bukkit.getViewDistance()) * 16.0;
+                // In a no-glow world (a kids' world) the trail is kept close, so it can't mark an owner from far off.
+                if (!squads.settings().glowIn(m.getWorld().getName())) range = Math.min(range, NO_GLOW_TRAIL_RANGE);
                 if (p.getLocation().distanceSquared(at) > range * range || !p.canSee(m)) continue;
                 p.spawnParticle(particle, at, 2, 0.3, 0.3, 0.3, 0);
             }
