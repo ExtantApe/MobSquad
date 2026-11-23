@@ -890,15 +890,15 @@ if (want('coats')) {
   check('and the bee', await until(async () => (await s.count(sel('bee'))) === 1, 6000, 300))
   const plain = await variantOf()
   check('by default no world is magic, so a level 45 chicken looks as it spawned', !!plain, plain)
-  check('and a level 45 bee doesn\'t glow, wear a team or leave a trail', !(await glows('bee')) && !(await teamOf('bee', 4)) && (await trail(2500)) === 0, `packets ${packets}`)
+  check('and a level 45 bee or chicken doesn\'t glow, wear a team or leave a trail', !(await glows('bee')) && !(await teamOf('bee', 4)) && !(await glows('chicken')) && (await trail(2500)) === 0, `packets ${packets}`)
 
   // magic worlds
   await writeWorlds('testworld')
   check('listing the world gives the chicken its level 45 coat (coat 4) at once', await until(async () => (await variantOf()) === 'minecraft:warm', 3000, 200), await variantOf())
   check('the bee glows in coat 4\'s team (Meadow)', await until(() => glows('bee'), 3000, 200) && await teamOf('bee', 4))
-  check('a variant critter wears no glow', !(await glows('chicken')))
+  check('a chicken wears its variant and also glows in coat 4\'s team (glow-too, owner 2026-11-22)', await until(() => glows('chicken'), 3000, 200) && await teamOf('chicken', 4))
   const n = await trail(3000)
-  check('the bee\'s trail is a few particles a second, not a flood', n >= 2 && n <= 20, `${n} packets in 3 s`)
+  check('the bee\'s and chicken\'s trails are a few particles a second each, not a flood', n >= 4 && n <= 40, `${n} packets in 3 s for two critters`)
   await level('chicken', 100)
   check('level 100 earns coat 10 and the chicken wears it', await until(async () => (await variantOf()) === 'minecraft:cold', 3000, 200), await variantOf())
   await level('bee', 100)
@@ -934,7 +934,7 @@ if (want('coats')) {
   // leaving a magic world takes the look off at once, entering applies it
   await writeWorlds('')
   check('unlisting the world takes the chicken\'s coat off at once', await until(async () => (await variantOf()) === plain, 3000, 200), `${await variantOf()} vs ${plain}`)
-  check('and the bee\'s glow, team and trail', !(await glows('bee')) && !(await teamOf('bee', 4)) && (await trail(2500)) === 0)
+  check('and the bee\'s and chicken\'s glow, team and trail', !(await glows('bee')) && !(await teamOf('bee', 4)) && !(await glows('chicken')) && !(await teamOf('chicken', 4)) && (await trail(2500)) === 0)
   await writeWorlds('testworld')
   check('listing it again brings them back', await until(() => glows('bee'), 3000, 200) && await variantOf() === 'minecraft:cold')
   const hop = async dim => { await s.ask(`execute in minecraft:${dim} run tp Coater 8 100 8`, 800); await sleep(2500) }

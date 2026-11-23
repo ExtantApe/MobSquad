@@ -1,6 +1,8 @@
 package com.extantape.mobsquad.model;
 
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -13,8 +15,10 @@ import org.bukkit.configuration.file.YamlConfiguration;
 /**
  * What each spirit coat looks like, read from {@code coats.yml} (bundled in the jar, overridable from the plugin
  * folder). Each of the ten coats has a plain name, a glow color and a particle; the six critters with real variants
- * (wolf, cat, pig, cow, chicken, frog) also name the variant each coat wears. A bad entry is skipped with a warning and
- * the rest still load, so a typo in the data file never stops the plugin.
+ * (wolf, cat, pig, cow, chicken, frog) also name the variant each coat wears, and {@code glow-too} lists the variant
+ * critters that also get the glow and trail (the owner's pick, 2026-11-22: pigs, cows, chickens and frogs, whose three
+ * looks repeat across coats). A bad entry is skipped with a warning and the rest still load, so a typo in the data file
+ * never stops the plugin.
  */
 public final class CoatData {
     /** The critters that have real data-driven variants. */
@@ -30,14 +34,16 @@ public final class CoatData {
         boolean variant(String species, String key);
     }
 
-    public static final CoatData EMPTY = new CoatData(Map.of(), Map.of());
+    public static final CoatData EMPTY = new CoatData(Map.of(), Map.of(), Set.of());
 
     private final Map<Integer, Coat> coats;
     private final Map<String, Map<Integer, String>> variants;
+    private final Set<String> glowToo;
 
-    private CoatData(Map<Integer, Coat> coats, Map<String, Map<Integer, String>> variants) {
+    private CoatData(Map<Integer, Coat> coats, Map<String, Map<Integer, String>> variants, Set<String> glowToo) {
         this.coats = coats;
         this.variants = variants;
+        this.glowToo = glowToo;
     }
 
     /** The coat's data; a plain "Coat 3" with no particle when the file has nothing usable for it. */
@@ -56,9 +62,14 @@ public final class CoatData {
         return m == null ? null : m.get(coat);
     }
 
-    /** Whether a species has any variant set, so it wears variants instead of a glow. */
+    /** Whether a species has any variant set, so it wears a variant in each coat. */
     public boolean hasVariants(String species) {
         return variants.containsKey(species);
+    }
+
+    /** Whether a species glows and leaves a trail in its coats: every critter without variants, plus those in glow-too. */
+    public boolean glows(String species) {
+        return !hasVariants(species) || glowToo.contains(species);
     }
 
     /**
@@ -92,6 +103,20 @@ public final class CoatData {
             }
             coats.put(i, new Coat(i, name.strip(), color, particle));
         }
+        Set<String> glowToo = base.glowToo;
+        if (y.contains("glow-too")) {
+            if (!y.isList("glow-too")) {
+                log.warning("coats.yml: glow-too should be a list of critters, such as [pig, cow]. Skipped.");
+            } else {
+                Set<String> g = new HashSet<>();
+                for (String species : y.getStringList("glow-too")) {
+                    String sp = species.strip().toLowerCase(Locale.ROOT);
+                    if (!VARIANT_SPECIES.contains(sp)) { log.warning("coats.yml: glow-too names \"" + species + "\", which isn't a critter with variants (it glows anyway). Skipped."); continue; }
+                    g.add(sp);
+                }
+                glowToo = Set.copyOf(g);
+            }
+        }
         ConfigurationSection vs = y.getConfigurationSection("variants");
         if (vs != null) for (String species : vs.getKeys(false)) {
             if (!VARIANT_SPECIES.contains(species)) { log.warning("coats.yml: \"" + species + "\" has no variants to set. Skipped."); continue; }
@@ -107,7 +132,7 @@ public final class CoatData {
         }
         Map<String, Map<Integer, String>> frozen = new HashMap<>();
         variants.forEach((k, m) -> frozen.put(k, Map.copyOf(m)));
-        return new CoatData(Map.copyOf(coats), Map.copyOf(frozen));
+        return new CoatData(Map.copyOf(coats), Map.copyOf(frozen), glowToo);
     }
 
     private static Integer index(String k) {

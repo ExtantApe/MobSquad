@@ -24,8 +24,9 @@ import org.bukkit.scoreboard.Team;
 
 /**
  * Shows each out critter's spirit coat, only in the worlds listed under {@code spirit-coats.worlds}. Wolves, cats, pigs,
- * cows, chickens and frogs wear a real variant; every other critter gets a glow in the coat's color (a scoreboard team
- * color) and a light particle trail. Nothing here is saved: the look is put on when a critter goes out and whenever its
+ * cows, chickens and frogs wear a real variant. Every other critter, and the variant critters listed under glow-too
+ * (pigs, cows, chickens and frogs by default), gets a glow in the coat's color (a scoreboard team color) and a light
+ * particle trail. Nothing here is saved: the look is put on when a critter goes out and whenever its
  * coat or world changes, and taken off at once when its owner leaves a magic world.
  *
  * The trail is a couple of particles every half second, sent only to players within their own view distance, and never
@@ -96,8 +97,8 @@ public final class SpiritCoats implements Runnable, Listener {
             String key = data.variant(species, coat);
             String before = Variants.current(m);
             if (key != null && Variants.set(m, key)) originals.putIfAbsent(o.critter().id(), before);
-            return;
         }
+        if (!data.glows(species)) return;
         m.setGlowing(true);
         glowing.add(o.critter().id());
         Team t = team(coat);

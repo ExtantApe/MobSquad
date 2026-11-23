@@ -41,11 +41,15 @@ Dated decisions for this repo, newest last.
 - **Spirit coats (0.8.0), from the owner's brief ("Levels and spirit coats").** A coat every 10 levels, coat 1 at level 10 to coat 10 at level 100, shown only in worlds listed under `spirit-coats.worlds` (empty by default). Written by the lead for the owner's say, so they stand unless he changes them:
   - The ten names and glow colors: Ember (red), Marigold (gold), Sunbeam (yellow), Meadow (green), Pine (dark green), Lagoon (aqua), Frost (blue), Twilight (dark purple), Blossom (light purple), Starlight (white). Names are plain and always shown with the color. Dark colors are written in a lighter color in text, so every coat name reads on the dark menu.
   - The trail particles (flame, wax_on, glow, happy_villager, composter, bubble_pop, snowflake, witch, cherry_leaves, end_rod) are about 4 a second per critter.
-  - Pigs, cows, chickens and frogs have three variants, so each look lasts for 3 or 4 coats in a row; wolves have nine (coat 10 repeats the pale wolf) and cats eleven. Variant critters get no glow or trail, as the brief says.
+  - Pigs, cows, chickens and frogs have three variants, so each look lasts for 3 or 4 coats in a row; wolves have nine (coat 10 repeats the pale wolf) and cats eleven. Variant critters got no glow or trail in 0.8.0, as the brief said; see the 2026-11-22 picks below for pigs, cows, chickens and frogs.
   - A pick is stored with the critter as a ninth field; 0 means "the newest earned", so older files and critters that never picked keep following new coats. A pick the critter hasn't earned (an admin lowered its level) shows the newest earned instead.
   - Choosing is a right-click on the critter in the Bunkhouse. Left-click still sends it out.
   - Glow uses scoreboard teams named `ms_coat_1` to `ms_coat_10` on the main scoreboard, removed on start and stop.
   - `/mobsquad level` can lower a critter's level, which hides coats it no longer has the level for. Normal play never lowers a level.
+- **Spirit coat picks (owner, Simon chat, 2026-11-22), relayed by the chief of staff:**
+  - Coat names: "Keep them (Recommended)". The ten names and colors above stand.
+  - Pigs, cows, chickens and frogs: "Add glow and trail (Recommended)". They wear their variant and also glow in the coat's color with its trail, so each coat looks different even where the three looks repeat. Wolves and cats keep the variant only. It's the `glow-too` list in `coats.yml` (0.8.1), so an admin can change it.
+  - Magic worlds: "We have two magic worlds…? One adult and one kid one." On Sonoran those are `magic` and `ninos_magic` (both exist there; checked 2026-11-22). Listing them in `spirit-coats.worlds` is a live change and waits for the owner's go.
 
 ## 2026-11-15
 

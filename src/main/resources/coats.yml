@@ -11,6 +11,8 @@
 #   chat, so no one has to tell colors apart.
 # variants: for wolves, cats, pigs, cows, chickens and frogs, the real variant each coat wears, by coat number.
 #   A coat left out wears the critter's normal look.
+# glow-too: critters from that list that also glow in the coat's color and leave its trail. Pigs, cows, chickens and
+#   frogs have only three looks, so the glow tells one coat from the next. Wolves and cats have enough looks without it.
 
 coats:
   1: { name: Ember, color: red, particle: flame }
@@ -23,6 +25,8 @@ coats:
   8: { name: Twilight, color: dark_purple, particle: witch }
   9: { name: Blossom, color: light_purple, particle: cherry_leaves }
   10: { name: Starlight, color: white, particle: end_rod }
+
+glow-too: [pig, cow, chicken, frog]
 
 variants:
   # Wolves have nine variants, so coat 10 repeats the pale wolf.

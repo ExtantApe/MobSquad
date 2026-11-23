@@ -207,6 +207,9 @@ class CoatTest {
             for (int i = 1; i <= Coats.COUNT; i++) assertNotNull(d.variant(species, i), species + " coat " + i);
         }
         assertFalse(d.hasVariants("creeper"), "a creeper glows instead");
+        assertTrue(d.glows("creeper"), "a critter without variants glows");
+        for (String species : Set.of("pig", "cow", "chicken", "frog")) assertTrue(d.glows(species), species + " glows too (owner, 2026-11-22)");
+        for (String species : Set.of("wolf", "cat")) assertFalse(d.glows(species), species + " wears its variant only");
         assertNull(d.variant("creeper", 1));
     }
 
@@ -258,5 +261,27 @@ class CoatTest {
         assertEquals("Coat 3", CoatData.EMPTY.name(3));
         assertNull(CoatData.EMPTY.coat(3).particle());
         assertNull(CoatData.EMPTY.variant("wolf", 3));
+    }
+
+    @Test
+    void glowTooCanBeChangedAndBadEntriesAreSkipped() throws Exception {
+        CoatData base = CoatData.parse(bundled(), allow(Set.of()), logger(new Warnings()), CoatData.EMPTY);
+        Warnings warn = new Warnings();
+        CoatData d = CoatData.parse("glow-too: [wolf, Cow, creeper, dragon]\n", allow(Set.of()), logger(warn), base);
+        assertTrue(d.glows("wolf"));
+        assertTrue(d.glows("cow"), "names are read without regard to case");
+        assertFalse(d.glows("pig"), "a list replaces the built-in one");
+        assertTrue(d.glows("creeper"), "a critter without variants glows anyway");
+        assertEquals(2, warn.messages.size(), "creeper and dragon are skipped with a warning: " + warn.messages);
+
+        Warnings warn2 = new Warnings();
+        CoatData kept = CoatData.parse("glow-too: pig\n", allow(Set.of()), logger(warn2), base);
+        assertTrue(kept.glows("frog"), "a value that isn't a list keeps the built-in list");
+        assertEquals(1, warn2.messages.size());
+
+        CoatData none = CoatData.parse("glow-too: []\n", allow(Set.of()), logger(new Warnings()), base);
+        assertFalse(none.glows("pig"), "an empty list turns it off");
+        assertTrue(CoatData.parse("coats: {}\n", allow(Set.of()), logger(new Warnings()), base).glows("pig"),
+            "a file without glow-too keeps the built-in list");
     }
 }
