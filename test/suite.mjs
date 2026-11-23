@@ -29,7 +29,7 @@ const skip = name => { if (want(name)) console.log(`\n# ${name}: skipped on ${MC
 const Y = -60
 
 const dir = freshServer('suite-' + MC, { paper: jar(`paper-${MC}.jar`),
-  plugins: [jar('ViaVersion.jar'), jar('ViaBackwards.jar'), jar('GriefPrevention.jar'), ...(AURA ? [jar('AuraSkills.jar')] : []), ...(MV ? [jar('Multiverse-Core.jar'), jar('Multiverse-Inventories.jar')] : [])], props: { difficulty: 'easy' } })
+  plugins: [jar('ViaVersion.jar'), jar('ViaBackwards.jar'), jar('GriefPrevention.jar'), jar('PlaceholderAPI.jar'), ...(AURA ? [jar('AuraSkills.jar')] : []), ...(MV ? [jar('Multiverse-Core.jar'), jar('Multiverse-Inventories.jar')] : [])], props: { difficulty: 'easy' } })
 const s = new Server({ dir, jvm: ['-Dmobsquad.test.sneak-tag=true'] }) // a tagged player counts as crouching; see Puzzles.crouching
 const cfgFile = path.join(dir, 'plugins/MobSquad/config.yml')
 const playersDir = path.join(dir, 'plugins/MobSquad/players')
@@ -1193,6 +1193,37 @@ else if (want('worlds')) {
   await me.activateBlock(me.blockAt(vault))
   check('a Bunkhouse in a disabled world says MobSquad is off', await waitSaid(me, /off in this world/, 4000, from), me.chatLog.slice(from).join(' | '))
   await config({ 'recovery-minutes': 0 })
+}
+
+// ---------- quests open tiers (0.9.0, K604) ----------
+if (want('quests')) {
+  section('Quests open tiers')
+  const papi = async (what) => ((await s.ask(`papi parse Wrangler %mobsquad_${what}%`, 600)).find(l => /^(true|false|\d+)$/.test(l.trim())) || '').trim()
+  await s.ask('mobsquad xp Wrangler 0', 300)
+  await config({ '  tier-unlock': 'level' })
+  check('the Yard is always open', await papi('tier_yard') === 'true')
+  check('level mode: Yonder is shut at a low level', await papi('tier_yonder') === 'false')
+  const out = (await s.ask('mobsquad unlock Wrangler yonder', 600)).join(' ')
+  check('mobsquad unlock answers, and says level mode ignores it', /has the Yonder tier from a quest/.test(out) && /only Wranglin' level counts/.test(out), out)
+  check('level mode: a quest alone doesn\'t open Yonder', await papi('tier_yonder') === 'false')
+  check('the quest is saved in the player\'s file', /^tier yonder$/m.test(file('Wrangler')) || /^tier YONDER$/m.test(file('Wrangler')), file('Wrangler').split('\n').filter(l => l.startsWith('tier')).join(' '))
+  await config({ '  tier-unlock': 'either' })
+  check('either mode: the quest opens Yonder before its level', await papi('tier_yonder') === 'true')
+  check('either mode: Backcountry stays shut without its quest or level', await papi('tier_backcountry') === 'false')
+  await config({ '  tier-unlock': 'quest' })
+  await s.ask('mobsquad xp Wrangler 15000', 300) // level 25: Yonder's level
+  check('quest mode: Yonder opens with its quest', await papi('tier_yonder') === 'true')
+  check('quest mode: Holler stays shut without its quest, even at level 25', await papi('tier_holler') === 'false')
+  await s.ask('mobsquad lock Wrangler yonder', 600)
+  check('mobsquad lock takes it back', await papi('tier_yonder') === 'false')
+  await config({ '  tier-unlock': 'either' })
+  check('either mode: level 25 opens Yonder without a quest', await papi('tier_yonder') === 'true')
+  check('the level placeholder reads the Wranglin\' level', await papi('level') === '25')
+  check('an unknown placeholder isn\'t answered', !(await papi('nonsense')))
+  const bad = (await s.ask('mobsquad unlock Wrangler yard', 600)).join(' ')
+  check('the Yard can\'t be unlocked by a quest', /isn't a tier a quest can open/.test(bad), bad)
+  await config({ '  tier-unlock': 'level' })
+  await s.ask('mobsquad xp Wrangler 0', 300)
 }
 
 const errors = s.exceptions()
