@@ -50,6 +50,7 @@ Dated decisions for this repo, newest last.
   - Coat names: "Keep them (Recommended)". The ten names and colors above stand.
   - Pigs, cows, chickens and frogs: "Add glow and trail (Recommended)". They wear their variant and also glow in the coat's color with its trail, so each coat looks different even where the three looks repeat. Wolves and cats keep the variant only. It's the `glow-too` list in `coats.yml` (0.8.1), so an admin can change it.
   - Magic worlds: "We have two magic worlds…? One adult and one kid one." On Sonoran those are `magic` and `ninos_magic` (both exist there; checked 2026-11-22). Listing them in `spirit-coats.worlds` is a live change and waits for the owner's go.
+- **No-glow worlds (lead, 2026-11-22, kids first).** The trust-and-safety review found the glow outline shows through walls to everyone tracking the critter in that world, and a coated critter is always near its owner, so in `ninos_magic` it could point to a kid's hidden base. 0.8.1 adds `spirit-coats.no-glow-worlds` (empty by default): coats there keep their variant and trail but get no outline. The live go request proposes `ninos_magic` there; the owner decides.
 
 ## 2026-11-15
 

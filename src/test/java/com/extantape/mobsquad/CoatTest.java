@@ -173,6 +173,19 @@ class CoatTest {
     }
 
     @Test
+    void noGlowWorldsTurnOnlyTheOutlineOff() {
+        Settings none = Settings.read(new YamlConfiguration(), Logger.getAnonymousLogger());
+        assertTrue(none.glowIn("magic"), "glow is allowed unless a world is listed");
+        YamlConfiguration y = new YamlConfiguration();
+        y.set("spirit-coats.worlds", List.of("magic", "ninos_magic"));
+        y.set("spirit-coats.no-glow-worlds", List.of("ninos_magic"));
+        Settings s = Settings.read(y, Logger.getAnonymousLogger());
+        assertTrue(s.coatsIn("ninos_magic"), "coats still show there");
+        assertFalse(s.glowIn("ninos_magic"), "without the outline");
+        assertTrue(s.glowIn("magic"));
+    }
+
+    @Test
     void theBundledConfigListsNoWorlds() throws Exception {
         YamlConfiguration y = new YamlConfiguration();
         try (InputStream in = CoatTest.class.getResourceAsStream("/config.yml")) {
@@ -180,6 +193,8 @@ class CoatTest {
         }
         assertTrue(y.contains("spirit-coats.worlds"));
         assertTrue(Settings.read(y, Logger.getAnonymousLogger()).coatWorlds().isEmpty());
+        assertTrue(y.contains("spirit-coats.no-glow-worlds"));
+        assertTrue(Settings.read(y, Logger.getAnonymousLogger()).noGlowWorlds().isEmpty());
     }
 
     // ---- the data file ----

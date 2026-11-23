@@ -858,8 +858,8 @@ if (want('sidekick')) {
 if (want('coats')) {
   section('Spirit coats')
   const CX = X + 40, CZ = Z - 40
-  const writeWorlds = async list => {
-    writeFileSync(cfgFile, baseConfig.replace(/^  worlds: .*$/m, `  worlds: [${list}]`))
+  const writeWorlds = async (list, noGlow = '') => {
+    writeFileSync(cfgFile, baseConfig.replace(/^  worlds: .*$/m, `  worlds: [${list}]`).replace(/^  no-glow-worlds: .*$/m, `  no-glow-worlds: [${noGlow}]`))
     const out = (await s.ask('mobsquad reload', 900)).join(' ')
     if (!/reloaded/.test(out)) throw new Error('reload failed: ' + out)
   }
@@ -897,6 +897,12 @@ if (want('coats')) {
   check('listing the world gives the chicken its level 45 coat (coat 4) at once', await until(async () => (await variantOf()) === 'minecraft:warm', 3000, 200), await variantOf())
   check('the bee glows in coat 4\'s team (Meadow)', await until(() => glows('bee'), 3000, 200) && await teamOf('bee', 4))
   check('a chicken wears its variant and also glows in coat 4\'s team (glow-too, owner 2026-11-22)', await until(() => glows('chicken'), 3000, 200) && await teamOf('chicken', 4))
+  // a no-glow world (for kids' worlds): coat and trail stay, the outline that shows through walls goes
+  await writeWorlds('testworld', 'testworld')
+  check('in a no-glow world the bee and chicken lose the outline', await until(async () => !(await glows('bee')) && !(await glows('chicken')), 3000, 200))
+  check('but keep their coat: the chicken\'s variant and both trails', (await variantOf()) === 'minecraft:warm' && (await trail(3000)) > 0)
+  await writeWorlds('testworld')
+  check('taking it off the no-glow list brings the outline back', await until(async () => (await glows('bee')) && (await glows('chicken')), 3000, 200))
   const n = await trail(3000)
   check('the bee\'s and chicken\'s trails are a few particles a second each, not a flood', n >= 4 && n <= 40, `${n} packets in 3 s for two critters`)
   await level('chicken', 100)

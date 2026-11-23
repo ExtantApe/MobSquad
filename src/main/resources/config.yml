@@ -13,5 +13,9 @@ coax-xp: 100
 # Magic worlds, by folder name: the only places critters show their spirit coats. Empty means coats show nowhere, and
 # critters look normal. Coats are still earned, chosen and listed in the journal. Leaving a magic world removes the look
 # at once; entering one applies it. Each coat's name, color, particle and variants are in coats.yml.
+# no-glow-worlds: magic worlds where coats show without the glow outline. The outline shows through walls, so it can
+# lead other players to where a critter's owner is building. Critters there still wear their variant and leave their
+# coat's trail. List kids' worlds here.
 spirit-coats:
   worlds: []
+  no-glow-worlds: []
