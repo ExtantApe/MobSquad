@@ -22,14 +22,16 @@ const AURA = !!process.env.MS_TEST_AURA
 // Spirit coats: run with only=bunkhouse,coats (the menu part needs the Bunkhouse from the first section).
 // MS_TEST_MV=1 adds Multiverse-Core and Multiverse-Inventories; run it with only=bunkhouse,groups
 const MV = !!process.env.MS_TEST_MV
-const want = n => (ONLY.length === 0 && n !== 'aura' && n !== 'groups') || ONLY.includes(n)
+// MS_TEST_BQ=1 adds BetonQuest and runs the quest chapters; run it with only=chapters
+const BQ = !!process.env.MS_TEST_BQ
+const want = n => (ONLY.length === 0 && n !== 'aura' && n !== 'groups' && n !== 'chapters') || ONLY.includes(n)
 const PHYSICS = MC !== '26.3'
 const MENU = PHYSICS
 const skip = name => { if (want(name)) console.log(`\n# ${name}: skipped on ${MC}, where the bots can't use a block`) }
 const Y = -60
 
 const dir = freshServer('suite-' + MC, { paper: jar(`paper-${MC}.jar`),
-  plugins: [jar('ViaVersion.jar'), jar('ViaBackwards.jar'), jar('GriefPrevention.jar'), jar('PlaceholderAPI.jar'), ...(AURA ? [jar('AuraSkills.jar')] : []), ...(MV ? [jar('Multiverse-Core.jar'), jar('Multiverse-Inventories.jar')] : [])], props: { difficulty: 'easy' } })
+  plugins: [jar('ViaVersion.jar'), jar('ViaBackwards.jar'), jar('GriefPrevention.jar'), jar('PlaceholderAPI.jar'), ...(BQ ? [jar('BetonQuest.jar')] : []), ...(AURA ? [jar('AuraSkills.jar')] : []), ...(MV ? [jar('Multiverse-Core.jar'), jar('Multiverse-Inventories.jar')] : [])], props: { difficulty: 'easy' } })
 const s = new Server({ dir, jvm: ['-Dmobsquad.test.sneak-tag=true'] }) // a tagged player counts as crouching; see Puzzles.crouching
 const cfgFile = path.join(dir, 'plugins/MobSquad/config.yml')
 const playersDir = path.join(dir, 'plugins/MobSquad/players')
@@ -210,7 +212,6 @@ if (want('coax')) {
   }
 
   // on someone else's claim, the claim plugin says no first
-  await s.ask('kill @e[type=chicken]', 300)
   await stand(other, 'Neighbor', X + 40, Z + 40)
   await hold(other, 'Neighbor', 'golden_shovel', 1)
   let nfrom = other.chatLog.length
@@ -225,13 +226,14 @@ if (want('coax')) {
   await sleep(1500)
   if (made) check('a chicken on someone else\'s claim can\'t be coaxed', !said(me, /interested/, from), me.chatLog.slice(from).join(' | '))
   else console.log('  (skipped the claim check: GriefPrevention made no claim: ' + other.chatLog.slice(nfrom).join(' | ') + ')')
-  await s.ask('kill @e[type=chicken]', 300)
 }
 
 // ---------- sending out and following ----------
 if (!MENU) skip('posse')
 else if (want('posse')) {
   section('Sending critters out')
+  // Chunks made for a fresh world can hold wild chickens, which the counts below would include.
+  await s.ask('kill @e[type=chicken]', 400)
   if (critterLines('Wrangler').length === 0) await s.ask('mobsquad give Wrangler chicken', 400)
   await s.ask(`clear Wrangler`, 200)
   await stand(me, 'Wrangler', X, Z, 0, 20)
@@ -1224,6 +1226,139 @@ if (want('quests')) {
   check('the Yard can\'t be unlocked by a quest', /isn't a tier a quest can open/.test(bad), bad)
   await config({ '  tier-unlock': 'level' })
   await s.ask('mobsquad xp Wrangler 0', 300)
+}
+
+// ---------- BetonQuest chapters (0.10.0, K725) ----------
+// Needs MS_TEST_BQ=1 (BetonQuest) and runs with only=chapters. Citizens isn't installed, so the Ranger's NPC
+// can't be clicked; the conversation is started by an action in a test-only package, and everything else runs as a
+// player would meet it. Craft and smelt steps are completed with BetonQuest's own objective command (see craftStep).
+if (want('chapters')) {
+  section('Quest chapters')
+  const papi = async what => ((await s.ask(`papi parse Wrangler %mobsquad_${what}%`, 600)).find(l => /^(true|false|\d+)$/.test(l.trim())) || '').trim()
+  const shipped = path.join(dir, 'plugins/MobSquad/quests/mobsquad/package.yml')
+  check('MobSquad puts the chapters in its own folder', existsSync(shipped))
+  const packs = path.join(dir, 'plugins/BetonQuest/QuestPackages')
+  mkdirSync(path.join(packs, 'mobsquad'), { recursive: true }); mkdirSync(path.join(packs, 'mobsquadtest'), { recursive: true })
+  writeFileSync(path.join(packs, 'mobsquad/package.yml'), readFileSync(shipped)) // what an admin does
+  writeFileSync(path.join(packs, 'mobsquadtest/package.yml'), 'actions:\n  talk: conversation mobsquad>ranger\n')
+  const loaded = (await s.ask('betonquest reload', 2500)).join('\n')
+  const bad = loaded.split('\n').filter(l => /Error|rror while|Could not|WARN/.test(l))
+  check('BetonQuest loads every part of the package', /13 Actions[^\]]*6 Conditions, 1 Conversation[^\]]*9 Items, 12 Journal Entries[^\]]*9 Objectives/.test(loaded), loaded.slice(0, 600))
+  check('the only load error is the Ranger\'s Citizens NPC, because Citizens isn\'t on the test server', bad.length === 1 && /Npc 'ranger'/.test(bad[0]), bad.join(' | '))
+  await config({ '  tier-unlock': 'either' })
+  await s.ask('mobsquad xp Wrangler 0', 300)
+  await s.ask('mobsquad lock Wrangler holler', 300); await s.ask('mobsquad lock Wrangler yonder', 300); await s.ask('mobsquad lock Wrangler backcountry', 300)
+  await s.ask('clear Wrangler', 200)
+  await s.ask(`tp Wrangler ${X + 0.5} ${Y} ${Z + 0.5} 0 10`, 300)
+
+  const clicks = []
+  me.on('message', jm => { const c = jm.json?.click_event?.command; if (c && c.startsWith('/betonquestanswer')) clicks.push({ text: jm.toString(), cmd: c }) })
+  /** Starts the Ranger's conversation and, if asked, picks the option with that text. Returns what was said. */
+  async function talk(pick) {
+    clicks.length = 0
+    const from = me.chatLog.length
+    await s.ask('betonquest action Wrangler mobsquadtest>talk', 200)
+    await until(() => clicks.length > 0 || said(me, /Ranger Juniper: /, from), 8000)
+    await sleep(900)
+    if (pick) {
+      const c = clicks.find(c => c.text.includes(pick))
+      if (!c) return me.chatLog.slice(from).concat('NO OPTION ' + pick)
+      me.chat(c.cmd); await sleep(1500)
+    }
+    return me.chatLog.slice(from)
+  }
+  const list = async kind => (await s.ask(`betonquest ${kind} Wrangler list`, 700)).join(' ')
+  const active = async id => (await list('objective')).includes(`mobsquad>${id}`)
+  const waitActive = async (id, ms = 8000) => { await until(async () => await active(id), ms, 400); return active(id) }
+  const tagged = async tag => (await list('tag')).includes(`mobsquad>${tag}`)
+  const journaled = async e => (await list('journal')).includes(`mobsquad>${e}`)
+  const dropAt = async (item, n) => s.ask(`execute at Wrangler run summon item ~ ~ ~ {Item:{id:"minecraft:${item}",count:${n}},PickupDelay:0}`, 300)
+  const notes = []
+  /**
+   * A craft or smelt step, completed with BetonQuest's own objective command. A bot's crafting at a table didn't
+   * work here (the click went through and no item came out, on 26.2), and smelting needs a furnace, so the real
+   * crafting and smelting triggers are untested. What runs is everything the objective does when it's done.
+   */
+  async function craftStep(objective) {
+    check(`${objective} is the step running`, await active(objective))
+    await s.ask(`betonquest objective Wrangler complete mobsquad>${objective}`, 800)
+    notes.push(objective)
+    await sleep(600)
+  }
+
+  // ----- the Ranger and Holler -----
+  let said1 = (await talk('Yes, please!')).join(' | ')
+  check('the Ranger offers the Holler job to a new wrangler', /Howdy, wrangler!/.test(said1), said1)
+  check('saying yes starts the chapter: tag, journal entry, first objective', await tagged('holler_started') && await journaled('holler_1') && await active('hollerBerries'))
+  check('the player is told step 1 of 3', said(me, /Step 1 of 3\. Pick six sweet berries/))
+  check('the Ranger doesn\'t offer Yonder yet', !/Yonder/.test((await talk('Thanks, Ranger!')).join(' ')))
+  check('Holler is shut and the player is still level 1', await papi('tier_holler') === 'false' && await papi('level') === '1')
+  await dropAt('sweet_berries', 3)
+  await sleep(1500)
+  check('three berries are not enough', await active('hollerBerries') && !(await active('hollerSeeds')))
+  await dropAt('sweet_berries', 3)
+  check('six berries start step 2', await waitActive('hollerSeeds'), await list('objective'))
+  check('step 2 is announced and the journal moves on', said(me, /Step 2 of 3/) && await journaled('holler_2') && !(await journaled('holler_1')))
+
+  await dropAt('wheat_seeds', 2)
+  await sleep(1500)
+  check('two seeds are not enough', await active('hollerSeeds'))
+  await dropAt('wheat_seeds', 2)
+  check('four seeds start step 3', await waitActive('hollerNoteBlock'), await list('objective'))
+  await s.ask(`tp Wrangler ${X + 0.5} ${Y} ${Z + 0.5} 0 10`, 300)
+  check('the journal moves on to step 3', await journaled('holler_3') && !(await journaled('holler_2')))
+  check('the Ranger reminds a player who is mid-chapter', /Still on the Holler job/.test((await talk('Thanks, Ranger!')).join(' ')))
+  check('Holler is still shut before the last step', await papi('tier_holler') === 'false')
+  await craftStep('hollerNoteBlock')
+  await sleep(800)
+  check('the last step opens Holler, at level 1', await papi('tier_holler') === 'true' && await papi('level') === '1', await papi('tier_holler'))
+  check('the chapter opens the fox\'s journal page', await papi('page_fox') === 'true')
+  check('the player is told the chapter is done', said(me, /Chapter done! Holler critters are open to you/))
+  check('the chapter is tagged done and the journal says so', await tagged('holler_done') && await journaled('holler_done') && !(await journaled('holler_3')))
+  check('the unlock is saved in the player\'s file', /^tier (holler|HOLLER)$/m.test(file('Wrangler')))
+  check('Yonder stays shut', await papi('tier_yonder') === 'false' && await papi('tier_backcountry') === 'false')
+  check('the Ranger now offers Yonder', /Nice work in the Holler!/.test((await talk('Maybe later.')).join(' ')))
+  check('no objective is left running', !(await list('objective')).includes('mobsquad>'))
+  await config({ '  tier-unlock': 'level' })
+  check('in level mode the finished chapter opens nothing', await papi('tier_holler') === 'false')
+  await config({ '  tier-unlock': 'either' })
+  check('back in either mode it opens again', await papi('tier_holler') === 'true')
+
+  // ----- Yonder -----
+  check('a Ranger talk starts Yonder', (await talk('Yes, please!')).join(' ').includes('Yonder critters are shy') && await tagged('yonder_started') && await active('yonderArrows'))
+  check('Yonder step 1 is announced', said(me, /Step 1 of 3\. Craft four arrows/))
+  await craftStep('yonderArrows')
+  check('arrows start step 2', await waitActive('yonderTarget') && said(me, /Step 2 of 3\. Craft a target block/))
+  await craftStep('yonderTarget')
+  check('the target block starts step 3', await waitActive('yonderCampfire') && said(me, /Step 3 of 3\. Craft a campfire/))
+  check('Yonder is shut before the last step', await papi('tier_yonder') === 'false')
+  await craftStep('yonderCampfire')
+  await sleep(800)
+  check('the last step opens Yonder and the creeper page', await papi('tier_yonder') === 'true' && await papi('page_creeper') === 'true')
+  check('Yonder\'s message', said(me, /Chapter done! Yonder critters are open to you/))
+  check('Backcountry stays shut', await papi('tier_backcountry') === 'false' && await papi('level') === '1')
+
+  // ----- Backcountry -----
+  check('the Ranger offers Backcountry', /Ready for the Backcountry/.test((await talk('Yes, please!')).join(' ')) && await tagged('backcountry_started') && await active('backcountryPoppy'))
+  await dropAt('poppy', 1)
+  check('a poppy starts step 2', await waitActive('backcountryIron') && said(me, /Step 2 of 3\. Smelt four iron ingots/))
+  await craftStep('backcountryIron')
+  check('smelting starts step 3', await waitActive('backcountryShears') && said(me, /Step 3 of 3\. Craft a pair of shears/))
+  check('Backcountry is shut before the last step', await papi('tier_backcountry') === 'false')
+  await craftStep('backcountryShears')
+  await sleep(800)
+  check('the last step opens Backcountry and the Iron Golem page', await papi('tier_backcountry') === 'true' && await papi('page_iron_golem') === 'true')
+  check('Backcountry\'s message', said(me, /Chapter done! Backcountry critters are open to you/))
+  check('the Ranger is proud at the end', /I'm proud of you, wrangler!/.test((await talk()).join(' ')))
+  check('the player is still level 1: chapters never touch the level', await papi('level') === '1')
+  console.log('    completed by command, not by crafting or smelting: ' + notes.join(', '))
+
+  // ----- the shipped file is never overwritten -----
+  await quit(me); await quit(other)
+  await s.stop()
+  writeFileSync(shipped, readFileSync(shipped, 'utf8') + '\n# an admin edit\n')
+  await s.start()
+  check('a restart keeps an admin\'s edit to the shipped chapters', readFileSync(shipped, 'utf8').includes('# an admin edit'))
 }
 
 const errors = s.exceptions()

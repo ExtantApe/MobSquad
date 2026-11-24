@@ -74,6 +74,24 @@ Kept by this repo's owning session, per `~/Code/CLAUDE.md`, "Test self-audits". 
 - **Checked by hand:** on MobShowdown, a full run (42/42) and a run interrupted after 45 seconds both left the work folder empty, with no Java left and the test port closed. The other harnesses use the same code.
 - **Gap skipped:** the suite can't check its own leftovers, because cleanup runs as the process exits. A wrapper that checks after the suite exits would add more machinery than the check is worth here.
 
+## 2026-11-24: quest chapters for BetonQuest (0.10.0)
+
+| Promise | Test |
+| --- | --- |
+| A tier opens by level or by its chapter, nothing else | unit `eitherOpensATierByLevelOrByQuestAndNothingElse`; bot: each chapter opens its tier at level 1 and no other |
+| With BetonQuest missing, `either` is the level-only answer and nothing errors | unit `withoutBetonQuestNoTierIsEverQuestedSoEitherActsLikeLevel` (every tier, levels 1 to 100), `mobSquadHasNoCodeInTheBetonQuestPlugin` |
+| The default is `either`; a bad value falls back to `level` | unit `theSettingDefaultsToEitherAndABadValueIsWarnedAbout` |
+| The package hangs together: every action, objective, item, journal entry, condition and conversation line it names exists; each objective is started once | unit `everyNameTheFileUsesExists`, `chaptersRunInOrderAndEachHasThreeSteps`; bot: BetonQuest loads all of it |
+| Each chapter unlocks only its own tier and a page of the same tier, and runs only MobSquad's `unlock` and `page` | unit `eachTierHasOneChapterThatEndsByUnlockingThatTierAndOpeningAPage`, `thePackageOnlyRunsMobSquadCommandsAndNeverChats` |
+| Text is short, gentle, kind to young readers, asks for nothing personal, has no command in it | unit `textIsShortGentleAndAsksForNothingPersonal` |
+| The chapters never change a level and open no other tier | bot: level stays 1, later tiers shut until their own chapter |
+| Steps run in order; partial progress doesn't skip ahead (3 of 6 berries) | bot |
+| The Ranger offers the next chapter only after the last, and reminds a player mid-chapter | bot |
+| Finishing is saved in the player's file; in `level` mode a finished chapter opens nothing | bot |
+| MobSquad's copy of the chapters survives a restart with an admin's edit | bot |
+
+**Gaps:** clicking a Citizens NPC (Citizens not on the test server; the conversation started from an action instead). Real crafting and smelting: a bot's click at a crafting table made no item on 26.2, so those steps were completed with BetonQuest's objective command. Real game client: Ranger text, journal book and chat lines. **Skipped:** BetonQuest's own objective logic (pickup, craft, smelt) is its own tested code.
+
 ## 2026-11-22: quest chapters (0.9.0)
 
 | Promise | Test |

@@ -1,0 +1,125 @@
+# MobSquad quest chapters for BetonQuest: Holler, Yonder and Backcountry, one small chapter each.
+# Finishing a chapter runs /mobsquad unlock and /mobsquad page from the console. With quests.tier-unlock set to
+# either (the default), that opens the tier without waiting for the Wranglin' level. Nothing here changes a player's
+# level or gives anything but the tier and a journal page.
+#
+# Install: copy this folder into plugins/BetonQuest/QuestPackages/, change the Ranger's Citizens NPC number below to
+# an NPC you made, then run /q reload. See the MobSquad README.
+#
+# Each chapter has three short steps. The next step starts when the last one is done, so the journal always shows
+# one thing to do. Chapters go in order: Holler, then Yonder, then Backcountry.
+npcs:
+  ranger: citizens 1
+npc_conversations:
+  ranger: ranger
+items:
+  berries: simple SWEET_BERRIES
+  seeds: simple WHEAT_SEEDS
+  noteBlock: simple NOTE_BLOCK
+  arrow: simple ARROW
+  target: simple TARGET
+  campfire: simple CAMPFIRE
+  poppy: simple POPPY
+  ironIngot: simple IRON_INGOT
+  shears: simple SHEARS
+conditions:
+  hollerStarted: tag holler_started
+  hollerDone: tag holler_done
+  yonderStarted: tag yonder_started
+  yonderDone: tag yonder_done
+  backcountryStarted: tag backcountry_started
+  backcountryDone: tag backcountry_done
+objectives:
+  hollerBerries: pickup berries amount:6 actions:hollerStep2
+  hollerSeeds: pickup seeds amount:4 actions:hollerStep3
+  hollerNoteBlock: craft noteBlock 1 actions:hollerFinish
+  yonderArrows: craft arrow 4 actions:yonderStep2
+  yonderTarget: craft target 1 actions:yonderStep3
+  yonderCampfire: craft campfire 1 actions:yonderFinish
+  backcountryPoppy: pickup poppy amount:1 actions:backcountryStep2
+  backcountryIron: smelt ironIngot 4 actions:backcountryStep3
+  backcountryShears: craft shears 1 actions:backcountryFinish
+journal:
+  holler_1: '&0Ranger Juniper says foxes can''t resist sweet berries. I''m picking six from the berry bushes.'
+  holler_2: '&0Berries are in my pocket. Next, I''ll gather four seeds by breaking tall grass. Chickens love seeds.'
+  holler_3: '&0Seeds are in my pocket. Last, I''ll craft a note block. An allay will want to hear a tune.'
+  holler_done: '&0I finished the Holler chapter. Holler critters are open to me now, and the fox page is in my Bunkhouse journal.'
+  yonder_1: '&0Yonder critters are shy and want a steady hand. First, I''ll craft four arrows.'
+  yonder_2: '&0Arrows are ready. Now I''ll craft a target block to aim at.'
+  yonder_3: '&0Last, I''ll craft a campfire. Yonder critters like a calm place to sit and wait.'
+  yonder_done: '&0I finished the Yonder chapter. Yonder critters are open to me now, and the creeper page is in my Bunkhouse journal.'
+  backcountry_1: '&0The Backcountry is wild and wide. Ranger Juniper says the Iron Golem likes a poppy. I''m picking one.'
+  backcountry_2: '&0Poppy in hand. Next, I''ll smelt four iron ingots in a furnace.'
+  backcountry_3: '&0Iron is shiny! Last, I''ll craft a pair of shears for the pumpkin face.'
+  backcountry_done: '&0I finished the Backcountry chapter. Backcountry critters are open to me now, and the Iron Golem page is in my Bunkhouse journal.'
+actions:
+  hollerStart: run ^tag add holler_started ^objective start hollerBerries ^journal add holler_1 ^givejournal ^notify &eStep 1 of 3. Pick six sweet berries from a berry bush. io:chat sound:entity.experience_orb.pickup
+  hollerStep2: run ^journal delete holler_1 ^journal add holler_2 ^objective start hollerSeeds ^notify &eStep 2 of 3. Break tall grass to gather four seeds. io:chat sound:entity.experience_orb.pickup
+  hollerStep3: run ^journal delete holler_2 ^journal add holler_3 ^objective start hollerNoteBlock ^notify &eStep 3 of 3. Craft a note block. io:chat sound:entity.experience_orb.pickup
+  hollerFinish: run ^journal delete holler_3 ^journal add holler_done ^tag add holler_done ^command mobsquad unlock %player% holler ^command mobsquad page %player% fox ^notify &6Chapter done! Holler critters are open to you. io:chat sound:ui.toast.challenge_complete
+  yonderStart: run ^tag add yonder_started ^objective start yonderArrows ^journal add yonder_1 ^givejournal ^notify &eStep 1 of 3. Craft four arrows. io:chat sound:entity.experience_orb.pickup
+  yonderStep2: run ^journal delete yonder_1 ^journal add yonder_2 ^objective start yonderTarget ^notify &eStep 2 of 3. Craft a target block. io:chat sound:entity.experience_orb.pickup
+  yonderStep3: run ^journal delete yonder_2 ^journal add yonder_3 ^objective start yonderCampfire ^notify &eStep 3 of 3. Craft a campfire. io:chat sound:entity.experience_orb.pickup
+  yonderFinish: run ^journal delete yonder_3 ^journal add yonder_done ^tag add yonder_done ^command mobsquad unlock %player% yonder ^command mobsquad page %player% creeper ^notify &6Chapter done! Yonder critters are open to you. io:chat sound:ui.toast.challenge_complete
+  backcountryStart: run ^tag add backcountry_started ^objective start backcountryPoppy ^journal add backcountry_1 ^givejournal ^notify &eStep 1 of 3. Pick a poppy. io:chat sound:entity.experience_orb.pickup
+  backcountryStep2: run ^journal delete backcountry_1 ^journal add backcountry_2 ^objective start backcountryIron ^notify &eStep 2 of 3. Smelt four iron ingots in a furnace. io:chat sound:entity.experience_orb.pickup
+  backcountryStep3: run ^journal delete backcountry_2 ^journal add backcountry_3 ^objective start backcountryShears ^notify &eStep 3 of 3. Craft a pair of shears. io:chat sound:entity.experience_orb.pickup
+  backcountryFinish: run ^journal delete backcountry_3 ^journal add backcountry_done ^tag add backcountry_done ^command mobsquad unlock %player% backcountry ^command mobsquad page %player% iron_golem ^notify &6Chapter done! Backcountry critters are open to you. io:chat sound:ui.toast.challenge_complete
+conversations:
+  ranger:
+    quester: Ranger Juniper
+    conversationIO: tellraw
+    first: allDone,backcountryOn,backcountryOffer,yonderOn,yonderOffer,hollerOn,hello
+    NPC_options:
+      hello:
+        text: Howdy, wrangler! I'm Ranger Juniper. Want a little job that opens up the Holler?
+        pointers: yesHoller,notNow
+      hollerOn:
+        text: Still on the Holler job? Check your journal. It says what to do next.
+        conditions: hollerStarted,!hollerDone
+        pointers: okay
+      hollerStartText:
+        text: Good! Foxes love sweet berries, and allays love music. Read your journal for step one.
+        actions: hollerStart
+      yonderOffer:
+        text: Nice work in the Holler! Want another job? This one opens up Yonder.
+        conditions: hollerDone,!yonderStarted
+        pointers: yesYonder,notNow
+      yonderOn:
+        text: Still on the Yonder job? Check your journal. It says what to do next.
+        conditions: yonderStarted,!yonderDone
+        pointers: okay
+      yonderStartText:
+        text: Yonder critters are shy, so we'll get ready slow and steady. Read your journal for step one.
+        actions: yonderStart
+      backcountryOffer:
+        text: You've done fine work in Yonder! Ready for the Backcountry?
+        conditions: yonderDone,!backcountryStarted
+        pointers: yesBackcountry,notNow
+      backcountryOn:
+        text: Still on the Backcountry job? Check your journal. It says what to do next.
+        conditions: backcountryStarted,!backcountryDone
+        pointers: okay
+      backcountryStartText:
+        text: The Backcountry is big and wild, and so is its critter. Read your journal for step one.
+        actions: backcountryStart
+      allDone:
+        text: You've opened the Holler, Yonder and the Backcountry. I'm proud of you, wrangler!
+        conditions: backcountryDone
+      bye:
+        text: Come see me whenever you like. The trails will wait.
+    player_options:
+      yesHoller:
+        text: Yes, please!
+        pointers: hollerStartText
+      yesYonder:
+        text: Yes, please!
+        pointers: yonderStartText
+      yesBackcountry:
+        text: Yes, please!
+        pointers: backcountryStartText
+      notNow:
+        text: Maybe later.
+        pointers: bye
+      okay:
+        text: Thanks, Ranger!

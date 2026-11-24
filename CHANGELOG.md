@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.10.0
+
+Quest chapters for Holler, Yonder and Backcountry.
+
+- **Three BetonQuest chapters, one per tier.** Ranger Juniper gives them in order, three steps each. Holler: pick six sweet berries, gather four seeds from tall grass, craft a note block (opens the fox page). Yonder: craft four arrows, a target block and a campfire (opens the creeper page). Backcountry: pick a poppy, smelt four iron ingots, craft shears (opens the Iron Golem page). Finishing a chapter runs `/mobsquad unlock` and `/mobsquad page` from the console; it never changes a level. Players only talk to the Ranger and read their journal, and never type a command.
+- **Installing them.** MobSquad copies `package.yml` to `plugins/MobSquad/quests/mobsquad/` the first time it starts and never overwrites it. An admin copies that folder into BetonQuest's `QuestPackages`, points the Ranger at a Citizens NPC and runs `/bq reload`. The README has the steps.
+- **`quests.tier-unlock` now defaults to `either`:** a tier opens at its level or by its chapter. Without BetonQuest nothing ever runs the unlock command, so `either` gives exactly the level-only result. A server whose `config.yml` already says `level` keeps it until an admin changes it. A bad value still falls back to `level`.
+- MobSquad still has no code in BetonQuest and no dependency on it.
+- The message when a tier opens now points at La Ménagerie, your critter journal, instead of naming a command (D284).
+- Found while testing: holding seeds next to a wild chicken starts MobSquad's coaxing puzzle and cancels vanilla breeding (already the case before, noted in the code). So no chapter step asks for breeding chickens.
+- Tested: unit tests (62, 8 of them new: the unlock rule in every mode, either equals level when no quest ever ran, no BetonQuest code in MobSquad, the package's names all exist, each chapter unlocks only its own tier and a page of the same tier, text is short and gentle and asks for nothing personal, no command in any player text). Bots on throwaway Paper servers with BetonQuest 3.3.0-DEV-61 (the live build) and PlaceholderAPI: the chapters section passed 51 of 51 on Paper 26.1.2, 26.2 and 26.3, and the rest of the suite passed again on all three (counts in the README). The bots ran both the conversation and the steps. Not tested: clicking a Citizens NPC (Citizens wasn't on the test server, so the conversation was started by an action), real crafting and smelting (those two kinds of step were completed with BetonQuest's own objective command), the Ranger's text and the journal book in a real game client.
+
 ## 0.9.0
 
 Quest chapters.
