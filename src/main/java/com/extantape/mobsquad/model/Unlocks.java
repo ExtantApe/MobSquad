@@ -7,8 +7,8 @@ import java.util.Set;
  * How a player's tiers open. The brief: quest chapters introduce new mobs and unlock tiers; without quests, tiers unlock
  * by Wranglin' level alone. A server picks one of three ways in config ({@code quests.tier-unlock}):
  * <ul>
- *   <li>{@code level} (the default): Wranglin' level only, as before quests existed. Quest unlocks are kept but unused.</li>
- *   <li>{@code either}: the level, or a quest that unlocked the tier early.</li>
+ *   <li>{@code level}: Wranglin' level only, as before quests existed. Quest unlocks are kept but unused.</li>
+ *   <li>{@code either} (the default since 0.10.0; with no quest plugin it gives the same answer as level): the level, or a quest that unlocked the tier early.</li>
  *   <li>{@code quest}: only a quest opens a tier above Yard. Yard is always open, so nobody is ever locked out of everything.</li>
  * </ul>
  */

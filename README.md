@@ -52,8 +52,11 @@ They need BetonQuest 3.3 and, for the Ranger, Citizens. The first time MobSquad 
 
 1. Copy the `mobsquad` folder from `plugins/MobSquad/quests/` into `plugins/BetonQuest/QuestPackages/`.
 2. In Citizens, make an NPC for the Ranger (`/npc create Ranger Juniper`) and note its number. Open `package.yml` and change `ranger: citizens 1` to that number.
+   **Where the Ranger stands:** inside each world group kids play in, never only at a shared hub, so kids don't have to travel somewhere strangers could wait for them. For a second Ranger, make another NPC and add a line under each of `npcs:` and `npc_conversations:` with a new name, for example `ranger_kids: citizens 2` and `ranger_kids: ranger`. Both Rangers share one conversation and one set of chapters.
 3. Run `/bq reload`. BetonQuest names anything it couldn't read in the console.
 4. Players talk to the Ranger. Nobody types a command: the Ranger's conversation starts each chapter, the quest journal book is handed over when a chapter starts, and each step comes with a chat line.
+
+**Upgrading from before 0.9.0:** check `quests.tier-unlock` in `config.yml`. A config with no `quests:` section now gets `either`; set `level` if tiers should still open by level only.
 
 With another NPC plugin, change the `npcs:` line to match it. Without an NPC, an admin can start a chapter for a player with `/bq action <player> mobsquad>hollerStart` (or `yonderStart`, `backcountryStart`). To take a tier back, `/mobsquad lock <player> <tier>`.
 
