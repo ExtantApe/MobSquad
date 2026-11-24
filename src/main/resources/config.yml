@@ -20,12 +20,14 @@ spirit-coats:
   worlds: []
   no-glow-worlds: []
 
-# Quest chapters (0.9.0). How a player's tiers open:
-#   level   Wranglin' level only (the default, as before quests).
-#   either  the level, or sooner when a quest runs /mobsquad unlock <player> <tier>.
+# Quest chapters (0.9.0, with the BetonQuest chapters in 0.10.0). How a player's tiers open:
+#   level   Wranglin' level only (how it worked before quests).
+#   either  the level, or sooner when a quest runs /mobsquad unlock <player> <tier>. The default. Without a quest plugin
+#           this is the same as level, so nothing is lost if BetonQuest isn't installed.
 #   quest   only a quest opens Holler, Yonder and Backcountry. Yard is always open.
-# Quests (BetonQuest's command event, or any quest plugin) can also run /mobsquad page <player> <critter> to open a
-# journal page, and with PlaceholderAPI check %mobsquad_level%, %mobsquad_tier_yonder%, %mobsquad_has_fox% and the
-# others listed in the README.
+# The chapters for BetonQuest are copied to plugins/MobSquad/quests/mobsquad/ the first time MobSquad starts; the README
+# says how to install them. Quests (BetonQuest's command action, or any quest plugin) can also run
+# /mobsquad page <player> <critter> to open a journal page, and with PlaceholderAPI check %mobsquad_level%,
+# %mobsquad_tier_yonder%, %mobsquad_has_fox% and the others listed in the README.
 quests:
-  tier-unlock: level
+  tier-unlock: either

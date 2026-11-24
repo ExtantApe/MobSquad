@@ -51,9 +51,15 @@ public final class MobSquadPlugin extends JavaPlugin {
     private Journal journal;
     private SpiritCoats coats;
 
+    /** Where the BetonQuest chapters are in the jar and, once copied out, in MobSquad's folder. */
+    static final String QUEST_PACKAGE = "quests/mobsquad/package.yml";
+
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        // The quest chapters for BetonQuest, put here for an admin to copy into BetonQuest's QuestPackages folder.
+        // Never overwritten, so an admin's edits (the Ranger's NPC number) stay.
+        if (!new java.io.File(getDataFolder(), QUEST_PACKAGE).exists()) saveResource(QUEST_PACKAGE, false);
         squads = new Squads(new Store(getDataFolder().toPath().resolve("players")), getLogger(), Settings.read(getConfig(), getLogger()));
         if (getServer().getPluginManager().getPlugin("AuraSkills") != null) {
             try {
@@ -419,7 +425,7 @@ public final class MobSquadPlugin extends JavaPlugin {
         say(c, "[MobSquad] " + p.getName() + (open ? " has the " : " no longer has the ") + t.title + " tier from a quest"
             + (changed ? "" : " (no change)") + "." + note, NamedTextColor.GREEN);
         if (open && changed && mode != com.extantape.mobsquad.model.Unlocks.Mode.LEVEL)
-            p.sendMessage(Component.text("The " + t.title + " tier is open! You can coax " + t.title + " critters now. /mobsquad hints says how.", NamedTextColor.GOLD));
+            p.sendMessage(Component.text("The " + t.title + " tier is open! You can coax " + t.title + " critters now. La Ménagerie, your critter journal, says how.", NamedTextColor.GOLD));
         return Command.SINGLE_SUCCESS;
     }
 

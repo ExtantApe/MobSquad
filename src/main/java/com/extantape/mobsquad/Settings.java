@@ -14,7 +14,7 @@ public record Settings(Set<String> disabledWorlds, int recoveryMinutes, int coax
             clamp(c.getInt("coax-xp", 100), 0, 100000, "coax-xp", log),
             new HashSet<>(c.getStringList("spirit-coats.worlds")),
             new HashSet<>(c.getStringList("spirit-coats.no-glow-worlds")),
-            tierUnlock(c.getString("quests.tier-unlock", "level"), log));
+            tierUnlock(c.getString("quests.tier-unlock", "either"), log));
         for (String w : s.noGlowWorlds)
             if (!s.coatWorlds.contains(w))
                 log.warning("spirit-coats.no-glow-worlds lists \"" + w + "\", which isn't under spirit-coats.worlds. Check the spelling: a world that's misspelled there gets the glow.");

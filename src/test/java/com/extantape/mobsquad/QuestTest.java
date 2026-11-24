@@ -64,20 +64,20 @@ class QuestTest {
     }
 
     @Test
-    void theSettingDefaultsToLevelAndABadValueIsWarnedAbout() throws Exception {
+    void theSettingDefaultsToEitherAndABadValueIsWarnedAbout() throws Exception {
         Logger log = Logger.getAnonymousLogger(); log.setUseParentHandlers(false); Warnings warn = new Warnings(); log.addHandler(warn);
-        assertEquals(Mode.LEVEL, Settings.read(new YamlConfiguration(), log).tierUnlock());
+        assertEquals(Mode.EITHER, Settings.read(new YamlConfiguration(), log).tierUnlock(), "no setting means either");
         YamlConfiguration y = new YamlConfiguration();
         y.set("quests.tier-unlock", "Either");
         assertEquals(Mode.EITHER, Settings.read(y, log).tierUnlock(), "case doesn't matter");
         y.set("quests.tier-unlock", "sometimes");
-        assertEquals(Mode.LEVEL, Settings.read(y, log).tierUnlock());
+        assertEquals(Mode.LEVEL, Settings.read(y, log).tierUnlock(), "a bad value falls back to the strictest way, level alone");
         assertEquals(1, warn.messages.size(), "a bad value is warned about: " + warn.messages);
         YamlConfiguration bundled = new YamlConfiguration();
         try (InputStream in = QuestTest.class.getResourceAsStream("/config.yml")) {
             bundled.loadFromString(new String(in.readAllBytes(), StandardCharsets.UTF_8));
         }
-        assertEquals("level", bundled.getString("quests.tier-unlock"), "the shipped config keeps tiers on level alone");
+        assertEquals("either", bundled.getString("quests.tier-unlock"), "the shipped config opens tiers by level or quest");
     }
 
     @Test
