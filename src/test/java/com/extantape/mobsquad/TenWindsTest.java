@@ -190,7 +190,7 @@ class TenWindsTest {
     @Test
     void kidOrAdultFailsClosedAndTheAdultVersionNeedsAPositiveCheck() throws Exception {
         YamlConfiguration y = pack();
-        assertEquals("permission mayor.circle.adults", y.getString("conditions.adult"), "adult is a positive permission check, Mayor's adults circle");
+        assertEquals("permission posse.circle.adults", y.getString("conditions.adult"), "adult is a positive permission check, Posse's adults circle");
         for (String c : keys(y, "conditions")) {
             String def = y.getString("conditions." + c);
             if (def.contains("adult") && !c.equals("adult") && !c.startsWith("landAll")) fail(c + " is another way to be an adult: " + def);

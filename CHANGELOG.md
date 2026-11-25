@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.12.0
+
+Works with Posse 0.11.0 (formerly Mayor); the Mayor name is no longer recognized (D196, D292).
+
+- **The Ten Winds adult condition is `permission posse.circle.adults`.** It was `permission mayor.circle.adults`. A player who holds only the old permission is not an adult here: they get the kid lines and the kids' goals, so nothing widens. Before the first start, give adults `posse.circle.adults` (Posse's release notes give the safe order). A server that changed the condition to its own permission is unaffected.
+- No other behavior changes.
+- Tested: unit tests; the Ten Winds bot section (`only=winds` with BetonQuest, LuckPerms and PlaceholderAPI) on throwaway Paper 26.1.2, 26.2 and 26.3 (99, 99 and 92 checks, all passed; the winds section counts differ on 26.3 where bots can't place blocks), with the permission `posse.circle.adults` set through LuckPerms, and a check that a player holding only `mayor.circle.adults` still gets the kid lines. Not tested: the rest of the MobSquad suite (nothing else changed), a Posse jar on the server (the condition is a plain permission, so the bots use LuckPerms alone), a real game client.
+
 ## 0.11.0
 
 The Ten Winds story arc (D289), a story that follows the three tier chapters.
