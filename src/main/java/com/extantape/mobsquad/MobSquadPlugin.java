@@ -46,6 +46,7 @@ public final class MobSquadPlugin extends JavaPlugin {
     private Squads squads;
     private Bunkhouses bunkhouses;
     private Dinnerbell dinnerbell;
+    private final com.extantape.mobsquad.quest.QuestBooks books = com.extantape.mobsquad.quest.QuestBooks.load(MobSquadPlugin.class);
     private Coaxing coaxing;
     private Vittles vittles;
     private Journal journal;
@@ -93,7 +94,8 @@ public final class MobSquadPlugin extends JavaPlugin {
         CoatMenu coatMenu = new CoatMenu(squads);
         if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
             try {
-                if (com.extantape.mobsquad.hook.Placeholders.register(this, squads)) getLogger().info("Quest placeholders (%mobsquad_...%) are registered with PlaceholderAPI.");
+                if (com.extantape.mobsquad.hook.Placeholders.register(this, squads, dinnerbell::is)) getLogger().info("Quest placeholders (%mobsquad_...%) are registered with PlaceholderAPI.");
+                pm.registerEvents(new com.extantape.mobsquad.quest.ConversationChat(this, squads, (pl, text) -> me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(pl, text)), this);
             } catch (Throwable e) {
                 getLogger().log(java.util.logging.Level.WARNING, "Couldn't register placeholders with PlaceholderAPI. Quests can still use the /mobsquad unlock and page commands.", e);
             }
@@ -134,7 +136,16 @@ public final class MobSquadPlugin extends JavaPlugin {
                 .then(Commands.literal("list").executes(this::list))
                 .then(Commands.literal("hints").executes(this::hints))
                 .then(Commands.literal("journal").executes(this::journal))
-                .then(Commands.literal("dinnerbell").executes(this::giveBell))
+                .then(Commands.literal("dinnerbell").executes(this::giveBell)
+                    // Quest hook (0.11.0): a quest hands a player the bell from the console, so nobody has to type this.
+                    .then(Commands.argument("player", ArgumentTypes.player()).requires(src -> src.getSender().hasPermission("mobsquad.admin"))
+                        .executes(this::giveBellTo)))
+                .then(Commands.literal("book").requires(src -> src.getSender().hasPermission("mobsquad.admin"))
+                    .then(Commands.argument("player", ArgumentTypes.player())
+                        .then(Commands.argument("id", StringArgumentType.word()).suggests((c, b) -> {
+                            for (String id : books.all().keySet()) if (id.startsWith(b.getRemainingLowerCase())) b.suggest(id);
+                            return b.buildFuture();
+                        }).executes(this::giveBook))))
                 .then(Commands.literal("bunkhouse").requires(src -> src.getSender().hasPermission("mobsquad.admin"))
                     .then(Commands.literal("add").executes(c -> bunkhouse(c, true)))
                     .then(Commands.literal("remove").executes(c -> bunkhouse(c, false))))
@@ -277,6 +288,34 @@ public final class MobSquadPlugin extends JavaPlugin {
         }
         for (var left : p.getInventory().addItem(dinnerbell.make()).values()) p.getWorld().dropItem(p.getLocation(), left);
         say(c, "Here's your dinnerbell. Right-click it to call your critters home.", NamedTextColor.GREEN);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    /** /mobsquad dinnerbell <player>: a quest (or an admin) gives a player a dinnerbell, unless they have one. */
+    private int giveBellTo(CommandContext<CommandSourceStack> c) throws CommandSyntaxException {
+        Player p = c.getArgument("player", PlayerSelectorArgumentResolver.class).resolve(c.getSource()).getFirst();
+        for (var slot : p.getInventory().getContents()) if (dinnerbell.is(slot)) {
+            say(c, p.getName() + " already has a dinnerbell.", NamedTextColor.YELLOW);
+            return 0;
+        }
+        for (var left : p.getInventory().addItem(dinnerbell.make()).values()) p.getWorld().dropItem(p.getLocation(), left);
+        p.sendMessage(Component.text("Ranger Juniper gave you a dinnerbell. Right-click it to call your critters home.", NamedTextColor.GREEN));
+        say(c, "[MobSquad] gave " + p.getName() + " a dinnerbell.", NamedTextColor.GREEN);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    /** /mobsquad book <player> <id>: hands over one of the Ranger's books (see QuestBooks). */
+    private int giveBook(CommandContext<CommandSourceStack> c) throws CommandSyntaxException {
+        Player p = c.getArgument("player", PlayerSelectorArgumentResolver.class).resolve(c.getSource()).getFirst();
+        String id = c.getArgument("id", String.class);
+        var book = books.make(id);
+        if (book == null) {
+            say(c, "No such book. The Ranger's books are: " + String.join(", ", books.all().keySet()) + ".", NamedTextColor.YELLOW);
+            return 0;
+        }
+        for (var left : p.getInventory().addItem(book).values()) p.getWorld().dropItem(p.getLocation(), left);
+        p.sendMessage(Component.text("Ranger Juniper gave you a book: " + books.all().get(id).title() + ".", NamedTextColor.GREEN));
+        say(c, "[MobSquad] gave " + p.getName() + " the book " + id + ".", NamedTextColor.GREEN);
         return Command.SINGLE_SUCCESS;
     }
 

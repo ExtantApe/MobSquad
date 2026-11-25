@@ -1,0 +1,25 @@
+# The Ranger's books for the Ten Winds quests. Each is written by Ranger Juniper and a quest hands it over with
+# /mobsquad book <player> <id>. A book never names the player and never gives a place.
+trail:
+  title: The Ranger's Trail Book
+  pages:
+    - "Ten winds sleep along the old trails. Long ago each one blew a spirit coat onto a critter's back, one color at a time."
+    - "The first wind has stirred. Nine more are napping. Each wakes for a wrangler who is kind to critters and patient on the trail."
+    - "Look for the wind-signs. They stand where the grass is soft and the sky is wide. Be kind to them, and to each other."
+watch:
+  title: The Watch-Bell
+  pages:
+    - "A bell hangs at the Ranger's watch. It rings when the night is long and a friend is near."
+    - "Hold the line, little wrangler. Keep your critter close. The dark is only dark, and the dawn is on its way."
+    - "Thank you for standing the watch. The Ranger sleeps easier tonight."
+meadow:
+  title: The Meadow Book
+  pages:
+    - "Past the hill, the lake and the river, the flowers grow. That is the Far Meadow, where the herd comes home."
+    - "The meadow sign says only: the wrangler was here. The meadow keeps no names. It keeps every friend."
+finale:
+  title: The Ten Winds Are Awake
+  pages:
+    - "The winds have woken, one by one, and the fog is thinning. Juniper's trails sing again."
+    - "Every trail you walked helped, a little: a sign stood up, a ring glowed, a bell rang, a meadow was found."
+    - "Thank you, wrangler. Bring your herd home whenever you like. The meadow is yours."

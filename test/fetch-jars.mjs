@@ -1,6 +1,6 @@
 // Downloads the test servers' jars into a folder and checks each against the hash its publisher lists:
 // the latest stable Paper 26.1.2, 26.2 and 26.3 builds, and from Modrinth ViaVersion and ViaBackwards
-// (the bots speak 1.21.11), GriefPrevention, CoreProtect and Prism.
+// (the bots speak 1.21.11), GriefPrevention, CoreProtect, Prism, LuckPerms and BetonQuest.
 // Usage: node test/fetch-jars.mjs <folder>
 import { createHash } from 'node:crypto'
 import { mkdirSync, writeFileSync } from 'node:fs'
@@ -38,6 +38,7 @@ for (const [project, name, pick] of [
   ['multiverse-core', 'Multiverse-Core.jar', { version: '5.8.2' }], // world groups test
   ['multiverse-inventories', 'Multiverse-Inventories.jar', { version: '5.3.6' }],
   ['placeholderapi', 'PlaceholderAPI.jar', { version: '2.12.3' }], // the version the hook is built against
+  ['luckperms', 'LuckPerms.jar', { version: 'v5.5.71-bukkit' }], // the kid or adult group, read as a permission; the Ten Winds test
   ['betonquest', 'BetonQuest.jar', { version: '3.3.0-DEV-61' }], // the build the live server runs; the chapters test
 ]) {
   const versions = await json(`https://api.modrinth.com/v2/project/${project}/version`)
