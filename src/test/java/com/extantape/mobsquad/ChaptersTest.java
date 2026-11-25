@@ -110,35 +110,62 @@ class ChaptersTest {
         List<String> started = new ArrayList<>();
         for (String o : objectives) {
             String def = y.getString("objectives." + o);
-            Matcher a = Pattern.compile("actions:(\\w+)").matcher(def);
+            Matcher a = Pattern.compile("actions:([\\w,]+)").matcher(def);
             assertTrue(a.find(), o + " runs an action when it's done");
-            assertTrue(actions.contains(a.group(1)), o + " names a missing action " + a.group(1));
-            String item = def.split("\\s+")[1];
-            if (!def.startsWith("breed")) assertTrue(items.contains(item), o + " names a missing item " + item);
+            for (String act : a.group(1).split(",")) assertTrue(actions.contains(act), o + " names a missing action " + act);
+            Matcher cond = Pattern.compile("conditions:([\\w!,]+)").matcher(def);
+            if (cond.find()) for (String c : cond.group(1).split(",")) assertTrue(conditions.contains(c.replace("!", "")), o + " names a missing condition " + c);
+            String type = def.split("\\s+")[0];
+            if (Set.of("pickup", "craft", "smelt").contains(type)) assertTrue(items.contains(def.split("\\s+")[1]), o + " names a missing item");
         }
         for (String a : actions) {
             String def = y.getString("actions." + a);
-            Matcher obj = Pattern.compile("\\^objective start (\\w+)").matcher(def);
-            while (obj.find()) { assertTrue(objectives.contains(obj.group(1)), a + " starts a missing objective " + obj.group(1)); started.add(obj.group(1)); }
+            Matcher obj = Pattern.compile("\\^objective (?:start|delete) (\\w+)").matcher(def);
+            while (obj.find()) {
+                assertTrue(objectives.contains(obj.group(1)), a + " names a missing objective " + obj.group(1));
+                if (def.contains("^objective start " + obj.group(1))) started.add(obj.group(1));
+            }
             Matcher j = Pattern.compile("\\^journal (?:add|delete) (\\w+)").matcher(def);
             while (j.find()) assertTrue(journal.contains(j.group(1)), a + " names a missing journal entry " + j.group(1));
+            Matcher branch = Pattern.compile("^if (!?\\w+) (\\w+) else (\\w+)$").matcher(def);
+            if (def.startsWith("if ")) {
+                assertTrue(branch.matches(), a + " is a plain if/else: " + def);
+                assertTrue(conditions.contains(branch.group(1).replace("!", "")), a + " checks a missing condition");
+                assertTrue(actions.contains(branch.group(2)) && actions.contains(branch.group(3)), a + " runs a missing action");
+            }
+            Matcher conv = Pattern.compile("\\^conversation mobsquad>(\\w+)").matcher(def);
+            while (conv.find()) assertTrue(y.contains("conversations." + conv.group(1)), a + " starts a missing conversation");
         }
-        for (String o : objectives) assertEquals(1, started.stream().filter(o::equals).count(), o + " is started by exactly one action");
-        for (String c : conditions) assertTrue(y.getString("conditions." + c).startsWith("tag "), c + " is a plain tag check");
-        for (String c : section(y, "conversations.ranger.NPC_options")) {
-            String opt = "conversations.ranger.NPC_options." + c;
-            for (String p : y.getString(opt + ".pointers", "").split(","))
-                if (!p.isBlank()) assertTrue(y.contains("conversations.ranger.player_options." + p.trim()), c + " points at a missing option " + p);
-            String act = y.getString(opt + ".actions");
-            if (act != null) assertTrue(actions.contains(act), c + " runs a missing action " + act);
-            for (String cond : y.getString(opt + ".conditions", "").split(","))
-                if (!cond.isBlank()) assertTrue(conditions.contains(cond.replace("!", "").trim()), c + " checks a missing condition " + cond);
+        for (String o : objectives) assertTrue(started.contains(o), o + " is started by an action");
+        for (String c : conditions) {
+            String def = y.getString("conditions." + c);
+            Matcher refs = Pattern.compile("^(?:and|or) (.+)$").matcher(def);
+            if (refs.matches()) for (String r : refs.group(1).split(",")) assertTrue(conditions.contains(r.replace("!", "")), c + " names a missing condition " + r);
+            assertTrue(def.matches("^(tag|permission|globaltag|time|numbercompare|variable|location|inconversation|and|or) .*"), c + " is a kind of condition the arc has checked: " + def);
         }
-        for (String c : section(y, "conversations.ranger.player_options"))
-            for (String p : y.getString("conversations.ranger.player_options." + c + ".pointers", "").split(","))
-                if (!p.isBlank()) assertTrue(y.contains("conversations.ranger.NPC_options." + p.trim()), c + " points at a missing line " + p);
-        for (String f : y.getString("conversations.ranger.first").split(","))
-            assertTrue(y.contains("conversations.ranger.NPC_options." + f.trim()), "first names a missing line " + f);
+        for (String conv : section(y, "conversations")) {
+            String base = "conversations." + conv;
+            for (String c : section(y, base + ".NPC_options")) {
+                String opt = base + ".NPC_options." + c;
+                for (String p : y.getString(opt + ".pointers", "").split(","))
+                    if (!p.isBlank()) assertTrue(y.contains(base + ".player_options." + p.trim()), conv + "/" + c + " points at a missing option " + p);
+                for (String act : y.getString(opt + ".actions", "").split(","))
+                    if (!act.isBlank()) assertTrue(actions.contains(act.trim()), conv + "/" + c + " runs a missing action " + act);
+                for (String cond : y.getString(opt + ".conditions", "").split(","))
+                    if (!cond.isBlank()) assertTrue(conditions.contains(cond.replace("!", "").trim()), conv + "/" + c + " checks a missing condition " + cond);
+            }
+            for (String c : section(y, base + ".player_options")) {
+                String opt = base + ".player_options." + c;
+                for (String p : y.getString(opt + ".pointers", "").split(","))
+                    if (!p.isBlank()) assertTrue(y.contains(base + ".NPC_options." + p.trim()), conv + "/" + c + " points at a missing line " + p);
+                for (String act : y.getString(opt + ".actions", "").split(","))
+                    if (!act.isBlank()) assertTrue(actions.contains(act.trim()), conv + "/" + c + " runs a missing action " + act);
+                for (String cond : y.getString(opt + ".conditions", "").split(","))
+                    if (!cond.isBlank()) assertTrue(conditions.contains(cond.replace("!", "").trim()), conv + "/" + c + " checks a missing condition " + cond);
+            }
+            for (String f : y.getString(base + ".first").split(","))
+                assertTrue(y.contains(base + ".NPC_options." + f.trim()), conv + ": first names a missing line " + f);
+        }
     }
 
     @Test
@@ -158,13 +185,15 @@ class ChaptersTest {
     private static List<String> allText(YamlConfiguration y) {
         List<String> out = new ArrayList<>();
         for (String j : section(y, "journal")) out.add(y.getString("journal." + j));
-        for (String c : section(y, "conversations.ranger.NPC_options")) out.add(y.getString("conversations.ranger.NPC_options." + c + ".text"));
-        for (String c : section(y, "conversations.ranger.player_options")) out.add(y.getString("conversations.ranger.player_options." + c + ".text"));
+        for (String conv : section(y, "conversations")) {
+            for (String c : section(y, "conversations." + conv + ".NPC_options")) out.add(y.getString("conversations." + conv + ".NPC_options." + c + ".text"));
+            for (String c : section(y, "conversations." + conv + ".player_options")) out.add(y.getString("conversations." + conv + ".player_options." + c + ".text"));
+        }
         for (String a : section(y, "actions")) {
             Matcher m = Pattern.compile("\\^notify (.*?) io:chat").matcher(y.getString("actions." + a));
             while (m.find()) out.add(m.group(1));
         }
-        out.add(y.getString("conversations.ranger.quester"));
+        for (String conv : section(y, "conversations")) out.add(y.getString("conversations." + conv + ".quester"));
         return out;
     }
 
@@ -194,7 +223,7 @@ class ChaptersTest {
             Matcher m = Pattern.compile("\\^command (\\S+) (\\S+)").matcher(def);
             while (m.find()) {
                 assertEquals("mobsquad", m.group(1), a + " runs only MobSquad commands");
-                assertTrue(Set.of("unlock", "page").contains(m.group(2)), a + " runs only unlock and page");
+                assertTrue(Set.of("unlock", "page", "book", "dinnerbell").contains(m.group(2)), a + " runs only unlock, page, book and dinnerbell");
             }
             assertFalse(def.matches(".*\\^(chat|opsudo|sudo|notifyall|runForAll)\\b.*"), a + " doesn't talk for or to other players");
         }

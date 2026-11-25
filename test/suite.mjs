@@ -22,16 +22,18 @@ const AURA = !!process.env.MS_TEST_AURA
 // Spirit coats: run with only=bunkhouse,coats (the menu part needs the Bunkhouse from the first section).
 // MS_TEST_MV=1 adds Multiverse-Core and Multiverse-Inventories; run it with only=bunkhouse,groups
 const MV = !!process.env.MS_TEST_MV
-// MS_TEST_BQ=1 adds BetonQuest and runs the quest chapters; run it with only=chapters
+// MS_TEST_BQ=1 adds BetonQuest and runs the quest chapters; run it with only=chapters (and only=winds, below)
 const BQ = !!process.env.MS_TEST_BQ
-const want = n => (ONLY.length === 0 && n !== 'aura' && n !== 'groups' && n !== 'chapters') || ONLY.includes(n)
+// MS_TEST_LP=1 adds LuckPerms as well, for the Ten Winds (kid or adult by group); run it with MS_TEST_BQ=1 and only=winds
+const LP = !!process.env.MS_TEST_LP
+const want = n => (ONLY.length === 0 && n !== 'aura' && n !== 'groups' && n !== 'chapters' && n !== 'winds') || ONLY.includes(n)
 const PHYSICS = MC !== '26.3'
 const MENU = PHYSICS
 const skip = name => { if (want(name)) console.log(`\n# ${name}: skipped on ${MC}, where the bots can't use a block`) }
 const Y = -60
 
 const dir = freshServer('suite-' + MC, { paper: jar(`paper-${MC}.jar`),
-  plugins: [jar('ViaVersion.jar'), jar('ViaBackwards.jar'), jar('GriefPrevention.jar'), jar('PlaceholderAPI.jar'), ...(BQ ? [jar('BetonQuest.jar')] : []), ...(AURA ? [jar('AuraSkills.jar')] : []), ...(MV ? [jar('Multiverse-Core.jar'), jar('Multiverse-Inventories.jar')] : [])], props: { difficulty: 'easy' } })
+  plugins: [jar('ViaVersion.jar'), jar('ViaBackwards.jar'), jar('GriefPrevention.jar'), jar('PlaceholderAPI.jar'), ...(BQ ? [jar('BetonQuest.jar')] : []), ...(LP ? [jar('LuckPerms.jar')] : []), ...(AURA ? [jar('AuraSkills.jar')] : []), ...(MV ? [jar('Multiverse-Core.jar'), jar('Multiverse-Inventories.jar')] : [])], props: { difficulty: 'easy' } })
 const s = new Server({ dir, jvm: ['-Dmobsquad.test.sneak-tag=true'] }) // a tagged player counts as crouching; see Puzzles.crouching
 const cfgFile = path.join(dir, 'plugins/MobSquad/config.yml')
 const playersDir = path.join(dir, 'plugins/MobSquad/players')
@@ -1243,7 +1245,7 @@ if (want('chapters')) {
   writeFileSync(path.join(packs, 'mobsquadtest/package.yml'), 'actions:\n  talk: conversation mobsquad>ranger\n')
   const loaded = (await s.ask('betonquest reload', 2500)).join('\n')
   const bad = loaded.split('\n').filter(l => /Error|rror while|Could not|WARN/.test(l))
-  check('BetonQuest loads every part of the package', /13 Actions[^\]]*6 Conditions, 1 Conversation[^\]]*9 Items, 12 Journal Entries[^\]]*9 Objectives/.test(loaded), loaded.slice(0, 600))
+  check('BetonQuest loads every part of the package', /78 Actions[^\]]*62 Conditions, 2 Conversations[^\]]*9 Items, 35 Journal Entries[^\]]*36 Objectives/.test(loaded), loaded.slice(0, 600))
   check('the only load error is the Ranger\'s Citizens NPC, because Citizens isn\'t on the test server', bad.length === 1 && /Npc 'ranger'/.test(bad[0]), bad.join(' | '))
   await config({ '  tier-unlock': 'either' })
   await s.ask('mobsquad xp Wrangler 0', 300)
@@ -1360,6 +1362,370 @@ if (want('chapters')) {
   await s.start()
   check('a restart keeps an admin\'s edit to the shipped chapters', readFileSync(shipped, 'utf8').includes('# an admin edit'))
 }
+
+// ---------- The Ten Winds (0.11.0, K725) ----------
+// Needs MS_TEST_BQ=1 and MS_TEST_LP=1 (BetonQuest and LuckPerms) and runs with only=winds. Citizens isn't installed, so the
+// Ranger's NPC can't be clicked; the conversation is started by an action in a test-only package, as in the chapters
+// section. Spots (rings, wind-signs, landmarks, the meadow) are set to made-up places in the test world. Crafting and
+// smelting steps aren't part of the Ten Winds chapters, so nothing is completed by command except the old chapters'
+// tags, which are added so the story's later chapters unlock. Bots can't place blocks on 26.3, so the builder's
+// 40-block step runs on 26.1.2 and 26.2 only.
+if (want('winds')) {
+  section('The Ten Winds')
+  const papi = async what => ((await s.ask(`papi parse Wrangler %mobsquad_${what}%`, 600)).find(l => /^(true|false|\d+)$/.test(l.trim())) || '').trim()
+  const shipped = path.join(dir, 'plugins/MobSquad/quests/mobsquad/package.yml')
+  const packs = path.join(dir, 'plugins/BetonQuest/QuestPackages')
+  mkdirSync(path.join(packs, 'mobsquad'), { recursive: true }); mkdirSync(path.join(packs, 'mobsquadtest'), { recursive: true })
+  let pack = readFileSync(shipped, 'utf8')
+  // made-up spots on a grid, 10 blocks apart, so no two spots' 6-block circles meet
+  const spot = {}
+  let idx = 0
+  for (const m of pack.matchAll(/^  (\w+): '0;0;0;unset'$/gm)) {
+    spot[m[1]] = [X - 55 + (idx % 12) * 10, Z - 55 + Math.floor(idx / 12) * 14]; idx++
+  }
+  check('the package ships 21 unset spots, none hardcoded to a real world', idx === 21 && !/;(world|magic|ninos_\w+|testworld);/.test(pack), String(idx))
+  for (const [k, [x, z]] of Object.entries(spot)) pack = pack.replace(`  ${k}: '0;0;0;unset'`, `  ${k}: '${x};${Y};${z};testworld'`)
+  writeFileSync(path.join(packs, 'mobsquad/package.yml'), pack)
+  writeFileSync(path.join(packs, 'mobsquadtest/package.yml'), 'actions:\n  talk: conversation mobsquad>ranger\n')
+  const loaded = (await s.ask('betonquest reload', 3500)).join('\n')
+  const bad = loaded.split('\n').filter(l => /Error|rror while|Could not|WARN/.test(l))
+  check('BetonQuest loads every part of the package', /2 Conversations/.test(loaded) && /36 Objectives/.test(loaded), loaded.slice(0, 700))
+  check('the only load error is the Ranger\'s Citizens NPC', bad.length === 1 && /Npc 'ranger'/.test(bad[0]), bad.join(' | '))
+  await s.ask('mobsquad xp Wrangler 0', 300)
+  await s.ask('clear Wrangler', 200); await s.ask('clear Neighbor', 200)
+  await s.ask('gamemode survival Wrangler', 200); await s.ask('gamemode survival Neighbor', 200)
+
+  const watch = b => { b.clicks = []; b.on('message', jm => { const c = jm.json?.click_event?.command; if (c && c.startsWith('/betonquestanswer')) b.clicks.push({ text: jm.toString(), cmd: c }) }) }
+  watch(me); watch(other)
+  const list = async (name, kind) => (await s.ask(`betonquest ${kind} ${name} list`, 700)).join(' ')
+  const tagged = async (name, t) => (await list(name, 'tag')).includes(`mobsquad>${t}`)
+  const journaled = async (name, e) => (await list(name, 'journal')).includes(`mobsquad>${e}`)
+  const active = async (name, o) => (await list(name, 'objective')).includes(`mobsquad>${o}`)
+  const waitTag = async (name, t, ms = 8000) => { await until(async () => await tagged(name, t), ms, 400); return tagged(name, t) }
+  const waitActive = async (name, o, ms = 8000) => { await until(async () => await active(name, o), ms, 400); return active(name, o) }
+  const waitJournal = async (name, e, ms = 8000) => { await until(async () => await journaled(name, e), ms, 400); return journaled(name, e) }
+  async function pickFrom(b, pick, from, ms = 8000) {
+    await until(() => b.clicks.some(c => c.text.includes(pick)) || b.chatLog.slice(from).some(m => /Ranger Juniper: /.test(m)), ms)
+    const c = b.clicks.find(c => c.text.includes(pick))
+    if (!c) return false
+    b.clicks.length = 0
+    b.chat(c.cmd); await sleep(1500)
+    return true
+  }
+  /** Starts the Ranger's conversation for a player and picks an option with that text, if asked. Returns what was said. */
+  async function talk(b, name, pick, keepOpen = false) {
+    b.clicks.length = 0
+    const from = b.chatLog.length
+    await s.ask(`betonquest action ${name} mobsquadtest>talk`, 200)
+    await until(() => b.clicks.length > 0 || b.chatLog.slice(from).some(m => /Ranger Juniper: /.test(m)), 8000)
+    if (!b.chatLog.slice(from).length) { // once more, in case the first start was dropped
+      if (process.env.MS_TEST_TALK) console.log(`    [talk ${name}] no conversation started; server said: ` + s.log.slice(-6).join(' / ').slice(0, 500))
+      await s.ask(`betonquest action ${name} mobsquadtest>talk`, 200)
+      await until(() => b.clicks.length > 0 || b.chatLog.slice(from).some(m => /Ranger Juniper: /.test(m)), 8000)
+    }
+    await sleep(900)
+    if (pick && !await pickFrom(b, pick, from, 2000)) { const r = b.chatLog.slice(from).concat('NO OPTION ' + pick); if (process.env.MS_TEST_TALK) console.log(`    [talk ${name}] ` + r.join(' | ')); return r }
+    const heard = b.chatLog.slice(from)
+    if (process.env.MS_TEST_TALK) console.log(`    [talk ${name}] ` + heard.join(' | '))
+    if (b.clicks.length > 0 && !keepOpen) await closeTalk(b, name) // the Ranger is waiting on another answer: walk away, as a player would
+    return heard
+  }
+  /** Ends an open conversation the way a player can: by answering "Maybe later." until the Ranger says goodbye. */
+  async function closeTalk(b, name) {
+    for (let i = 0; i < 12; i++) {
+      const c = b.clicks.find(c => /Maybe later|Thanks, Ranger/.test(c.text))
+      if (!c) break
+      b.clicks.length = 0
+      b.chat(c.cmd); await sleep(1300)
+    }
+    b.clicks.length = 0
+    await sleep(500)
+  }
+  const at = async (name, k) => { await s.ask(`tp ${name} ${spot[k][0] + 0.5} ${Y} ${spot[k][1] + 0.5} 0 10`, 400); await sleep(700) }
+  // BetonQuest watches where a player is once a second, and sees a walk-in only after it has seen them outside, so waiting out here is part of walking in
+  const away = async name => { await s.ask(`tp ${name} ${X + 0.5} ${Y} ${Z + 40.5} 0 10`, 400); await sleep(2200) }
+  const bq = (name, what) => s.ask(`betonquest ${what}`.replace('$', name), 500)
+  const hasItem = async (name, item) => (await s.ask(`execute if items entity ${name} container.* ${item}`, 400)).join(' ').includes('passed')
+  // only the Ranger's own books: BetonQuest's quest journal is a book too, and it carries its owner's name as author
+  const invText = async name => (await s.ask(`data get entity ${name} Inventory[{components:{"minecraft:written_book_content":{author:"Ranger Juniper"}}}]`, 600)).join(' ')
+  const invAll = async name => (await s.ask(`data get entity ${name} Inventory`, 700)).join(' ')
+  const sayLines = (b, from) => b.chatLog.slice(from).join(' | ')
+  const gaveTags = async name => { for (const t of ['holler_started', 'holler_done', 'yonder_started', 'yonder_done', 'backcountry_started', 'backcountry_done']) await s.ask(`betonquest tag ${name} add mobsquad>${t}`, 250) }
+
+  // ----- the switch, and kid or adult fails closed -----
+  check('no group: the player is not an adult (fails closed)', (await s.ask('lp user Wrangler permission check mayor.circle.adults', 900)).join(' ').toLowerCase().match(/false|undefined/) !== null)
+  await gaveTags('Wrangler')
+  let said1 = (await talk(me, 'Wrangler')).join(' | ')
+  check('the new chapters stay off until an admin opens them', !/wind-sign/.test(said1) && /proud of you/.test(said1), said1)
+  const on = (await s.ask('betonquest action - mobsquad>windsOpenOn', 700)).join(' ')
+  check('an admin opens the new chapters from the console', await until(async () => /wind-sign fell over/.test((await talk(me, 'Wrangler', 'Maybe later.')).join(' ')), 6000, 300), on)
+
+  // ----- chapter 4, Wind-Signs: no stats, so the all-of-the-above path, a kid with no group -----
+  said1 = (await talk(me, 'Wrangler', 'Yes, please!')).join(' | ')
+  check('a player with no group gets the kid lines: short and kid-sized', /Visit each one!/.test(said1) && said1.split('|').every(l => l.replace(/^.*?: /, '').split(/\s+/).length <= 14), said1)
+  check('the style is set once, to all of the above for a player who has done none of them', await tagged('Wrangler', 'style_all') && !(await tagged('Wrangler', 'style_builder')))
+  check('chapter 4 starts: tag, journal and the first post objectives', await tagged('Wrangler', 'signs_started') && await waitJournal('Wrangler', 'signs_walk') && await waitActive('Wrangler', 'signsPost1Kid'))
+  await at('Neighbor', 'signPost1Kid') // a second player stands at the post; nothing is his, so nothing is sent
+  const otherFrom = other.chatLog.length
+  await at('Wrangler', 'signPost1Adult')
+  check('an adult\'s post does nothing for a kid', await active('Wrangler', 'signsPost1Kid') && !(await active('Wrangler', 'signsPost2Kid')))
+  await at('Wrangler', 'signPost1Kid')
+  check('the first post is found: step 2 starts', await waitActive('Wrangler', 'signsPost2Kid') && said(me, /Wind-sign 1 found/))
+  check('the second player near the post gets nothing', !said(other, /wind-sign|Wind-sign|found/i, otherFrom), sayLines(other, otherFrom))
+  await at('Wrangler', 'signPost2Kid')
+  check('the second post is found', await waitActive('Wrangler', 'signsPost3Kid'))
+  const gotBefore = me.chatLog.length
+  await at('Wrangler', 'signPost3Kid')
+  check('the third post finishes the chapter', await waitTag('Wrangler', 'signs_done') && await journaled('Wrangler', 'signs_done') && said(me, /Chapter done! The wind-sign stands/, gotBefore))
+  check('the Ranger\'s trail book arrives', await until(async () => /Ranger Juniper/.test(await invText('Wrangler')), 6000, 300))
+  let inv = await invText('Wrangler')
+  check('the book is by Ranger Juniper, tattered, and not a map', /Ranger Juniper/.test(inv) && /generation: 3|"?generation"?: ?3/.test(inv) && !/filled_map/.test(inv), inv.slice(0, 500))
+  check('it names no player and gives no coordinates', !/Wrangler|Neighbor/.test(inv.replace(/Ranger Juniper/g, '').replace(/"?Name"?:|Wrangler's/g, '').slice(inv.indexOf('written_book'))) && !/-?\d{2,},\s?-?\d{2,}/.test(inv.slice(inv.indexOf('written_book'))), inv.slice(inv.indexOf('written_book'), inv.indexOf('written_book') + 600))
+  check('the chapter gave no level, tier or critter', await papi('level') === '1' && await papi('critters') === '0')
+
+  // ----- chapter 5, the Ten Winds: the ring level gate -----
+  await away('Wrangler')
+  check('the Ranger offers the wind-rings', /Wind-rings sleep in the magic world/.test((await talk(me, 'Wrangler', 'Yes, please!')).join(' ')))
+  check('all six ring objectives are running (kid and adult)', await waitActive('Wrangler', 'ringEmberKid') && await active('Wrangler', 'ringSunbeamAdult'))
+  await sleep(2500) // BetonQuest notes where the player is before it can see them walk in
+  let from = me.chatLog.length
+  let quiet = false
+  for (let tries = 0; tries < 3 && !quiet; tries++) { // BetonQuest sees a walk-in only after it has seen the player outside; a player who misses it just steps out and in
+    if (tries > 0) { await away('Wrangler'); await sleep(2000) }
+    await at('Wrangler', 'ringEmberKid')
+    quiet = await until(() => said(me, /The ring is quiet\. Ember wants a critter that has grown\./, from), 5000)
+  }
+  check('below level 10 the ring is quiet, in kid words', quiet, sayLines(me, from))
+  check('no choice to wake it is offered below the gate', !me.clicks.some(c => /Wake it/.test(c.text)))
+  check('the ring is still waiting, not used up', await waitActive('Wrangler', 'ringEmberKid'))
+  await s.ask('mobsquad give Wrangler chicken', 400)
+  await s.ask('mobsquad level Wrangler chicken 10', 400)
+  check('the placeholder counts what the player owns: top is 10 with nothing out', await papi('top') === '10' && await papi('best_chicken') === '10')
+  await away('Wrangler')
+  from = me.chatLog.length
+  await at('Neighbor', 'ringEmberKid') // a bystander in the ring, no chapter of his own
+  await at('Wrangler', 'ringEmberKid')
+  check('at level 10 Ember offers to wake', await until(() => me.clicks.some(c => /Wake it/.test(c.text)), 8000) && said(me, /Ember sleeps here/, from), sayLines(me, from))
+  check('the chicken is not out, and the ring opened anyway', await s.count('@e[type=chicken,name=Chicken]') === 0)
+  const nFrom = other.chatLog.length
+  check('waking it', await pickFrom(me, 'Wake it', from))
+  check('Ember wakes: tag, journal and a private line', await waitTag('Wrangler', 'ring_ember_done') && await journaled('Wrangler', 'ring_ember') && said(me, /Ember is awake/, from))
+  check('the bystander next to the ring heard and saw none of it', !said(other, /Ember|awake|ring|wind/i, otherFrom) && !(await tagged('Neighbor', 'ring_ember_done')) && !(await journaled('Neighbor', 'ring_ember')), sayLines(other, otherFrom))
+  await away('Wrangler'); await away('Neighbor')
+  from = me.chatLog.length
+  await at('Wrangler', 'ringMarigoldKid')
+  check('ring two needs level 20: still quiet at 10', await until(() => said(me, /Marigold wants a critter that has grown\./, from), 8000) && !me.clicks.some(c => /Wake it/.test(c.text)), sayLines(me, from))
+  await s.ask('mobsquad level Wrangler chicken 20', 400)
+  await away('Wrangler'); from = me.chatLog.length
+  await at('Wrangler', 'ringMarigoldKid')
+  check('at level 20 Marigold wakes', await until(() => me.clicks.some(c => /Wake it/.test(c.text)), 8000) && await pickFrom(me, 'Wake it', from) && await waitTag('Wrangler', 'ring_marigold_done'))
+  await s.ask('mobsquad level Wrangler chicken 30', 400)
+  await away('Wrangler'); from = me.chatLog.length
+  await at('Wrangler', 'ringSunbeamKid')
+  check('at level 30 Sunbeam wakes and the chapter ends', await until(() => me.clicks.some(c => /Wake it/.test(c.text)), 8000) && await pickFrom(me, 'Wake it', from) && await waitTag('Wrangler', 'winds_done') && await journaled('Wrangler', 'winds_done'))
+  check('a kid at the adults\' ring is not sent anywhere: nothing happens', await (async () => { await away('Wrangler'); const f = me.chatLog.length; await at('Wrangler', 'ringEmberAdult'); await sleep(1500); return !said(me, /Ember|ring/i, f) })())
+  await s.ask('mobsquad level Wrangler chicken 1', 400)
+
+  // ----- an adult: mayor.circle.adults from LuckPerms, the adults' rings and the 15-kill watch -----
+  await away('Wrangler')
+  await s.ask('lp user Neighbor permission set mayor.circle.adults true', 1200)
+  check('LuckPerms gives the adults\' permission to the adult', (await s.ask('lp user Neighbor permission check mayor.circle.adults', 900)).join(' ').toLowerCase().includes('true'))
+  await gaveTags('Neighbor')
+  await s.ask('mobsquad give Neighbor chicken', 400); await s.ask('mobsquad level Neighbor chicken 10', 400)
+  await sleep(500)
+  check('the Ranger offers the adult the wind-signs too', /wind-sign fell over/.test((await talk(other, 'Neighbor', 'Maybe later.')).join(' ')))
+  // the adult is a builder (a tag stands in for months of building): the Ranger asks for a stone or wood base, and 40 placed blocks finish it
+  await s.ask('betonquest tag Neighbor add mobsquad>style_builder', 250)
+  if (MENU) {
+    const bf = other.chatLog.length
+    const said2 = (await talk(other, 'Neighbor', 'Yes, please!', true)).join(' | ')
+    check('a builder is asked which base to build, with two answers', /This post needs a sturdy base\. Your call!/.test(said2) && other.clicks.some(c => /Stone base!/.test(c.text)) && other.clicks.some(c => /Wood base/.test(c.text)), said2)
+    check('stone it is: solid as a boulder, and the 40-block step starts', await pickFrom(other, 'Stone base!', bf) && said(other, /Solid as a boulder/, bf) && await waitActive('Neighbor', 'signsStone') && !(await active('Neighbor', 'signsWood')))
+    other.clicks.length = 0
+    await s.ask('clear Neighbor', 200); await s.ask('give Neighbor minecraft:cobblestone 40', 300)
+    await until(() => other.inventory.items().some(i => i.name === 'cobblestone'), 5000)
+    await other.equip(other.inventory.items().find(i => i.name === 'cobblestone'), 'hand')
+    const x0 = X - 20, z0 = Z + 20
+    let placed = 0
+    const spots = Array.from({ length: 40 }, (_, i) => [x0 + (i % 20), z0 + Math.floor(i / 20) * 2])
+    const placeAt = async ([x, z]) => {
+      await s.ask(`tp Neighbor ${x + 0.5} ${Y} ${z - 1.5} 0 10`, 150); await sleep(300)
+      try { await other.placeBlock(other.blockAt(new Vec3(x, Y - 1, z)), new Vec3(0, 1, 0)); return true } catch { return false }
+    }
+    for (const sp of spots.slice(0, 39)) if (await placeAt(sp)) placed++
+    for (let again = 0; again < 3 && placed < 39; again++) for (const sp of spots.slice(0, 39)) {
+      if (placed >= 39) break
+      if (other.blockAt(new Vec3(sp[0], Y, sp[1]))?.name !== 'cobblestone' && await placeAt(sp)) placed++ // one the bot missed the first time
+    }
+    check('39 placed blocks are not enough: the step is still waiting', placed === 39 && await active('Neighbor', 'signsStone') && !(await tagged('Neighbor', 'signs_done')), String(placed))
+    if (await placeAt(spots[39])) placed++
+    check('the bot really placed every block by hand', placed === 40, String(placed))
+    check('40 placed stone blocks finish the chapter, and the wood step is gone', await waitTag('Neighbor', 'signs_done') && !(await active('Neighbor', 'signsWood')) && !(await active('Neighbor', 'signsStone')), `${await list('Neighbor', 'objective')}`)
+    check('what a player builds is read from the game\'s own count: this adult is a builder now', (await s.ask('papi parse Neighbor %mobsquad_style%', 600)).join(' ').includes('builder'))
+    check('the trail book arrives for the adult too', await until(async () => /Ranger Juniper/.test(await invText('Neighbor')), 6000, 300))
+    await s.ask('clear Neighbor', 200)
+  } else {
+    await s.ask('betonquest tag Neighbor add mobsquad>signs_started', 250); await s.ask('betonquest tag Neighbor add mobsquad>signs_done', 250)
+    console.log('    the builder\'s 40-block step was skipped on ' + MC + ', where the bots can\'t place blocks; signs_done was added by command')
+  }
+  await away('Neighbor')
+  check('the adult is offered the wind-rings', /Wind-rings sleep/.test((await talk(other, 'Neighbor', 'Yes, please!')).join(' ')))
+  await away('Wrangler'); await away('Neighbor')
+  let nf = other.chatLog.length
+  await at('Neighbor', 'ringEmberKid')
+  await sleep(1500)
+  check('an adult at the kids\' ring: nothing happens', !said(other, /Ember|ring/i, nf), sayLines(other, nf))
+  await away('Neighbor'); nf = other.chatLog.length; other.clicks.length = 0
+  await at('Neighbor', 'ringEmberAdult')
+  check('the adult ring speaks in grown-up words at level 10', await until(() => other.clicks.some(c => /Wake it/.test(c.text)), 8000) && said(other, /Ember sleeps here\. It wakes for a critter with a flame at its back\./, nf), sayLines(other, nf))
+  check('waking it for the adult', await pickFrom(other, 'Wake it', nf) && await waitTag('Neighbor', 'ring_ember_done') && said(other, /Ember is awake\. Marigold is next\./, nf))
+  await s.ask('betonquest tag Neighbor add mobsquad>winds_done', 250) // the other two adult rings are the same code as the kids'
+  check('the kid beside nobody got the adult\'s ring', !(await tagged('Wrangler', 'ring_ember_done_adult')) && !said(me, /Marigold is next/, 0))
+
+  // the watch: kid 8, any time; adult 15, dusk or night only
+  await away('Neighbor')
+  await s.ask('time set noon', 200)
+  // a kid who says maybe later to the watch is offered the meadow, then the finale: nothing is stuck behind the optional watch
+  {
+    const f0 = me.chatLog.length
+    await talk(me, 'Wrangler', undefined, true)
+    check('the kid is first offered the optional watch', said(me, /The Ranger's watch could use help/, f0), sayLines(me, f0))
+    await pickFrom(me, 'Maybe later.', f0, 4000)
+    check('a kid who passes on the watch is offered the Far Meadow next', await until(() => said(me, /Want to find the Far Meadow\?/, f0), 5000), sayLines(me, f0))
+    const ok2 = await pickFrom(me, 'Maybe later.', f0, 4000)
+    check('and then the finale, since signs and rings are done, with the watch still waiting', ok2 && await until(() => said(me, /The herd wants to come home/, f0), 5000), sayLines(me, f0))
+    await closeTalk(me, 'Wrangler')
+  }
+  check('the kid is offered the watch as optional', /optional/.test((await talk(me, 'Wrangler', 'I\'ll help!')).join(' ')) && await tagged('Wrangler', 'watch_started') && await journaled('Wrangler', 'watch_1_kid') && await active('Wrangler', 'watchFightKid') && !(await active('Wrangler', 'watchFightAdult')))
+  check('the adult\'s watch is the adult version', /optional/.test((await talk(other, 'Neighbor', 'I\'ll help!')).join(' ')) && await journaled('Neighbor', 'watch_1_adult') && await active('Neighbor', 'watchFightAdult') && !(await active('Neighbor', 'watchFightKid')))
+  await s.ask(`attribute Wrangler minecraft:attack_damage base set 100`, 200); await s.ask(`attribute Neighbor minecraft:attack_damage base set 100`, 200)
+  /** The bot beats n mobs with its own attacks (a command kill would have no killer, so it wouldn't count). Returns how many fell to the bot. */
+  async function fight(b, name, n, mob = 'zombie') {
+    const here = `@e[type=${mob},x=${X},y=${Y},z=${Z + 62},distance=..8]` // a console command's distance is from the world's origin, so the spot is spelled out
+    await s.ask(`tp ${name} ${X + 0.5} ${Y} ${Z + 60.5} 0 10`, 300); await sleep(400)
+    await s.ask(`kill ${here}`, 100)
+    let beaten = 0
+    for (let i = 0; i < n; i++) {
+      await s.ask(`summon ${mob} ${X + 0.5} ${Y} ${Z + 62.5} {NoAI:1b,Silent:1b,PersistenceRequired:1b}`, 100)
+      await until(() => entity(b, e => e.name === mob && e.position.distanceTo(b.entity.position) < 4), 4000, 100)
+      const z = entity(b, e => e.name === mob && e.position.distanceTo(b.entity.position) < 4)
+      if (z) {
+        for (let k = 0; k < 3 && await s.count(here) > 0; k++) { b.attack(z); await sleep(500) }
+        if (await s.count(here) === 0) beaten++
+      }
+      await s.ask(`kill ${here}`, 0) // anything the attacks missed, so the next one is alone
+      await sleep(80)
+    }
+    return beaten
+  }
+  // the kid's eight: seven aren't enough
+  const progress = async (name, o) => (await s.ask(`papi parse ${name} %betonquest_mobsquad:objective.${o}.left%`, 500)).filter(l => !/^\[/.test(l)).join(' ')
+  const k7 = await fight(me, 'Wrangler', 7)
+  if (process.env.MS_TEST_TALK) console.log('    [kid watch left after 7] ' + await progress('Wrangler', 'watchFightKid'))
+  check('the bot really beat seven mobs by hand', k7 === 7, String(k7))
+  check('seven are not enough for a kid: one to go', await active('Wrangler', 'watchFightKid') && !(await tagged('Wrangler', 'watch_done')) && await progress('Wrangler', 'watchFightKid') === '1', await progress('Wrangler', 'watchFightKid'))
+  const cow = await fight(me, 'Wrangler', 1, 'cow')
+  check('a cow beaten by hand adds nothing: only hostile mobs count', cow === 1 && await progress('Wrangler', 'watchFightKid') === '1' && !(await tagged('Wrangler', 'watch_done')), `${cow} beaten, left ${await progress('Wrangler', 'watchFightKid')}`)
+  const k1 = await fight(me, 'Wrangler', 1)
+  if (process.env.MS_TEST_TALK) console.log('    [kid watch left after 8] ' + await progress('Wrangler', 'watchFightKid'))
+  check('the eighth finishes the kid\'s watch, at midday: any time of day', k1 === 1 && await waitTag('Wrangler', 'watch_done') && await journaled('Wrangler', 'watch_done'), `${k1} beaten, ${await list('Wrangler', 'objective')}`)
+  check('the watch-bell book arrives', await until(async () => /The Watch-Bell/.test(await invAll('Wrangler')), 5000, 300), (await invAll('Wrangler')).slice(0, 200))
+  // the adult's fifteen: noon kills don't count
+  const n4 = await fight(other, 'Neighbor', 4)
+  check('at noon an adult\'s kills do not count (the bot did beat four by hand)', n4 === 4 && await active('Neighbor', 'watchFightAdult') && !(await tagged('Neighbor', 'watch_done')), String(n4))
+  await s.ask('time set midnight', 200)
+  const a14 = await fight(other, 'Neighbor', 14)
+  check('the bot really beat fourteen by hand', a14 === 14, String(a14))
+  check('fourteen at night are not enough', await active('Neighbor', 'watchFightAdult') && !(await tagged('Neighbor', 'watch_done')))
+  const a1 = await fight(other, 'Neighbor', 1)
+  check('the fifteenth at night finishes the adult watch', a1 === 1 && await waitTag('Neighbor', 'watch_done'), `${a1} beaten, ${await list('Neighbor', 'objective')}`)
+  await s.ask('time set noon', 200)
+
+  // ----- chapter 7, the Far Meadow: kids three landmarks, adults four -----
+  await away('Wrangler'); await away('Neighbor')
+  check('the explorer path is offered the meadow first', true)
+  check('the kid starts the Far Meadow', /Look for a hill, a lake and flowers\./.test((await talk(me, 'Wrangler', 'Yes, please!')).join(' ')) && await journaled('Wrangler', 'meadow_1_kid'))
+  await away('Wrangler') // BetonQuest sees a walk-in only after one move outside since the objective began; a walking player does it without trying
+  for (const k of ['landHillKid', 'landLakeKid']) { await at('Wrangler', k); await sleep(400) }
+  check('two landmarks of three is not enough', !(await tagged('Wrangler', 'meadow_done')))
+  await at('Wrangler', 'landFlowerKid')
+  check('the third landmark finishes a kid\'s chapter, with no river', await waitTag('Wrangler', 'meadow_done') && await journaled('Wrangler', 'meadow_done'), `${await list('Wrangler', 'tag')} ${await list('Wrangler', 'objective')}`)
+  check('the meadow book arrives', await until(async () => /The Meadow Book/.test(await invAll('Wrangler')), 5000, 300))
+  check('the adult starts the Far Meadow', /Look for a hill, a lake, a river and flowers\./.test((await talk(other, 'Neighbor', 'Yes, please!')).join(' ')) && await journaled('Neighbor', 'meadow_1_adult'))
+  await away('Neighbor')
+  for (const k of ['landHillAdult', 'landLakeAdult', 'landFlowerAdult']) { await at('Neighbor', k); await sleep(400) }
+  check('three landmarks of four is not enough for an adult', !(await tagged('Neighbor', 'meadow_done')))
+  await at('Neighbor', 'landRiverAdult')
+  check('the river finishes the adult\'s chapter', await waitTag('Neighbor', 'meadow_done'), `${await list('Neighbor', 'tag')} ${await list('Neighbor', 'objective')}`)
+  // a kid's landmark visit doesn't change an adult's
+
+  // ----- chapter 8, the finale -----
+  await away('Wrangler'); await away('Neighbor')
+  const fin = (await talk(me, 'Wrangler', 'Ring it!')).join(' ')
+  check('with the signs, rings, watch and meadow done, the kid is offered the finale', /Take this dinnerbell/.test(fin), fin)
+  check('the Ranger hands over a dinnerbell by console command, no typing', await until(async () => /Dinnerbell/.test(await invAll('Wrangler')), 5000, 300) && await active('Wrangler', 'finaleKid'))
+  check('the finale waits for the ringer: ringing away from the meadow does nothing', await (async () => {
+    await s.ask(`tp Wrangler ${X + 0.5} ${Y} ${Z + 40.5} 0 10`, 300)
+    const held = me.inventory.items().find(i => i.name === 'warped_fungus_on_a_stick')
+    if (held) await me.equip(held, 'hand')
+    me.activateItem(); await sleep(1500); return !(await tagged('Wrangler', 'ten_winds_done'))
+  })())
+  await at('Wrangler', 'meadowKid')
+  await s.ask('clear Wrangler minecraft:warped_fungus_on_a_stick', 200); await sleep(300)
+  me.activateItem(); await sleep(1500)
+  check('without the bell in hand, ringing nothing in the meadow does nothing', !(await tagged('Wrangler', 'ten_winds_done')))
+  await s.ask('betonquest action Wrangler mobsquad>bellAgain', 400); await sleep(500)
+  const bell = me.inventory.items().find(i => i.name === 'warped_fungus_on_a_stick')
+  check('a lost bell is replaced and only one is ever held', !!bell && me.inventory.items().filter(i => i.name === 'warped_fungus_on_a_stick').length === 1)
+  if (bell) await me.equip(bell, 'hand')
+  from = me.chatLog.length
+  me.activateItem()
+  check('ringing the dinnerbell in the meadow finishes the story', await waitTag('Wrangler', 'ten_winds_done', 10000), sayLines(me, from))
+  check('the bell\'s own recall still runs for the ringer', await waitSaid(me, /Nobody's out with you|headed home/, 5000, from), sayLines(me, from))
+  check('the finale journal has a line for each finished chapter and the arc is done', await journaled('Wrangler', 'finale_done') && await journaled('Wrangler', 'finale_signs') && await journaled('Wrangler', 'finale_winds') && await journaled('Wrangler', 'finale_watch') && await journaled('Wrangler', 'finale_meadow'))
+  check('the finale book arrives', await until(async () => /The Ten Winds Are Awake/.test(await invAll('Wrangler')), 5000, 300))
+  check('the other player\'s story is untouched by the kid\'s finale', !(await tagged('Neighbor', 'ten_winds_done')) && !(await tagged('Neighbor', 'finale_started')))
+
+  // ----- every book, read straight off the server -----
+  for (const id of ['trail', 'watch', 'meadow', 'finale']) {
+    await s.ask('clear Wrangler minecraft:written_book', 200)
+    await s.ask(`mobsquad book Wrangler ${id}`, 500)
+    const t = await invText('Wrangler')
+    const body = t.slice(t.indexOf('written_book'))
+    check(`book ${id}: Ranger Juniper wrote it, it is a written book and not a map`, /Ranger Juniper/.test(body) && /written_book/.test(t) && !/filled_map/.test(t), body.slice(0, 300))
+    check(`book ${id}: no player name and no coordinates`, !/Wrangler|Neighbor/.test(body.replace(/Ranger Juniper/g, '')) && !/-?\d{2,}\s*,\s*-?\d{2,}/.test(body), body.slice(0, 300))
+  }
+  check('an unknown book is refused, with the list', (await s.ask('mobsquad book Wrangler nothing', 400)).join(' ').includes('No such book'))
+  check('only admins give books and bells', await (async () => { const f = me.chatLog.length; me.chat('/mobsquad book Wrangler trail'); await sleep(1200); const none = !said(me, /Ranger Juniper gave you a book/, f); me.chat('/mobsquad dinnerbell Neighbor'); await sleep(1000); return none && !(await invText('Neighbor')).includes('dinnerbell') })())
+
+  // ----- typed words stay private while a conversation is open, and nothing is typed otherwise -----
+  // the adult has not finished, so the Ranger offers him the finale and waits for an answer: an open conversation
+  await away('Wrangler'); await away('Neighbor')
+  let logMark = s.mark()
+  other.chat('plain words outside a talk'); await sleep(1500)
+  check('control: outside a conversation, typed words are public chat as normal', s.since(logMark).some(l => /<Neighbor> plain words outside a talk/.test(l)), s.since(logMark).slice(-3).join(' | '))
+  logMark = s.mark()
+  const mine = other.chatLog.length
+  other.clicks.length = 0
+  await s.ask('betonquest action Neighbor mobsquadtest>talk', 200)
+  await until(() => other.clicks.length > 0, 8000); await sleep(800)
+  check('the server sees the player is in the Ranger\'s conversation', (await s.ask('papi parse Neighbor %betonquest_mobsquad:condition.inTalk%', 600)).join(' ').includes('true'), sayLines(other, mine))
+  other.chat('secret typed words')
+  await sleep(1500)
+  check('typed words during a conversation never reach public chat', !s.since(logMark).some(l => /secret typed words/.test(l)), s.since(logMark).filter(l => /secret/.test(l)).join(' | '))
+  check('the player is told to click instead', said(other, /Click an answer to go on/, mine), sayLines(other, mine))
+  check('a typed number still answers the conversation, and is not held', await (async () => { other.chat('2'); await sleep(1500); return said(other, /Neighbor: Maybe later/, mine) || said(other, /Maybe later/, mine) })(), sayLines(other, mine))
+  await closeTalk(other, 'Neighbor')
+  other.chat('words after the talk'); await sleep(1500)
+  check('after the conversation, typed words go through again', s.since(logMark).some(l => /<Neighbor> words after the talk/.test(l)), s.since(logMark).slice(-3).join(' | '))
+
+  // ----- turning the switch off stops new offers but never takes anything away -----
+  await s.ask('betonquest action - mobsquad>windsOpenOff', 700)
+  check('with the switch off, a finished player still has the story', await tagged('Wrangler', 'ten_winds_done') && await journaled('Wrangler', 'finale_done'))
+  console.log('    completed by command, not by play: the three tier chapters\' tags (holler_done, yonder_done, backcountry_done) and signs_done for the adult')
+  await s.ask('lp user Neighbor permission unset mayor.circle.adults', 800)
+}
+
 
 const errors = s.exceptions()
 check('no MobSquad errors in the log', errors.length === 0, errors.slice(0, 5).join('\n'))

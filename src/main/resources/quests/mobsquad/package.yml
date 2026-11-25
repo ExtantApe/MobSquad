@@ -1,17 +1,68 @@
-# MobSquad quest chapters for BetonQuest: Holler, Yonder and Backcountry, one small chapter each.
-# Finishing a chapter runs /mobsquad unlock and /mobsquad page from the console. With quests.tier-unlock set to
-# either (the default), that opens the tier without waiting for the Wranglin' level. Nothing here changes a player's
-# level or gives anything but the tier and a journal page.
+# MobSquad quest chapters for BetonQuest. The Holler, Yonder and Backcountry chapters open the tiers. The Ten Winds
+# chapters (Wind-Signs, the Ten Winds, Holding the Line, the Far Meadow and the finale) are the story that follows them.
 #
-# Install: copy this folder into plugins/BetonQuest/QuestPackages/, change the Ranger's Citizens NPC number below to
-# an NPC you made, then run /q reload. See the MobSquad README.
+# Finishing a tier chapter runs /mobsquad unlock and /mobsquad page from the console. The Ten Winds chapters never touch a
+# level, a tier or a critter; their rewards are journal lines and the Ranger's books (/mobsquad book from the console).
+# Nobody types a command: the Ranger's conversation, the quest journal, standing at a spot and the dinnerbell do it all.
 #
-# Each chapter has three short steps. The next step starts when the last one is done, so the journal always shows
-# one thing to do. Chapters go in order: Holler, then Yonder, then Backcountry.
+# Install: copy this folder into plugins/BetonQuest/QuestPackages/, set the Ranger's Citizens NPC number below, then run
+# /bq reload. The Ten Winds chapters stay off until an admin places the spots and sets the constants below; the README
+# has the steps, including claim protection.
+#
+# Kids and adults. The adult wording shows only when a player is positively in an adult group: the 'adult' condition below
+# checks the permission mayor.circle.adults, the adults' marker on the live servers (Mayor's adults circle). Anyone without it, or when
+# the permission can't be read, gets the kid wording, and kids' goals stay in the kids' own worlds. Change the permission
+# if your server marks adults another way.
 npcs:
   ranger: citizens 1
 npc_conversations:
   ranger: ranger
+# The spots an admin places, one named location each: x;y;z;world. The kids' spots are in the kids' worlds and the
+# adults' in the adults' worlds. Each ships unset (world 'unset', which no world is called), so nothing can be reached
+# until an admin sets it. Place each with claim protection (README), then set it here and run /bq reload.
+constants:
+  # Wind-sign 1
+  signPost1Kid: '0;0;0;unset'
+  # Wind-sign 2
+  signPost2Kid: '0;0;0;unset'
+  # Wind-sign 3
+  signPost3Kid: '0;0;0;unset'
+  # Wind-sign 1
+  signPost1Adult: '0;0;0;unset'
+  # Wind-sign 2
+  signPost2Adult: '0;0;0;unset'
+  # Wind-sign 3
+  signPost3Adult: '0;0;0;unset'
+  # Ember wind-ring
+  ringEmberKid: '0;0;0;unset'
+  # Marigold wind-ring
+  ringMarigoldKid: '0;0;0;unset'
+  # Sunbeam wind-ring
+  ringSunbeamKid: '0;0;0;unset'
+  # Ember wind-ring
+  ringEmberAdult: '0;0;0;unset'
+  # Marigold wind-ring
+  ringMarigoldAdult: '0;0;0;unset'
+  # Sunbeam wind-ring
+  ringSunbeamAdult: '0;0;0;unset'
+  # Hill landmark
+  landHillKid: '0;0;0;unset'
+  # Lake landmark
+  landLakeKid: '0;0;0;unset'
+  # Flower landmark
+  landFlowerKid: '0;0;0;unset'
+  # Hill landmark
+  landHillAdult: '0;0;0;unset'
+  # Lake landmark
+  landLakeAdult: '0;0;0;unset'
+  # River landmark
+  landRiverAdult: '0;0;0;unset'
+  # Flower landmark
+  landFlowerAdult: '0;0;0;unset'
+  # the meadow, kids' world
+  meadowKid: '0;0;0;unset'
+  # the meadow, adults' world
+  meadowAdult: '0;0;0;unset'
 items:
   berries: simple SWEET_BERRIES
   seeds: simple WHEAT_SEEDS
@@ -23,103 +74,521 @@ items:
   ironIngot: simple IRON_INGOT
   shears: simple SHEARS
 conditions:
-  hollerStarted: tag holler_started
-  hollerDone: tag holler_done
-  yonderStarted: tag yonder_started
-  yonderDone: tag yonder_done
-  backcountryStarted: tag backcountry_started
-  backcountryDone: tag backcountry_done
+  hollerStarted: 'tag holler_started'
+  hollerDone: 'tag holler_done'
+  yonderStarted: 'tag yonder_started'
+  yonderDone: 'tag yonder_done'
+  backcountryStarted: 'tag backcountry_started'
+  backcountryDone: 'tag backcountry_done'
+  signsStarted: 'tag signs_started'
+  signsDone: 'tag signs_done'
+  windsStarted: 'tag winds_started'
+  windsDone: 'tag winds_done'
+  watchStarted: 'tag watch_started'
+  watchDone: 'tag watch_done'
+  meadowStarted: 'tag meadow_started'
+  meadowDone: 'tag meadow_done'
+  finaleStarted: 'tag finale_started'
+  finaleDone: 'tag ten_winds_done'
+  adult: 'permission mayor.circle.adults'
+  windsOpen: 'globaltag winds_open'
+  styleBuilder: 'tag style_builder'
+  nowBuilder: 'variable %ph.mobsquad_style% builder'
+  styleFighter: 'tag style_fighter'
+  nowFighter: 'variable %ph.mobsquad_style% fighter'
+  styleExplorer: 'tag style_explorer'
+  nowExplorer: 'variable %ph.mobsquad_style% explorer'
+  styleCaretaker: 'tag style_caretaker'
+  nowCaretaker: 'variable %ph.mobsquad_style% caretaker'
+  styleAll: 'tag style_all'
+  nowAll: 'variable %ph.mobsquad_style% all'
+  styleKnown: 'or styleBuilder,styleFighter,styleExplorer,styleCaretaker,styleAll'
+  styleExploreish: 'or styleExplorer,styleAll'
+  inRanger: 'inconversation ranger'
+  inRings: 'inconversation rings'
+  inTalk: 'or inRanger,inRings'
+  holdingBell: 'variable %ph.mobsquad_holding_bell% true'
+  night: 'time 18:00-6:00'
+  top10: 'numbercompare %ph.mobsquad_top% >= 10'
+  ringEmberDone: 'tag ring_ember_done'
+  atEmberKid: 'location %constant.ringEmberKid% 6'
+  atEmberAdult: 'location %constant.ringEmberAdult% 6'
+  top20: 'numbercompare %ph.mobsquad_top% >= 20'
+  ringMarigoldDone: 'tag ring_marigold_done'
+  atMarigoldKid: 'location %constant.ringMarigoldKid% 6'
+  atMarigoldAdult: 'location %constant.ringMarigoldAdult% 6'
+  top30: 'numbercompare %ph.mobsquad_top% >= 30'
+  ringSunbeamDone: 'tag ring_sunbeam_done'
+  atSunbeamKid: 'location %constant.ringSunbeamKid% 6'
+  atSunbeamAdult: 'location %constant.ringSunbeamAdult% 6'
+  ringsAll: 'and ringEmberDone,ringMarigoldDone,ringSunbeamDone'
+  landHill: 'tag land_hill'
+  landLake: 'tag land_lake'
+  landRiver: 'tag land_river'
+  landFlower: 'tag land_flower'
+  landAllKid: 'and !adult,landHill,landLake,landFlower'
+  landAllAdult: 'and adult,landHill,landLake,landRiver,landFlower'
+  hollerBusy: 'and hollerStarted,!hollerDone'
+  pair01: 'and signsDone,windsDone'
+  pair02: 'and signsDone,watchDone'
+  pair03: 'and signsDone,meadowDone'
+  pair12: 'and windsDone,watchDone'
+  pair13: 'and windsDone,meadowDone'
+  pair23: 'and watchDone,meadowDone'
+  twoNew: 'or pair01,pair02,pair03,pair12,pair13,pair23'
+actions:
+  hollerStart: 'run ^tag add holler_started ^objective start hollerBerries ^journal add holler_1 ^givejournal ^notify &eStep 1 of 3. Pick six sweet berries from a berry bush. io:chat sound:entity.experience_orb.pickup'
+  hollerStep2: 'run ^journal delete holler_1 ^journal add holler_2 ^objective start hollerSeeds ^notify &eStep 2 of 3. Break tall grass to gather four seeds. io:chat sound:entity.experience_orb.pickup'
+  hollerStep3: 'run ^journal delete holler_2 ^journal add holler_3 ^objective start hollerNoteBlock ^notify &eStep 3 of 3. Craft a note block. io:chat sound:entity.experience_orb.pickup'
+  hollerFinish: 'run ^journal delete holler_3 ^journal add holler_done ^tag add holler_done ^command mobsquad unlock %player% holler ^command mobsquad page %player% fox ^notify &6Chapter done! Holler critters are open to you. The first wind stirs. io:chat sound:ui.toast.challenge_complete'
+  yonderStart: 'run ^tag add yonder_started ^objective start yonderArrows ^journal add yonder_1 ^givejournal ^notify &eStep 1 of 3. Craft four arrows. io:chat sound:entity.experience_orb.pickup'
+  yonderStep2: 'run ^journal delete yonder_1 ^journal add yonder_2 ^objective start yonderTarget ^notify &eStep 2 of 3. Craft a target block. io:chat sound:entity.experience_orb.pickup'
+  yonderStep3: 'run ^journal delete yonder_2 ^journal add yonder_3 ^objective start yonderCampfire ^notify &eStep 3 of 3. Craft a campfire, to make a signal fire. io:chat sound:entity.experience_orb.pickup'
+  yonderFinish: 'run ^journal delete yonder_3 ^journal add yonder_done ^tag add yonder_done ^command mobsquad unlock %player% yonder ^command mobsquad page %player% creeper ^notify &6Chapter done! Yonder critters are open to you. The signal fire is lit. io:chat sound:ui.toast.challenge_complete'
+  backcountryStart: 'run ^tag add backcountry_started ^objective start backcountryPoppy ^journal add backcountry_1 ^givejournal ^notify &eStep 1 of 3. Pick a poppy. io:chat sound:entity.experience_orb.pickup'
+  backcountryStep2: 'run ^journal delete backcountry_1 ^journal add backcountry_2 ^objective start backcountryIron ^notify &eStep 2 of 3. Smelt four iron ingots in a furnace. io:chat sound:entity.experience_orb.pickup'
+  backcountryStep3: 'run ^journal delete backcountry_2 ^journal add backcountry_3 ^objective start backcountryShears ^notify &eStep 3 of 3. Craft a pair of shears. io:chat sound:entity.experience_orb.pickup'
+  backcountryFinish: 'run ^journal delete backcountry_3 ^journal add backcountry_done ^tag add backcountry_done ^command mobsquad unlock %player% backcountry ^command mobsquad page %player% iron_golem ^notify &6Chapter done! Backcountry critters are open to you. The Iron Golem guards the first wind-gate. io:chat sound:ui.toast.challenge_complete'
+  styleEnsure: 'if styleKnown nop else styleSet1'
+  nop: 'run'
+  styleSet1: 'if nowBuilder tagBuilder else styleSet2'
+  styleSet2: 'if nowFighter tagFighter else styleSet3'
+  styleSet3: 'if nowExplorer tagExplorer else styleSet4'
+  styleSet4: 'if nowCaretaker tagCaretaker else tagAll'
+  tagBuilder: 'run ^tag add style_builder'
+  tagFighter: 'run ^tag add style_fighter'
+  tagExplorer: 'run ^tag add style_explorer'
+  tagCaretaker: 'run ^tag add style_caretaker'
+  tagAll: 'run ^tag add style_all'
+  signsStart: 'run ^tag add signs_started ^givejournal ^notify &eWind-Signs. Read your journal for the first step. io:chat sound:entity.experience_orb.pickup'
+  signsGoStone: 'run ^journal add signs_stone ^objective start signsStone ^notify &eStep 1 of 1. Place 40 stone blocks for the base. io:chat sound:entity.experience_orb.pickup'
+  signsGoWood: 'run ^journal add signs_wood ^objective start signsWood ^notify &eStep 1 of 1. Place 40 plank blocks for the base. io:chat sound:entity.experience_orb.pickup'
+  signsGoFight: 'run ^journal add signs_fight ^objective start signsFight ^notify &eStep 1 of 1. Chase off five grumpy mobs. io:chat sound:entity.experience_orb.pickup'
+  signsGoBerries: 'run ^journal add signs_berries ^objective start signsBerries ^notify &eStep 1 of 1. Pick four sweet berries. io:chat sound:entity.experience_orb.pickup'
+  signsGoWalk: 'run ^journal add signs_walk ^objective start signsPost1Kid ^objective start signsPost1Adult ^notify &eStep 1 of 3. Visit the first wind-sign. io:chat sound:entity.experience_orb.pickup'
+  signsPost1KidDone: 'run ^objective start signsPost2Kid ^notify &eWind-sign 1 found. On to the next one. io:chat sound:entity.experience_orb.pickup'
+  signsPost1AdultDone: 'run ^objective start signsPost2Adult ^notify &eWind-sign 1 found. On to the next one. io:chat sound:entity.experience_orb.pickup'
+  signsPost2KidDone: 'run ^objective start signsPost3Kid ^notify &eWind-sign 2 found. On to the next one. io:chat sound:entity.experience_orb.pickup'
+  signsPost2AdultDone: 'run ^objective start signsPost3Adult ^notify &eWind-sign 2 found. On to the next one. io:chat sound:entity.experience_orb.pickup'
+  signsFinishStone: 'run ^objective delete signsWood ^journal delete signs_stone ^journal add signs_done ^tag add signs_done ^command mobsquad book %player% trail ^notify &6Chapter done! The wind-sign stands, and the trail book is yours. io:chat sound:ui.toast.challenge_complete'
+  signsFinishWood: 'run ^objective delete signsStone ^journal delete signs_wood ^journal add signs_done ^tag add signs_done ^command mobsquad book %player% trail ^notify &6Chapter done! The wind-sign stands, and the trail book is yours. io:chat sound:ui.toast.challenge_complete'
+  signsFinishFight: 'run ^journal delete signs_fight ^journal add signs_done ^tag add signs_done ^command mobsquad book %player% trail ^notify &6Chapter done! The wind-sign stands, and the trail book is yours. io:chat sound:ui.toast.challenge_complete'
+  signsFinishBerries: 'run ^journal delete signs_berries ^journal add signs_done ^tag add signs_done ^command mobsquad book %player% trail ^notify &6Chapter done! The wind-sign stands, and the trail book is yours. io:chat sound:ui.toast.challenge_complete'
+  signsFinishWalk: 'run ^journal delete signs_walk ^journal add signs_done ^tag add signs_done ^command mobsquad book %player% trail ^notify &6Chapter done! The wind-sign stands, and the trail book is yours. io:chat sound:ui.toast.challenge_complete'
+  windsStart: 'run ^tag add winds_started ^journal add winds_1 ^givejournal ^objective start ringEmberKid ^objective start ringEmberAdult ^objective start ringMarigoldKid ^objective start ringMarigoldAdult ^objective start ringSunbeamKid ^objective start ringSunbeamAdult ^notify &eFind the three wind-rings in the magic world. io:chat sound:entity.experience_orb.pickup'
+  ringEmberKidHit: 'run ^objective start ringEmberKid ^conversation mobsquad>rings'
+  ringEmberAdultHit: 'run ^objective start ringEmberAdult ^conversation mobsquad>rings'
+  ringWakeEmber: 'run ^tag add ring_ember_done ^journal add ring_ember ^notify &6Ember is awake! The light is just for you. io:chat sound:ui.toast.challenge_complete'
+  ringMarigoldKidHit: 'run ^objective start ringMarigoldKid ^conversation mobsquad>rings'
+  ringMarigoldAdultHit: 'run ^objective start ringMarigoldAdult ^conversation mobsquad>rings'
+  ringWakeMarigold: 'run ^tag add ring_marigold_done ^journal add ring_marigold ^notify &6Marigold is awake! The light is just for you. io:chat sound:ui.toast.challenge_complete'
+  ringSunbeamKidHit: 'run ^objective start ringSunbeamKid ^conversation mobsquad>rings'
+  ringSunbeamAdultHit: 'run ^objective start ringSunbeamAdult ^conversation mobsquad>rings'
+  ringWakeSunbeam: 'run ^tag add ring_sunbeam_done ^journal add ring_sunbeam ^notify &6Sunbeam is awake! The light is just for you. io:chat sound:ui.toast.challenge_complete'
+  ringsCheck: 'if ringsAll ringsFinish else nop'
+  ringsFinish: 'run ^journal delete winds_1 ^journal add winds_done ^tag add winds_done ^notify &6Chapter done! All three winds are awake. io:chat sound:ui.toast.challenge_complete'
+  watchStartKid: 'run ^tag add watch_started ^journal add watch_1_kid ^givejournal ^objective start watchFightKid ^notify &eHelp the watch. Beat eight grumpy mobs. io:chat sound:entity.experience_orb.pickup'
+  watchStartAdult: 'run ^tag add watch_started ^journal add watch_1_adult ^givejournal ^objective start watchFightAdult ^notify &eHold the line at dusk or night. Beat fifteen hostile mobs. io:chat sound:entity.experience_orb.pickup'
+  watchStart: 'if adult watchStartAdult else watchStartKid'
+  watchFinish: 'run ^journal delete watch_1_kid ^journal delete watch_1_adult ^journal add watch_done ^tag add watch_done ^command mobsquad book %player% watch ^notify &6Chapter done! The watch-bell is yours. io:chat sound:ui.toast.challenge_complete'
+  meadowStartKid: 'run ^tag add meadow_started ^journal add meadow_1_kid ^givejournal ^notify &eVisit the hill, the lake and the flowers. io:chat sound:entity.experience_orb.pickup'
+  meadowStartAdult: 'run ^tag add meadow_started ^journal add meadow_1_adult ^givejournal ^notify &eVisit the hill, the lake, the river and the flowers. io:chat sound:entity.experience_orb.pickup'
+  meadowStartArm: 'run ^objective start landVisitHillKid ^objective start landVisitLakeKid ^objective start landVisitFlowerKid ^objective start landVisitHillAdult ^objective start landVisitLakeAdult ^objective start landVisitRiverAdult ^objective start landVisitFlowerAdult'
+  landTagHill: 'run ^tag add land_hill ^notify &eThe hill is found. io:chat sound:entity.experience_orb.pickup'
+  landTagLake: 'run ^tag add land_lake ^notify &eThe lake is found. io:chat sound:entity.experience_orb.pickup'
+  landTagRiver: 'run ^tag add land_river ^notify &eThe river is found. io:chat sound:entity.experience_orb.pickup'
+  landTagFlower: 'run ^tag add land_flower ^notify &eThe flower is found. io:chat sound:entity.experience_orb.pickup'
+  landCheck: 'if landAllKid meadowFinish else landCheckAdult'
+  landCheckAdult: 'if landAllAdult meadowFinish else nop'
+  meadowFinish: 'run ^journal delete meadow_1_kid ^journal delete meadow_1_adult ^journal add meadow_done ^tag add meadow_done ^command mobsquad book %player% meadow ^notify &6Chapter done! You found the Far Meadow. io:chat sound:ui.toast.challenge_complete'
+  finaleStart: 'run ^tag add finale_started ^journal add finale_1 ^givejournal ^command mobsquad dinnerbell %player% ^objective start finaleKid ^objective start finaleAdult ^notify &eStand in the meadow and ring the dinnerbell. io:chat sound:entity.experience_orb.pickup'
+  bellAgain: 'run ^command mobsquad dinnerbell %player%'
+  finaleFinish: 'run ^journal delete finale_1 ^journal add finale_done ^tag add ten_winds_done ^command mobsquad book %player% finale ^notify &6The Ten Winds are awake! Your herd is home. io:chat sound:ui.toast.challenge_complete'
+  finaleLineSigns: 'if signsDone finaleJournalSigns else nop'
+  finaleJournalSigns: 'run ^journal add finale_signs'
+  finaleLineWinds: 'if windsDone finaleJournalWinds else nop'
+  finaleJournalWinds: 'run ^journal add finale_winds'
+  finaleLineWatch: 'if watchDone finaleJournalWatch else nop'
+  finaleJournalWatch: 'run ^journal add finale_watch'
+  finaleLineMeadow: 'if meadowDone finaleJournalMeadow else nop'
+  finaleJournalMeadow: 'run ^journal add finale_meadow'
+  windsOpenOn: 'globaltag add winds_open'
+  windsOpenOff: 'globaltag del winds_open'
 objectives:
-  hollerBerries: pickup berries amount:6 actions:hollerStep2
-  hollerSeeds: pickup seeds amount:4 actions:hollerStep3
-  hollerNoteBlock: craft noteBlock 1 actions:hollerFinish
-  yonderArrows: craft arrow 4 actions:yonderStep2
-  yonderTarget: craft target 1 actions:yonderStep3
-  yonderCampfire: craft campfire 1 actions:yonderFinish
-  backcountryPoppy: pickup poppy amount:1 actions:backcountryStep2
-  backcountryIron: smelt ironIngot 4 actions:backcountryStep3
-  backcountryShears: craft shears 1 actions:backcountryFinish
+  hollerBerries: 'pickup berries amount:6 actions:hollerStep2'
+  hollerSeeds: 'pickup seeds amount:4 actions:hollerStep3'
+  hollerNoteBlock: 'craft noteBlock 1 actions:hollerFinish'
+  yonderArrows: 'craft arrow 4 actions:yonderStep2'
+  yonderTarget: 'craft target 1 actions:yonderStep3'
+  yonderCampfire: 'craft campfire 1 actions:yonderFinish'
+  backcountryPoppy: 'pickup poppy amount:1 actions:backcountryStep2'
+  backcountryIron: 'smelt ironIngot 4 actions:backcountryStep3'
+  backcountryShears: 'craft shears 1 actions:backcountryFinish'
+  signsStone: 'block COBBLESTONE 40 actions:signsFinishStone'
+  signsWood: 'block OAK_PLANKS 40 actions:signsFinishWood'
+  signsFight: 'mobkill ZOMBIE,HUSK,DROWNED,ZOMBIE_VILLAGER,SKELETON,STRAY,SPIDER,CAVE_SPIDER,CREEPER,WITCH,PILLAGER,VINDICATOR 5 actions:signsFinishFight'
+  signsBerries: 'pickup berries amount:4 actions:signsFinishBerries'
+  signsPost1Kid: 'location %constant.signPost1Kid% 6 entry conditions:!adult actions:signsPost1KidDone'
+  signsPost1Adult: 'location %constant.signPost1Adult% 6 entry conditions:adult actions:signsPost1AdultDone'
+  signsPost2Kid: 'location %constant.signPost2Kid% 6 entry conditions:!adult actions:signsPost2KidDone'
+  signsPost2Adult: 'location %constant.signPost2Adult% 6 entry conditions:adult actions:signsPost2AdultDone'
+  signsPost3Kid: 'location %constant.signPost3Kid% 6 entry conditions:!adult actions:signsFinishWalk'
+  signsPost3Adult: 'location %constant.signPost3Adult% 6 entry conditions:adult actions:signsFinishWalk'
+  ringEmberKid: 'location %constant.ringEmberKid% 6 entry conditions:!adult actions:ringEmberKidHit'
+  ringEmberAdult: 'location %constant.ringEmberAdult% 6 entry conditions:adult actions:ringEmberAdultHit'
+  ringMarigoldKid: 'location %constant.ringMarigoldKid% 6 entry conditions:!adult actions:ringMarigoldKidHit'
+  ringMarigoldAdult: 'location %constant.ringMarigoldAdult% 6 entry conditions:adult actions:ringMarigoldAdultHit'
+  ringSunbeamKid: 'location %constant.ringSunbeamKid% 6 entry conditions:!adult actions:ringSunbeamKidHit'
+  ringSunbeamAdult: 'location %constant.ringSunbeamAdult% 6 entry conditions:adult actions:ringSunbeamAdultHit'
+  watchFightKid: 'mobkill ZOMBIE,HUSK,DROWNED,ZOMBIE_VILLAGER,SKELETON,STRAY,SPIDER,CAVE_SPIDER,CREEPER,WITCH,PILLAGER,VINDICATOR 8 conditions:!adult actions:watchFinish'
+  watchFightAdult: 'mobkill ZOMBIE,HUSK,DROWNED,ZOMBIE_VILLAGER,SKELETON,STRAY,SPIDER,CAVE_SPIDER,CREEPER,WITCH,PILLAGER,VINDICATOR 15 conditions:adult,night actions:watchFinish'
+  landVisitHillKid: 'location %constant.landHillKid% 8 entry conditions:!adult actions:landTagHill,landCheck'
+  landVisitLakeKid: 'location %constant.landLakeKid% 8 entry conditions:!adult actions:landTagLake,landCheck'
+  landVisitFlowerKid: 'location %constant.landFlowerKid% 8 entry conditions:!adult actions:landTagFlower,landCheck'
+  landVisitHillAdult: 'location %constant.landHillAdult% 8 entry conditions:adult actions:landTagHill,landCheck'
+  landVisitLakeAdult: 'location %constant.landLakeAdult% 8 entry conditions:adult actions:landTagLake,landCheck'
+  landVisitRiverAdult: 'location %constant.landRiverAdult% 8 entry conditions:adult actions:landTagRiver,landCheck'
+  landVisitFlowerAdult: 'location %constant.landFlowerAdult% 8 entry conditions:adult actions:landTagFlower,landCheck'
+  finaleKid: 'action right any loc:%constant.meadowKid% range:12 conditions:!adult,holdingBell actions:finaleFinish,finaleLineSigns,finaleLineWinds,finaleLineWatch,finaleLineMeadow'
+  finaleAdult: 'action right any loc:%constant.meadowAdult% range:12 conditions:adult,holdingBell actions:finaleFinish,finaleLineSigns,finaleLineWinds,finaleLineWatch,finaleLineMeadow'
 journal:
   holler_1: '&0Ranger Juniper says foxes can''t resist sweet berries. I''m picking six from the berry bushes.'
   holler_2: '&0Berries are in my pocket. Next, I''ll gather four seeds by breaking tall grass. Chickens love seeds.'
   holler_3: '&0Seeds are in my pocket. Last, I''ll craft a note block. An allay will want to hear a tune.'
-  holler_done: '&0I finished the Holler chapter. Holler critters are open to me now, and the fox page is in my Bunkhouse journal.'
-  yonder_1: '&0Yonder critters are shy and want a steady hand. First, I''ll craft four arrows.'
+  holler_done: '&0The first wind stirs! Juniper says nine more nap out there. The Holler is open, and the fox will carry the news. Its page is in my Bunkhouse journal.'
+  yonder_1: '&0Yonder critters are shy and want a steady hand. Juniper says a lit fire tells the winds I''m coming. First, I''ll craft four arrows.'
   yonder_2: '&0Arrows are ready. Now I''ll craft a target block to aim at.'
-  yonder_3: '&0Last, I''ll craft a campfire. Yonder critters like a calm place to sit and wait.'
-  yonder_done: '&0I finished the Yonder chapter. Yonder critters are open to me now, and the creeper page is in my Bunkhouse journal.'
+  yonder_3: '&0Last, I''ll craft a campfire for the signal fire. Yonder critters like a calm place to sit and wait.'
+  yonder_done: '&0The signal fire is lit! Yonder is open to me now, and the creeper page is in my Bunkhouse journal.'
   backcountry_1: '&0The Backcountry is wild and wide. Ranger Juniper says the Iron Golem likes a poppy. I''m picking one.'
   backcountry_2: '&0Poppy in hand. Next, I''ll smelt four iron ingots in a furnace.'
   backcountry_3: '&0Iron is shiny! Last, I''ll craft a pair of shears for the pumpkin face.'
-  backcountry_done: '&0I finished the Backcountry chapter. Backcountry critters are open to me now, and the Iron Golem page is in my Bunkhouse journal.'
-actions:
-  hollerStart: run ^tag add holler_started ^objective start hollerBerries ^journal add holler_1 ^givejournal ^notify &eStep 1 of 3. Pick six sweet berries from a berry bush. io:chat sound:entity.experience_orb.pickup
-  hollerStep2: run ^journal delete holler_1 ^journal add holler_2 ^objective start hollerSeeds ^notify &eStep 2 of 3. Break tall grass to gather four seeds. io:chat sound:entity.experience_orb.pickup
-  hollerStep3: run ^journal delete holler_2 ^journal add holler_3 ^objective start hollerNoteBlock ^notify &eStep 3 of 3. Craft a note block. io:chat sound:entity.experience_orb.pickup
-  hollerFinish: run ^journal delete holler_3 ^journal add holler_done ^tag add holler_done ^command mobsquad unlock %player% holler ^command mobsquad page %player% fox ^notify &6Chapter done! Holler critters are open to you. io:chat sound:ui.toast.challenge_complete
-  yonderStart: run ^tag add yonder_started ^objective start yonderArrows ^journal add yonder_1 ^givejournal ^notify &eStep 1 of 3. Craft four arrows. io:chat sound:entity.experience_orb.pickup
-  yonderStep2: run ^journal delete yonder_1 ^journal add yonder_2 ^objective start yonderTarget ^notify &eStep 2 of 3. Craft a target block. io:chat sound:entity.experience_orb.pickup
-  yonderStep3: run ^journal delete yonder_2 ^journal add yonder_3 ^objective start yonderCampfire ^notify &eStep 3 of 3. Craft a campfire. io:chat sound:entity.experience_orb.pickup
-  yonderFinish: run ^journal delete yonder_3 ^journal add yonder_done ^tag add yonder_done ^command mobsquad unlock %player% yonder ^command mobsquad page %player% creeper ^notify &6Chapter done! Yonder critters are open to you. io:chat sound:ui.toast.challenge_complete
-  backcountryStart: run ^tag add backcountry_started ^objective start backcountryPoppy ^journal add backcountry_1 ^givejournal ^notify &eStep 1 of 3. Pick a poppy. io:chat sound:entity.experience_orb.pickup
-  backcountryStep2: run ^journal delete backcountry_1 ^journal add backcountry_2 ^objective start backcountryIron ^notify &eStep 2 of 3. Smelt four iron ingots in a furnace. io:chat sound:entity.experience_orb.pickup
-  backcountryStep3: run ^journal delete backcountry_2 ^journal add backcountry_3 ^objective start backcountryShears ^notify &eStep 3 of 3. Craft a pair of shears. io:chat sound:entity.experience_orb.pickup
-  backcountryFinish: run ^journal delete backcountry_3 ^journal add backcountry_done ^tag add backcountry_done ^command mobsquad unlock %player% backcountry ^command mobsquad page %player% iron_golem ^notify &6Chapter done! Backcountry critters are open to you. io:chat sound:ui.toast.challenge_complete
+  backcountry_done: '&0The Backcountry is open to me. The Iron Golem now guards the first wind-gate, and its page is in my Bunkhouse journal.'
+  signs_stone: '&0A wind-sign fell over. I''m placing 40 stone blocks for a base. Solid as a boulder.'
+  signs_wood: '&0A wind-sign fell over. I''m placing 40 plank blocks for a base. Warm as a hearth.'
+  signs_fight: '&0Grumpy mobs bother the wind-signs. I''ll chase off five of them.'
+  signs_berries: '&0The wind-sign''s foxes love berries. I''m picking four.'
+  signs_walk: '&0Three wind-signs stand in the grass. I''ll visit each one.'
+  signs_done: '&0The wind-sign stands again. The wind-trail is open. Juniper gave me her trail book.'
+  winds_1: '&0Three wind-rings sleep in the magic world. Each wakes for a critter that has grown enough.'
+  ring_ember: '&0Ember is awake. Marigold is next.'
+  ring_marigold: '&0Marigold is awake. Sunbeam is next.'
+  ring_sunbeam: '&0Sunbeam is awake.'
+  winds_done: '&0All three winds are awake. The fog is thinning.'
+  watch_1_kid: '&0The Ranger''s watch needs help. I''ll beat eight grumpy mobs, any time of day. It''s optional.'
+  watch_1_adult: '&0The Ranger''s watch needs help holding the line. I''ll beat fifteen hostile mobs at dusk or night.'
+  watch_done: '&0I stood the watch. Juniper gave me the watch-bell, a poem about it and her thanks. The Iron Golem nods.'
+  meadow_1_kid: '&0Three landmarks show the way: a hill, a lake and some flowers.'
+  meadow_1_adult: '&0Four landmarks show the way to the Far Meadow: a hill, a lake, a river and a flower patch.'
+  meadow_done: '&0I found the Far Meadow. Juniper''s meadow book is mine.'
+  finale_1: '&0The herd wants to come home. I''ll stand in the meadow and ring the dinnerbell.'
+  finale_done: '&0The Ten Winds are awake.'
+  finale_signs: '&0The wind-sign stands.'
+  finale_winds: '&0The wind-rings glow.'
+  finale_watch: '&0The watch holds.'
+  finale_meadow: '&0The meadow is green.'
 conversations:
   ranger:
     quester: Ranger Juniper
     conversationIO: tellraw
-    first: allDone,backcountryOn,backcountryOffer,yonderOn,yonderOffer,hollerOn,hello
+    interceptor: simple
+    first: finaleDone,finaleOn,hollerOn,yonderOn,signsOn,windsOn,backcountryOn,watchOn,meadowOn,yonderOffer,meadowOfferExplorer,signsOffer,windsOffer,backcountryOffer,watchOfferFighter,watchOffer,meadowOffer,finaleOffer,allDone,hello
     NPC_options:
       hello:
-        text: Howdy, wrangler! I'm Ranger Juniper. Want a little job that opens up the Holler?
-        pointers: yesHoller,notNow
+        text: 'Howdy, wrangler! I''m Ranger Juniper. Want a little job that opens up the Holler?'
+        pointers: 'yesHoller,notNow'
       hollerOn:
-        text: Still on the Holler job? Check your journal. It says what to do next.
-        conditions: hollerStarted,!hollerDone
-        pointers: okay
+        text: 'Still on the Holler job? Check your journal. It says what to do next.'
+        conditions: 'hollerStarted,!hollerDone'
+        pointers: 'okay'
       hollerStartText:
-        text: Good! Foxes love sweet berries, and allays love music. Read your journal for step one.
-        actions: hollerStart
+        text: 'Good! Foxes love sweet berries, and allays love music. Read your journal for step one.'
+        actions: 'hollerStart'
       yonderOffer:
-        text: Nice work in the Holler! Want another job? This one opens up Yonder.
-        conditions: hollerDone,!yonderStarted
-        pointers: yesYonder,notNow
+        text: 'Nice work in the Holler! The first wind stirred. Want another job? This one opens up Yonder.'
+        conditions: 'hollerDone,!yonderStarted'
+        pointers: 'yesYonder,laterYonderOffer'
       yonderOn:
-        text: Still on the Yonder job? Check your journal. It says what to do next.
-        conditions: yonderStarted,!yonderDone
-        pointers: okay
+        text: 'Still on the Yonder job? Check your journal. It says what to do next.'
+        conditions: 'yonderStarted,!yonderDone'
+        pointers: 'okay'
       yonderStartText:
-        text: Yonder critters are shy, so we'll get ready slow and steady. Read your journal for step one.
-        actions: yonderStart
+        text: 'Yonder critters are shy, so we''ll get ready slow and steady. A lit fire tells the winds you''re coming. Read your journal for step one.'
+        actions: 'yonderStart'
       backcountryOffer:
-        text: You've done fine work in Yonder! Ready for the Backcountry?
-        conditions: yonderDone,!backcountryStarted
-        pointers: yesBackcountry,notNow
+        text: 'You''ve done fine work in Yonder! Ready for the Backcountry? The Iron Golem guards the first wind-gate.'
+        conditions: 'yonderDone,!backcountryStarted'
+        pointers: 'yesBackcountry,laterBackcountryOffer'
       backcountryOn:
-        text: Still on the Backcountry job? Check your journal. It says what to do next.
-        conditions: backcountryStarted,!backcountryDone
-        pointers: okay
+        text: 'Still on the Backcountry job? Check your journal. It says what to do next.'
+        conditions: 'backcountryStarted,!backcountryDone'
+        pointers: 'okay'
       backcountryStartText:
-        text: The Backcountry is big and wild, and so is its critter. Read your journal for step one.
-        actions: backcountryStart
+        text: 'The Backcountry is big and wild, and so is its critter. Read your journal for step one.'
+        actions: 'backcountryStart'
       allDone:
-        text: You've opened the Holler, Yonder and the Backcountry. I'm proud of you, wrangler!
-        conditions: backcountryDone
+        text: 'You''ve opened the Holler, Yonder and the Backcountry. I''m proud of you, wrangler!'
+        conditions: 'backcountryDone'
       bye:
-        text: Come see me whenever you like. The trails will wait.
+        text: 'Come see me whenever you like. The trails will wait.'
+      signsOffer:
+        text: 'Nice work! A wind-sign fell over. Want to stand it up?'
+        conditions: 'hollerDone,!signsStarted,windsOpen'
+        pointers: 'yesSigns,laterSignsOffer'
+      signsOn:
+        text: 'Still on the wind-sign? Your journal says what to do.'
+        conditions: 'signsStarted,!signsDone'
+        pointers: 'okay'
+      signsBuilderAsk:
+        text: 'This post needs a sturdy base. Your call!'
+        conditions: 'styleBuilder'
+        pointers: 'stoneBase,woodBase'
+      signsStoneText:
+        text: 'Solid as a boulder. Place 40 stone blocks.'
+        actions: 'signsGoStone'
+      signsWoodText:
+        text: 'Warm as a hearth. Place 40 plank blocks.'
+        actions: 'signsGoWood'
+      signsFighterText:
+        text: 'Grumpy mobs bother the post. Chase off five!'
+        conditions: 'styleFighter'
+        actions: 'signsGoFight'
+      signsCaretakerText:
+        text: 'The post''s foxes love berries. Bring four!'
+        conditions: 'styleCaretaker'
+        actions: 'signsGoBerries'
+      signsExplorerText:
+        text: 'Three wind-signs stand in the grass. Visit each one!'
+        conditions: 'styleExploreish'
+        actions: 'signsGoWalk'
+      windsOffer:
+        text: 'Wind-rings sleep in the magic world. Want to wake them?'
+        conditions: 'yonderDone,!windsStarted,windsOpen'
+        pointers: 'yesWinds,laterWindsOffer'
+      windsOn:
+        text: 'Still looking for wind-rings? Your journal says where.'
+        conditions: 'windsStarted,!windsDone'
+        pointers: 'okay'
+      windsStartText:
+        text: 'Three rings, three winds. Each wakes for a critter that has grown.'
+        actions: 'styleEnsure,windsStart'
+      watchOfferFighter:
+        text: 'You''re brave, wrangler. Want to help the Ranger''s watch?'
+        conditions: 'backcountryDone,!watchStarted,windsOpen,styleFighter'
+        pointers: 'yesWatch,laterWatchOfferFighter'
+      watchOffer:
+        text: 'The Ranger''s watch could use help. It''s optional. Want to?'
+        conditions: 'backcountryDone,!watchStarted,windsOpen'
+        pointers: 'yesWatch,laterWatchOffer'
+      watchOn:
+        text: 'Still on watch? Your journal says how many are left.'
+        conditions: 'watchStarted,!watchDone'
+        pointers: 'okay'
+      watchStartText:
+        text: 'Thank you! Read your journal for the goal.'
+        actions: 'styleEnsure,watchStart'
+      meadowOfferExplorer:
+        text: 'You walk far, wrangler. Want to find the Far Meadow?'
+        conditions: 'yonderDone,!meadowStarted,windsOpen,styleExplorer'
+        pointers: 'yesMeadow,laterMeadowOfferExplorer'
+      meadowOffer:
+        text: 'Want to find the Far Meadow? Landmarks show the way.'
+        conditions: 'yonderDone,!meadowStarted,windsOpen'
+        pointers: 'yesMeadow,laterMeadowOffer'
+      meadowOn:
+        text: 'Still finding the meadow? Your journal lists the landmarks.'
+        conditions: 'meadowStarted,!meadowDone'
+        pointers: 'okay'
+      meadowStartKid:
+        text: 'Look for a hill, a lake and flowers.'
+        conditions: '!adult'
+        actions: 'meadowStartKid,meadowStartArm'
+      meadowStartAdult:
+        text: 'Look for a hill, a lake, a river and flowers.'
+        conditions: 'adult'
+        actions: 'meadowStartAdult,meadowStartArm'
+      finaleOffer:
+        text: 'The herd wants to come home. Ready to ring the bell?'
+        conditions: 'backcountryDone,twoNew,!finaleStarted,windsOpen'
+        pointers: 'yesFinale,laterFinaleOffer'
+      finaleOn:
+        text: 'The meadow is waiting. Ring the dinnerbell there. Lost it?'
+        conditions: 'finaleStarted,!finaleDone'
+        pointers: 'lostBell,okay'
+      finaleStartText:
+        text: 'Take this dinnerbell. Ring it in the meadow.'
+        actions: 'finaleStart'
+      bellText:
+        text: 'Here is another bell. Ring it in the meadow.'
+        actions: 'bellAgain'
+      finaleDone:
+        text: 'The Ten Winds are awake, and you woke them. Thank you, wrangler!'
+        conditions: 'finaleDone'
     player_options:
       yesHoller:
-        text: Yes, please!
-        pointers: hollerStartText
+        text: 'Yes, please!'
+        pointers: 'hollerStartText'
       yesYonder:
-        text: Yes, please!
-        pointers: yonderStartText
+        text: 'Yes, please!'
+        pointers: 'yonderStartText'
       yesBackcountry:
-        text: Yes, please!
-        pointers: backcountryStartText
+        text: 'Yes, please!'
+        pointers: 'backcountryStartText'
       notNow:
-        text: Maybe later.
-        pointers: bye
+        text: 'Maybe later.'
+        pointers: 'bye'
       okay:
-        text: Thanks, Ranger!
+        text: 'Thanks, Ranger!'
+      yesSigns:
+        text: 'Yes, please!'
+        actions: 'styleEnsure,signsStart'
+        pointers: 'signsBuilderAsk,signsFighterText,signsCaretakerText,signsExplorerText'
+      stoneBase:
+        text: 'Stone base!'
+        pointers: 'signsStoneText'
+      woodBase:
+        text: 'Wood base, it''s cozy.'
+        pointers: 'signsWoodText'
+      yesWinds:
+        text: 'Yes, please!'
+        pointers: 'windsStartText'
+      yesWatch:
+        text: 'I''ll help!'
+        pointers: 'watchStartText'
+      yesMeadow:
+        text: 'Yes, please!'
+        actions: 'styleEnsure'
+        pointers: 'meadowStartKid,meadowStartAdult'
+      yesFinale:
+        text: 'Ring it!'
+        pointers: 'finaleStartText'
+      lostBell:
+        text: 'I lost my bell.'
+        conditions: '!holdingBell'
+        pointers: 'bellText'
+      laterYonderOffer:
+        text: 'Maybe later.'
+        pointers: 'meadowOfferExplorer,signsOffer,windsOffer,backcountryOffer,watchOfferFighter,watchOffer,meadowOffer,finaleOffer,bye'
+      laterMeadowOfferExplorer:
+        text: 'Maybe later.'
+        pointers: 'signsOffer,windsOffer,backcountryOffer,watchOfferFighter,watchOffer,meadowOffer,finaleOffer,bye'
+      laterSignsOffer:
+        text: 'Maybe later.'
+        pointers: 'windsOffer,backcountryOffer,watchOfferFighter,watchOffer,meadowOffer,finaleOffer,bye'
+      laterWindsOffer:
+        text: 'Maybe later.'
+        pointers: 'backcountryOffer,watchOfferFighter,watchOffer,meadowOffer,finaleOffer,bye'
+      laterBackcountryOffer:
+        text: 'Maybe later.'
+        pointers: 'watchOfferFighter,watchOffer,meadowOffer,finaleOffer,bye'
+      laterWatchOfferFighter:
+        text: 'Maybe later.'
+        pointers: 'watchOffer,meadowOffer,finaleOffer,bye'
+      laterWatchOffer:
+        text: 'Maybe later.'
+        pointers: 'meadowOffer,finaleOffer,bye'
+      laterMeadowOffer:
+        text: 'Maybe later.'
+        pointers: 'finaleOffer,bye'
+      laterFinaleOffer:
+        text: 'Maybe later.'
+        pointers: 'bye'
+  rings:
+    quester: The Wind-Ring
+    conversationIO: tellraw
+    interceptor: simple
+    first: ringEmberKidDone,ringEmberKidAsk,ringEmberKidQuiet,ringEmberAdultDone,ringEmberAdultAsk,ringEmberAdultQuiet,ringMarigoldKidDone,ringMarigoldKidAsk,ringMarigoldKidQuiet,ringMarigoldAdultDone,ringMarigoldAdultAsk,ringMarigoldAdultQuiet,ringSunbeamKidDone,ringSunbeamKidAsk,ringSunbeamKidQuiet,ringSunbeamAdultDone,ringSunbeamAdultAsk,ringSunbeamAdultQuiet
+    NPC_options:
+      ringEmberKidDone:
+        text: 'Ember is awake. It hums.'
+        conditions: 'atEmberKid,!adult,ringEmberDone'
+      ringEmberKidAsk:
+        text: 'Ember sleeps here. It likes friends with flames on their backs.'
+        conditions: 'atEmberKid,!adult,!ringEmberDone,top10'
+        pointers: 'wakeEmber,laterRing'
+      ringEmberKidQuiet:
+        text: 'The ring is quiet. Ember wants a critter that has grown.'
+        conditions: 'atEmberKid,!adult,!ringEmberDone,!top10'
+      ringEmberKidWoke:
+        text: 'Ember wakes! Warm light, just for you.'
+        conditions: '!adult'
+      ringEmberAdultDone:
+        text: 'Ember is awake. It hums.'
+        conditions: 'atEmberAdult,adult,ringEmberDone'
+      ringEmberAdultAsk:
+        text: 'Ember sleeps here. It wakes for a critter with a flame at its back.'
+        conditions: 'atEmberAdult,adult,!ringEmberDone,top10'
+        pointers: 'wakeEmber,laterRing'
+      ringEmberAdultQuiet:
+        text: 'The ring is quiet. Ember wants a critter that has grown a little more.'
+        conditions: 'atEmberAdult,adult,!ringEmberDone,!top10'
+      ringEmberAdultWoke:
+        text: 'Ember is awake. Marigold is next.'
+        conditions: 'adult'
+      ringMarigoldKidDone:
+        text: 'Marigold is awake. It hums.'
+        conditions: 'atMarigoldKid,!adult,ringMarigoldDone'
+      ringMarigoldKidAsk:
+        text: 'Marigold sleeps here. It likes a friend with golden fur.'
+        conditions: 'atMarigoldKid,!adult,!ringMarigoldDone,top20'
+        pointers: 'wakeMarigold,laterRing'
+      ringMarigoldKidQuiet:
+        text: 'The ring is quiet. Marigold wants a critter that has grown.'
+        conditions: 'atMarigoldKid,!adult,!ringMarigoldDone,!top20'
+      ringMarigoldKidWoke:
+        text: 'Marigold wakes! Warm light, just for you.'
+        conditions: '!adult'
+      ringMarigoldAdultDone:
+        text: 'Marigold is awake. It hums.'
+        conditions: 'atMarigoldAdult,adult,ringMarigoldDone'
+      ringMarigoldAdultAsk:
+        text: 'Marigold sleeps here. It wakes for a critter that has grown tall.'
+        conditions: 'atMarigoldAdult,adult,!ringMarigoldDone,top20'
+        pointers: 'wakeMarigold,laterRing'
+      ringMarigoldAdultQuiet:
+        text: 'The ring is quiet. Marigold wants a critter that has grown a little more.'
+        conditions: 'atMarigoldAdult,adult,!ringMarigoldDone,!top20'
+      ringMarigoldAdultWoke:
+        text: 'Marigold is awake. Sunbeam is next.'
+        conditions: 'adult'
+      ringSunbeamKidDone:
+        text: 'Sunbeam is awake. It hums.'
+        conditions: 'atSunbeamKid,!adult,ringSunbeamDone'
+      ringSunbeamKidAsk:
+        text: 'Sunbeam sleeps here. It likes a friend who loves the sun.'
+        conditions: 'atSunbeamKid,!adult,!ringSunbeamDone,top30'
+        pointers: 'wakeSunbeam,laterRing'
+      ringSunbeamKidQuiet:
+        text: 'The ring is quiet. Sunbeam wants a critter that has grown.'
+        conditions: 'atSunbeamKid,!adult,!ringSunbeamDone,!top30'
+      ringSunbeamKidWoke:
+        text: 'Sunbeam wakes! Warm light, just for you.'
+        conditions: '!adult'
+      ringSunbeamAdultDone:
+        text: 'Sunbeam is awake. It hums.'
+        conditions: 'atSunbeamAdult,adult,ringSunbeamDone'
+      ringSunbeamAdultAsk:
+        text: 'Sunbeam sleeps here. It wakes for a critter that shines.'
+        conditions: 'atSunbeamAdult,adult,!ringSunbeamDone,top30'
+        pointers: 'wakeSunbeam,laterRing'
+      ringSunbeamAdultQuiet:
+        text: 'The ring is quiet. Sunbeam wants a critter that has grown a little more.'
+        conditions: 'atSunbeamAdult,adult,!ringSunbeamDone,!top30'
+      ringSunbeamAdultWoke:
+        text: 'Sunbeam is awake. The fog is thinning.'
+        conditions: 'adult'
+    player_options:
+      wakeEmber:
+        text: 'Wake it.'
+        actions: 'ringWakeEmber,ringsCheck'
+        pointers: 'ringEmberKidWoke,ringEmberAdultWoke'
+      wakeMarigold:
+        text: 'Wake it.'
+        actions: 'ringWakeMarigold,ringsCheck'
+        pointers: 'ringMarigoldKidWoke,ringMarigoldAdultWoke'
+      wakeSunbeam:
+        text: 'Wake it.'
+        actions: 'ringWakeSunbeam,ringsCheck'
+        pointers: 'ringSunbeamKidWoke,ringSunbeamAdultWoke'
+      laterRing:
+        text: 'Later, maybe.'

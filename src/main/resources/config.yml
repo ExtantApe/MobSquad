@@ -31,3 +31,8 @@ spirit-coats:
 # %mobsquad_tier_yonder%, %mobsquad_has_fox% and the others listed in the README.
 quests:
   tier-unlock: either
+  # BetonQuest's conversations are answered by clicking, but a player can still type, and BetonQuest sends what they type to
+  # everyone. While this PlaceholderAPI value says true for a player, MobSquad holds back what they type (a bare number still
+  # answers the conversation) and tells them to click. The default asks BetonQuest whether the player is talking to the Ranger.
+  # Empty turns it off. Only used when PlaceholderAPI and the quest package are installed.
+  hold-chat-when: '%betonquest_mobsquad:condition.inTalk%'
