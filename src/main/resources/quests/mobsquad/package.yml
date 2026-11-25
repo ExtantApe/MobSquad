@@ -10,9 +10,9 @@
 # has the steps, including claim protection.
 #
 # Kids and adults. The adult wording shows only when a player is positively in an adult group: the 'adult' condition below
-# checks the permission group.adult, which LuckPerms gives to every member of a group named adult. Anyone without it, or when
+# checks the permission mayor.circle.adults, the adults' marker on the live servers (Mayor's adults circle). Anyone without it, or when
 # the permission can't be read, gets the kid wording, and kids' goals stay in the kids' own worlds. Change the permission
-# if your adult group has another name.
+# if your server marks adults another way.
 npcs:
   ranger: citizens 1
 npc_conversations:
@@ -90,7 +90,7 @@ conditions:
   meadowDone: 'tag meadow_done'
   finaleStarted: 'tag finale_started'
   finaleDone: 'tag ten_winds_done'
-  adult: 'permission group.adult'
+  adult: 'permission mayor.circle.adults'
   windsOpen: 'globaltag winds_open'
   styleBuilder: 'tag style_builder'
   nowBuilder: 'variable %ph.mobsquad_style% builder'

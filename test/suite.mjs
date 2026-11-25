@@ -1391,7 +1391,6 @@ if (want('winds')) {
   const bad = loaded.split('\n').filter(l => /Error|rror while|Could not|WARN/.test(l))
   check('BetonQuest loads every part of the package', /2 Conversations/.test(loaded) && /36 Objectives/.test(loaded), loaded.slice(0, 700))
   check('the only load error is the Ranger\'s Citizens NPC', bad.length === 1 && /Npc 'ranger'/.test(bad[0]), bad.join(' | '))
-  await s.ask('lp creategroup adult', 1500)
   await s.ask('mobsquad xp Wrangler 0', 300)
   await s.ask('clear Wrangler', 200); await s.ask('clear Neighbor', 200)
   await s.ask('gamemode survival Wrangler', 200); await s.ask('gamemode survival Neighbor', 200)
@@ -1454,7 +1453,7 @@ if (want('winds')) {
   const gaveTags = async name => { for (const t of ['holler_started', 'holler_done', 'yonder_started', 'yonder_done', 'backcountry_started', 'backcountry_done']) await s.ask(`betonquest tag ${name} add mobsquad>${t}`, 250) }
 
   // ----- the switch, and kid or adult fails closed -----
-  check('no group: the player is not an adult (fails closed)', (await s.ask('lp user Wrangler permission check group.adult', 900)).join(' ').toLowerCase().match(/false|undefined/) !== null)
+  check('no group: the player is not an adult (fails closed)', (await s.ask('lp user Wrangler permission check mayor.circle.adults', 900)).join(' ').toLowerCase().match(/false|undefined/) !== null)
   await gaveTags('Wrangler')
   let said1 = (await talk(me, 'Wrangler')).join(' | ')
   check('the new chapters stay off until an admin opens them', !/wind-sign/.test(said1) && /proud of you/.test(said1), said1)
@@ -1527,10 +1526,10 @@ if (want('winds')) {
   check('a kid at the adults\' ring is not sent anywhere: nothing happens', await (async () => { await away('Wrangler'); const f = me.chatLog.length; await at('Wrangler', 'ringEmberAdult'); await sleep(1500); return !said(me, /Ember|ring/i, f) })())
   await s.ask('mobsquad level Wrangler chicken 1', 400)
 
-  // ----- an adult: group.adult from LuckPerms, the adults' rings and the 15-kill watch -----
+  // ----- an adult: mayor.circle.adults from LuckPerms, the adults' rings and the 15-kill watch -----
   await away('Wrangler')
-  await s.ask('lp user Neighbor parent add adult', 1200)
-  check('LuckPerms makes a group member an adult', (await s.ask('lp user Neighbor permission check group.adult', 900)).join(' ').toLowerCase().includes('true'))
+  await s.ask('lp user Neighbor permission set mayor.circle.adults true', 1200)
+  check('LuckPerms gives the adults\' permission to the adult', (await s.ask('lp user Neighbor permission check mayor.circle.adults', 900)).join(' ').toLowerCase().includes('true'))
   await gaveTags('Neighbor')
   await s.ask('mobsquad give Neighbor chicken', 400); await s.ask('mobsquad level Neighbor chicken 10', 400)
   await sleep(500)
@@ -1724,7 +1723,7 @@ if (want('winds')) {
   await s.ask('betonquest action - mobsquad>windsOpenOff', 700)
   check('with the switch off, a finished player still has the story', await tagged('Wrangler', 'ten_winds_done') && await journaled('Wrangler', 'finale_done'))
   console.log('    completed by command, not by play: the three tier chapters\' tags (holler_done, yonder_done, backcountry_done) and signs_done for the adult')
-  await s.ask('lp user Neighbor parent remove adult', 800)
+  await s.ask('lp user Neighbor permission unset mayor.circle.adults', 800)
 }
 
 
