@@ -101,11 +101,14 @@ class TenWindsTest {
     }
 
     @Test
-    void typedWordsAreHeldOnlyWhileTheRangerTalksAndOnlyOnAnExactTrue() {
+    void typedWordsAreHeldUnlessBetonQuestSaysAClearFalse() {
         assertTrue(ConversationChat.holds("hello everyone", "true"), "free text in a conversation is held");
         assertFalse(ConversationChat.holds("hello everyone", "false"), "not in a conversation: chat as usual");
-        for (String unreadable : new String[] {"", "TRUE", "yes", "%betonquest_mobsquad:condition.inTalk%", " true", null})
-            assertFalse(ConversationChat.holds("hello", unreadable), "'" + unreadable + "' is not a clear yes, so chat isn't touched");
+        assertTrue(ConversationChat.holds("hello everyone", " FALSE ") == false, "false in any case, with spaces, is still a clear no");
+        // Fail closed: a missing expansion leaves the placeholder text as it was, and an odd answer isn't a clear false.
+        for (String unresolved : new String[] {"", "TRUE", "yes", "%betonquest_mobsquad:condition.inTalk%", " true", "null", null})
+            assertTrue(ConversationChat.holds("hello", unresolved), "'" + unresolved + "' is not a clear false, so the message is held");
+        assertFalse(ConversationChat.holds("7", "%betonquest_mobsquad:condition.inTalk%"), "a bare number still answers a conversation, unresolved or not");
         assertFalse(ConversationChat.holds("1", "true"), "a bare number can answer a chat conversation");
         assertFalse(ConversationChat.holds(" 12 ", "true"));
         assertTrue(ConversationChat.holds("123", "true"), "three digits can't be an answer, so they are held");
