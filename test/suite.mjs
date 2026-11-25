@@ -1453,7 +1453,7 @@ if (want('winds')) {
   const gaveTags = async name => { for (const t of ['holler_started', 'holler_done', 'yonder_started', 'yonder_done', 'backcountry_started', 'backcountry_done']) await s.ask(`betonquest tag ${name} add mobsquad>${t}`, 250) }
 
   // ----- the switch, and kid or adult fails closed -----
-  check('no group: the player is not an adult (fails closed)', (await s.ask('lp user Wrangler permission check mayor.circle.adults', 900)).join(' ').toLowerCase().match(/false|undefined/) !== null)
+  check('no group: the player is not an adult (fails closed)', (await s.ask('lp user Wrangler permission check posse.circle.adults', 900)).join(' ').toLowerCase().match(/false|undefined/) !== null)
   await gaveTags('Wrangler')
   let said1 = (await talk(me, 'Wrangler')).join(' | ')
   check('the new chapters stay off until an admin opens them', !/wind-sign/.test(said1) && /proud of you/.test(said1), said1)
@@ -1461,8 +1461,12 @@ if (want('winds')) {
   check('an admin opens the new chapters from the console', await until(async () => /wind-sign fell over/.test((await talk(me, 'Wrangler', 'Maybe later.')).join(' ')), 6000, 300), on)
 
   // ----- chapter 4, Wind-Signs: no stats, so the all-of-the-above path, a kid with no group -----
+  // D196: the old permission is not read. A player who holds only mayor.circle.adults is still a kid here.
+  await s.ask('lp user Wrangler permission set mayor.circle.adults true', 800)
   said1 = (await talk(me, 'Wrangler', 'Yes, please!')).join(' | ')
-  check('a player with no group gets the kid lines: short and kid-sized', /Visit each one!/.test(said1) && said1.split('|').every(l => l.replace(/^.*?: /, '').split(/\s+/).length <= 14), said1)
+  await s.ask('lp user Wrangler permission unset mayor.circle.adults', 800)
+  check('a player with only the old mayor.circle.adults permission still gets the kid lines (not an adult)', /Visit each one!/.test(said1), said1)
+  check('a player without posse.circle.adults gets the kid lines: short and kid-sized', /Visit each one!/.test(said1) && said1.split('|').every(l => l.replace(/^.*?: /, '').split(/\s+/).length <= 14), said1)
   check('the style is set once, to all of the above for a player who has done none of them', await tagged('Wrangler', 'style_all') && !(await tagged('Wrangler', 'style_builder')))
   check('chapter 4 starts: tag, journal and the first post objectives', await tagged('Wrangler', 'signs_started') && await waitJournal('Wrangler', 'signs_walk') && await waitActive('Wrangler', 'signsPost1Kid'))
   await at('Neighbor', 'signPost1Kid') // a second player stands at the post; nothing is his, so nothing is sent
@@ -1526,10 +1530,10 @@ if (want('winds')) {
   check('a kid at the adults\' ring is not sent anywhere: nothing happens', await (async () => { await away('Wrangler'); const f = me.chatLog.length; await at('Wrangler', 'ringEmberAdult'); await sleep(1500); return !said(me, /Ember|ring/i, f) })())
   await s.ask('mobsquad level Wrangler chicken 1', 400)
 
-  // ----- an adult: mayor.circle.adults from LuckPerms, the adults' rings and the 15-kill watch -----
+  // ----- an adult: posse.circle.adults from LuckPerms, the adults' rings and the 15-kill watch -----
   await away('Wrangler')
-  await s.ask('lp user Neighbor permission set mayor.circle.adults true', 1200)
-  check('LuckPerms gives the adults\' permission to the adult', (await s.ask('lp user Neighbor permission check mayor.circle.adults', 900)).join(' ').toLowerCase().includes('true'))
+  await s.ask('lp user Neighbor permission set posse.circle.adults true', 1200)
+  check('LuckPerms gives the adults\' permission to the adult', (await s.ask('lp user Neighbor permission check posse.circle.adults', 900)).join(' ').toLowerCase().includes('true'))
   await gaveTags('Neighbor')
   await s.ask('mobsquad give Neighbor chicken', 400); await s.ask('mobsquad level Neighbor chicken 10', 400)
   await sleep(500)
@@ -1723,7 +1727,7 @@ if (want('winds')) {
   await s.ask('betonquest action - mobsquad>windsOpenOff', 700)
   check('with the switch off, a finished player still has the story', await tagged('Wrangler', 'ten_winds_done') && await journaled('Wrangler', 'finale_done'))
   console.log('    completed by command, not by play: the three tier chapters\' tags (holler_done, yonder_done, backcountry_done) and signs_done for the adult')
-  await s.ask('lp user Neighbor permission unset mayor.circle.adults', 800)
+  await s.ask('lp user Neighbor permission unset posse.circle.adults', 800)
 }
 
 

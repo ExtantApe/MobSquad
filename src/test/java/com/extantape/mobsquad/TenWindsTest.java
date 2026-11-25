@@ -101,11 +101,14 @@ class TenWindsTest {
     }
 
     @Test
-    void typedWordsAreHeldOnlyWhileTheRangerTalksAndOnlyOnAnExactTrue() {
+    void typedWordsAreHeldUnlessBetonQuestSaysAClearFalse() {
         assertTrue(ConversationChat.holds("hello everyone", "true"), "free text in a conversation is held");
         assertFalse(ConversationChat.holds("hello everyone", "false"), "not in a conversation: chat as usual");
-        for (String unreadable : new String[] {"", "TRUE", "yes", "%betonquest_mobsquad:condition.inTalk%", " true", null})
-            assertFalse(ConversationChat.holds("hello", unreadable), "'" + unreadable + "' is not a clear yes, so chat isn't touched");
+        assertTrue(ConversationChat.holds("hello everyone", " FALSE ") == false, "false in any case, with spaces, is still a clear no");
+        // Fail closed: a missing expansion leaves the placeholder text as it was, and an odd answer isn't a clear false.
+        for (String unresolved : new String[] {"", "TRUE", "yes", "%betonquest_mobsquad:condition.inTalk%", " true", "null", null})
+            assertTrue(ConversationChat.holds("hello", unresolved), "'" + unresolved + "' is not a clear false, so the message is held");
+        assertFalse(ConversationChat.holds("7", "%betonquest_mobsquad:condition.inTalk%"), "a bare number still answers a conversation, unresolved or not");
         assertFalse(ConversationChat.holds("1", "true"), "a bare number can answer a chat conversation");
         assertFalse(ConversationChat.holds(" 12 ", "true"));
         assertTrue(ConversationChat.holds("123", "true"), "three digits can't be an answer, so they are held");
@@ -190,7 +193,7 @@ class TenWindsTest {
     @Test
     void kidOrAdultFailsClosedAndTheAdultVersionNeedsAPositiveCheck() throws Exception {
         YamlConfiguration y = pack();
-        assertEquals("permission mayor.circle.adults", y.getString("conditions.adult"), "adult is a positive permission check, Mayor's adults circle");
+        assertEquals("permission posse.circle.adults", y.getString("conditions.adult"), "adult is a positive permission check, Posse's adults circle");
         for (String c : keys(y, "conditions")) {
             String def = y.getString("conditions." + c);
             if (def.contains("adult") && !c.equals("adult") && !c.startsWith("landAll")) fail(c + " is another way to be an adult: " + def);
