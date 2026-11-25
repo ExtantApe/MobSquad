@@ -2,7 +2,7 @@
 
 Written by the narrative and systems designer, 2026-11-24, after a Trust and Safety review. The owner's picks (D289, 2026-11-24) adopted it as drafted with the safety changes, and MobSquad 0.11.0 builds it. Where the build differs from this text, `docs/decisions.md` says how. Sections 6 and 8 list things that were unverified when this was written; 0.11.0 verified them against BetonQuest 3.3.0-DEV-61, and the results are in the decisions file and the changelog.
 
-Related decisions: D284 (players don't type commands, `ops/decisions/games.md`) and D287 (Waycave circles in Mayor, `ops/decisions/minecraft-plugins.md`).
+Related decisions: D284 (players don't type commands, `ops/decisions/games.md`) and D287 (Waycave circles in Posse, `ops/decisions/minecraft-plugins.md`).
 
 ## 1. Pitch
 
