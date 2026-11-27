@@ -22,11 +22,15 @@ const AURA = !!process.env.MS_TEST_AURA
 // Spirit coats: run with only=bunkhouse,coats (the menu part needs the Bunkhouse from the first section).
 // MS_TEST_MV=1 adds Multiverse-Core and Multiverse-Inventories; run it with only=bunkhouse,groups
 const MV = !!process.env.MS_TEST_MV
-// MS_TEST_BQ=1 adds BetonQuest and runs the quest chapters; run it with only=chapters (and only=winds, below)
+// MS_TEST_BQ=1 adds BetonQuest and runs the quest chapters; run it with only=chapters, and only=winds (below) on its
+// own run, because the chapters section ends by restarting the server without its bots
 const BQ = !!process.env.MS_TEST_BQ
+// MS_TEST_BQ=1 with only=season1 plays Season 1: a chapter started on the 0.12.0 package and finished on this one, the
+// small rewards and the Round-up finale. Sending a critter out needs the Bunkhouse menu, so on 26.3 the finale stops
+// after the coax, and its finishing actions are run by command.
 // MS_TEST_LP=1 adds LuckPerms as well, for the Ten Winds (kid or adult by group); run it with MS_TEST_BQ=1 and only=winds
 const LP = !!process.env.MS_TEST_LP
-const want = n => (ONLY.length === 0 && n !== 'aura' && n !== 'groups' && n !== 'chapters' && n !== 'winds') || ONLY.includes(n)
+const want = n => (ONLY.length === 0 && n !== 'aura' && n !== 'groups' && n !== 'chapters' && n !== 'winds' && n !== 'season1') || ONLY.includes(n)
 const PHYSICS = MC !== '26.3'
 const MENU = PHYSICS
 const skip = name => { if (want(name)) console.log(`\n# ${name}: skipped on ${MC}, where the bots can't use a block`) }
@@ -145,6 +149,102 @@ if (want('bunkhouse')) {
   await closeMenu(me)
   check('a Bunkhouse hands out no vault loot', me.inventory.items().length === 0, JSON.stringify(me.inventory.items().map(i => i.name)))
   }
+
+  // ----- the <x> <y> <z> [world] form, for the console and admins (0.13.0) -----
+  const run = async (c, ms = 900) => (await s.ask(c, ms)).join(' ')
+  const c2 = new Vec3(X + 8, Y, Z + 3), at2 = `${c2.x} ${c2.y} ${c2.z}`
+  await s.ask(`setblock ${at2} minecraft:vault`, 300)
+  let out = await run(`mobsquad bunkhouse check ${at2} testworld`)
+  check('console check: a plain vault is not a Bunkhouse', out.includes(`The vault at ${at2} in testworld isn't a Bunkhouse.`), out)
+  out = await run(`mobsquad bunkhouse add ${at2} testworld`)
+  check('the console marks a vault by its coordinates and world', out.includes(`The vault at ${at2} in testworld is a Bunkhouse now.`), out)
+  out = await run(`mobsquad bunkhouse add ${at2} testworld`)
+  check('a second add says already', /is already a Bunkhouse/.test(out), out)
+  out = await run(`mobsquad bunkhouse check ${at2}`)
+  check('with no world named, the console means the main world', out.includes(`${at2} in testworld is a Bunkhouse.`), out)
+  out = await run(`execute in minecraft:the_nether run mobsquad bunkhouse check ${at2}`, 2500)
+  check('with no world named, execute in decides it', /no vault at .* in testworld_nether|no vault at .* in .*nether|hasn't been made yet/.test(out), out)
+  out = await run(`mobsquad bunkhouse add ${at2} minecraft:the_nether`, 2500)
+  check('a world can be named by its key, and a spot there with no vault is refused', /no vault at/.test(out) && !/Bunkhouse now/.test(out), out)
+  out = await run(`mobsquad bunkhouse add ${at2} nowhere`)
+  check('an unknown world is refused', /no world called nowhere/.test(out), out)
+  out = await run(`mobsquad bunkhouse add ${c2.x + 1} ${c2.y} ${c2.z} testworld`)
+  check('add refuses a spot that is not a vault (air)', /no vault at/.test(out) && !/Bunkhouse now/.test(out), out)
+  await s.ask(`setblock ${c2.x + 2} ${c2.y} ${c2.z} minecraft:chest`, 300)
+  out = await run(`mobsquad bunkhouse add ${c2.x + 2} ${c2.y} ${c2.z} testworld`)
+  check('add refuses a chest', /no vault at/.test(out), out)
+  for (const verb of ['check', 'remove']) {
+    out = await run(`mobsquad bunkhouse ${verb} ${c2.x + 2} ${c2.y} ${c2.z} testworld`)
+    check(`${verb} refuses a chest too`, /no vault at/.test(out), out)
+  }
+  out = await run(`mobsquad bunkhouse add ${c2.x} 5000 ${c2.z} testworld`)
+  check('a height outside the world is refused', /outside the world/.test(out), out)
+  out = await run('mobsquad bunkhouse add 900000 -60 900000 testworld')
+  check('a spot in a part of the world that was never made is refused', /hasn't been made yet/.test(out), out)
+  out = await run('execute if loaded 900000 -60 900000')
+  check('and it was not loaded by asking', /Test failed/.test(out), out)
+
+  // a vault in a chunk nobody has loaded: the command loads it, and the mark is saved
+  const far = new Vec3(X + 800, Y, Z + 800), farAt = `${far.x} ${far.y} ${far.z}`
+  await s.ask(`forceload add ${far.x} ${far.z}`, 1500)
+  await until(async () => /passed/.test(await run(`execute if loaded ${farAt}`, 300)), 20000, 300)
+  await s.ask(`setblock ${farAt} minecraft:vault`, 400)
+  check('the far vault is there', /passed/.test(await run(`execute if block ${farAt} minecraft:vault`, 400)))
+  await s.ask(`forceload remove ${far.x} ${far.z}`, 500)
+  const gone = await until(async () => /failed/.test(await run(`execute if loaded ${farAt}`, 300)), 60000, 1000)
+  check('its chunk unloads', gone)
+  out = await run(`mobsquad bunkhouse add ${farAt} testworld`, 1500)
+  check('add loads an unloaded chunk and marks the vault', out.includes(`${farAt} in testworld is a Bunkhouse now.`), out)
+  await until(async () => /failed/.test(await run(`execute if loaded ${farAt}`, 300)), 60000, 1000)
+
+  // players: refused without the permission; an admin may leave the world off
+  from = other.chatLog.length
+  for (const verb of ['add', 'remove', 'check']) other.chat(`/mobsquad bunkhouse ${verb} ${at2} testworld`)
+  await sleep(2000)
+  check('a player without mobsquad.admin is refused add, remove and check', !said(other, /is a Bunkhouse|plain vault|already|isn't a Bunkhouse/, from), other.chatLog.slice(from).join(' | '))
+  check('and the mark is still there', /in testworld is a Bunkhouse\./.test(await run(`mobsquad bunkhouse check ${at2} testworld`)))
+  await s.ask('op Wrangler', 300)
+  from = me.chatLog.length
+  me.chat(`/mobsquad bunkhouse check ${at2}`)
+  check('an admin in game can leave the world off: it means theirs', await waitSaid(me, /in testworld is a Bunkhouse\./, 5000, from), me.chatLog.slice(from).join(' | '))
+  await s.ask('deop Wrangler', 300)
+
+  // the marks outlive a restart
+  await quit(me); await quit(other)
+  await s.stop()
+  await s.start()
+  me = await bot('Wrangler', { physics: PHYSICS }); other = await bot('Neighbor', { physics: PHYSICS })
+  await s.ask('gamemode survival Wrangler'); await s.ask('gamemode survival Neighbor')
+  check('after a restart the console-marked vault is still a Bunkhouse', /in testworld is a Bunkhouse\./.test(await run(`mobsquad bunkhouse check ${at2} testworld`, 1500)))
+  out = await run(`mobsquad bunkhouse check ${farAt} testworld`, 1500)
+  check('so is the one marked in an unloaded chunk', out.includes(`${farAt} in testworld is a Bunkhouse.`), out)
+  check('and the vault marked by looking at it', /in testworld is a Bunkhouse\./.test(await run(`mobsquad bunkhouse check ${vault.x} ${vault.y} ${vault.z} testworld`)))
+  if (MENU) {
+    // inside someone else's claim, with no trust: the menu still opens, and shows only the clicker's own critters
+    await stand(me, 'Wrangler', c2.x, c2.z - 3, 0, 20)
+    await hold(me, 'Wrangler', 'golden_shovel', 1)
+    await s.ask('acb Wrangler 400', 300)
+    let cf = me.chatLog.length
+    me.chat('/claim 5')
+    const claimed = await waitSaid(me, /[Cc]laim created|created/, 6000, cf)
+    check('a claim is made round the vault', claimed, me.chatLog.slice(cf).join(' | '))
+    await s.ask('clear Neighbor', 200)
+    await stand(other, 'Neighbor', c2.x, c2.z - 2, 0, 20)
+    const nf = other.chatLog.length
+    let inClaim = null
+    try { inClaim = await openBunkhouse(other, c2) } catch (e) { inClaim = null }
+    check('a player with no trust opens a console-marked Bunkhouse inside someone\'s claim', !!inClaim && /Bunkhouse/.test(JSON.stringify(inClaim.title)), other.chatLog.slice(nf).join(' | '))
+    await closeMenu(other)
+    cf = me.chatLog.length
+    me.chat('/abandonclaim')
+    await sleep(1000)
+    await s.ask('clear Wrangler', 200)
+  }
+  out = await run(`mobsquad bunkhouse remove ${at2} testworld`)
+  check('the console unmarks it', out.includes(`The vault at ${at2} in testworld is a plain vault again.`), out)
+  out = await run(`mobsquad bunkhouse remove ${at2} testworld`)
+  check('a second remove says it is not one', /isn't a Bunkhouse/.test(out), out)
+  await run(`mobsquad bunkhouse remove ${farAt} testworld`, 1500)
 }
 
 // ---------- coaxing a chicken ----------
@@ -1245,7 +1345,7 @@ if (want('chapters')) {
   writeFileSync(path.join(packs, 'mobsquadtest/package.yml'), 'actions:\n  talk: conversation mobsquad>ranger\n')
   const loaded = (await s.ask('betonquest reload', 2500)).join('\n')
   const bad = loaded.split('\n').filter(l => /Error|rror while|Could not|WARN/.test(l))
-  check('BetonQuest loads every part of the package', /78 Actions[^\]]*62 Conditions, 2 Conversations[^\]]*9 Items, 35 Journal Entries[^\]]*36 Objectives/.test(loaded), loaded.slice(0, 600))
+  check('BetonQuest loads every part of the package', /95 Actions[^\]]*69 Conditions, 2 Conversations[^\]]*9 Items, 45 Journal Entries[^\]]*40 Objectives/.test(loaded), loaded.slice(0, 600))
   check('the only load error is the Ranger\'s Citizens NPC, because Citizens isn\'t on the test server', bad.length === 1 && /Npc 'ranger'/.test(bad[0]), bad.join(' | '))
   await config({ '  tier-unlock': 'either' })
   await s.ask('mobsquad xp Wrangler 0', 300)
@@ -1351,7 +1451,9 @@ if (want('chapters')) {
   await sleep(800)
   check('the last step opens Backcountry and the Iron Golem page', await papi('tier_backcountry') === 'true' && await papi('page_iron_golem') === 'true')
   check('Backcountry\'s message', said(me, /Chapter done! Backcountry critters are open to you/))
-  check('the Ranger is proud at the end', /I'm proud of you, wrangler!/.test((await talk()).join(' ')))
+  check('the Ranger offers the Round-up once Backcountry is done', /Ready for the Bunkhouse Round-up\?/.test((await talk('Maybe later.')).join(' ')))
+  const pies = (await s.ask('clear Wrangler minecraft:pumpkin_pie 0', 500)).join(' ')
+  check('the three chapters gave two vittles each', /Found 6 matching/.test(pies), pies)
   check('the player is still level 1: chapters never touch the level', await papi('level') === '1')
   console.log('    completed by command, not by crafting or smelting: ' + notes.join(', '))
 
@@ -1389,7 +1491,7 @@ if (want('winds')) {
   writeFileSync(path.join(packs, 'mobsquadtest/package.yml'), 'actions:\n  talk: conversation mobsquad>ranger\n')
   const loaded = (await s.ask('betonquest reload', 3500)).join('\n')
   const bad = loaded.split('\n').filter(l => /Error|rror while|Could not|WARN/.test(l))
-  check('BetonQuest loads every part of the package', /2 Conversations/.test(loaded) && /36 Objectives/.test(loaded), loaded.slice(0, 700))
+  check('BetonQuest loads every part of the package', /2 Conversations/.test(loaded) && /40 Objectives/.test(loaded), loaded.slice(0, 700))
   check('the only load error is the Ranger\'s Citizens NPC', bad.length === 1 && /Npc 'ranger'/.test(bad[0]), bad.join(' | '))
   await s.ask('mobsquad xp Wrangler 0', 300)
   await s.ask('clear Wrangler', 200); await s.ask('clear Neighbor', 200)
@@ -1450,14 +1552,37 @@ if (want('winds')) {
   const invText = async name => (await s.ask(`data get entity ${name} Inventory[{components:{"minecraft:written_book_content":{author:"Ranger Juniper"}}}]`, 600)).join(' ')
   const invAll = async name => (await s.ask(`data get entity ${name} Inventory`, 700)).join(' ')
   const sayLines = (b, from) => b.chatLog.slice(from).join(' | ')
-  const gaveTags = async name => { for (const t of ['holler_started', 'holler_done', 'yonder_started', 'yonder_done', 'backcountry_started', 'backcountry_done']) await s.ask(`betonquest tag ${name} add mobsquad>${t}`, 250) }
+  const gaveTags = async name => { for (const t of ['holler_started', 'holler_done', 'yonder_started', 'yonder_done', 'backcountry_started', 'backcountry_done', 'season1_done']) await s.ask(`betonquest tag ${name} add mobsquad>${t}`, 250) }
 
   // ----- the switch, and kid or adult fails closed -----
   check('no group: the player is not an adult (fails closed)', (await s.ask('lp user Wrangler permission check posse.circle.adults', 900)).join(' ').toLowerCase().match(/false|undefined/) !== null)
   await gaveTags('Wrangler')
   let said1 = (await talk(me, 'Wrangler')).join(' | ')
-  check('the new chapters stay off until an admin opens them', !/wind-sign/.test(said1) && /proud of you/.test(said1), said1)
-  const on = (await s.ask('betonquest action - mobsquad>windsOpenOn', 700)).join(' ')
+  check('the new chapters stay off until an admin opens them', !/wind-sign/i.test(said1) && /Season 1 is done!/.test(said1), said1)
+  // winds_open alone opens nothing, and neither do the Season switches without it
+  await s.ask('betonquest action - mobsquad>windsOpenOn', 700)
+  said1 = (await talk(me, 'Wrangler')).join(' | ')
+  check('winds_open alone keeps Season 2 and 3 hidden', !/wind-sign|Wind-rings|Far Meadow|watch could/i.test(said1) && /Season 1 is done!/.test(said1), said1)
+  await s.ask('betonquest action - mobsquad>windsOpenOff', 700)
+  await s.ask('betonquest action - mobsquad>season2OpenOn', 700); await s.ask('betonquest action - mobsquad>season3OpenOn', 700)
+  said1 = (await talk(me, 'Wrangler')).join(' | ')
+  check('with winds_open off, both Season switches show nothing', !/wind-sign|Wind-rings|Far Meadow|watch could/i.test(said1) && /Season 1 is done!/.test(said1), said1)
+  // each Season's switch opens only its own chapters
+  await s.ask('betonquest action - mobsquad>windsOpenOn', 700)
+  async function offered() { // every offer, by saying Maybe later until the goodbye
+    const f = me.chatLog.length
+    await talk(me, 'Wrangler', undefined, true)
+    await closeTalk(me, 'Wrangler')
+    return me.chatLog.slice(f).join(' | ')
+  }
+  await s.ask('betonquest action - mobsquad>season3OpenOff', 700)
+  said1 = await offered()
+  check('Season 2 alone offers the wind-signs, watch and meadow, and no wind-rings', /wind-sign fell over/.test(said1) && /watch could use help/.test(said1) && /Far Meadow\?/.test(said1) && !/Wind-rings sleep/.test(said1), said1)
+  await s.ask('betonquest action - mobsquad>season3OpenOn', 700); await s.ask('betonquest action - mobsquad>season2OpenOff', 700)
+  said1 = await offered()
+  check('Season 3 alone offers the wind-rings and no Season 2 chapter', /Wind-rings sleep/.test(said1) && !/wind-sign fell|watch could use|Far Meadow\?/.test(said1), said1)
+  await s.ask('betonquest action - mobsquad>season2OpenOn', 700)
+  const on = 'both Season switches and winds_open are on'
   check('an admin opens the new chapters from the console', await until(async () => /wind-sign fell over/.test((await talk(me, 'Wrangler', 'Maybe later.')).join(' ')), 6000, 300), on)
 
   // ----- chapter 4, Wind-Signs: no stats, so the all-of-the-above path, a kid with no group -----
@@ -1730,6 +1855,194 @@ if (want('winds')) {
   await s.ask('lp user Neighbor permission unset posse.circle.adults', 800)
 }
 
+// ---------- Season 1 (0.13.0, K899) ----------
+// Needs MS_TEST_BQ=1 and runs with only=season1. As in the chapters section, a console action stands in for clicking the
+// Ranger, and craft steps are completed with BetonQuest's own objective command. The coax is a real one.
+if (want('season1')) {
+  section('Season 1')
+  const shipped = path.join(dir, 'plugins/MobSquad/quests/mobsquad/package.yml')
+  const packs = path.join(dir, 'plugins/BetonQuest/QuestPackages')
+  mkdirSync(path.join(packs, 'mobsquad'), { recursive: true }); mkdirSync(path.join(packs, 'mobsquadtest'), { recursive: true })
+  const oldPack = readFileSync(new URL('../src/test/resources/package-0.12.0.yml', import.meta.url))
+  writeFileSync(path.join(packs, 'mobsquad/package.yml'), oldPack)
+  writeFileSync(path.join(packs, 'mobsquadtest/package.yml'), 'actions:\n  talk: conversation mobsquad>ranger\n')
+  await s.ask('betonquest reload', 3000)
+  await config({ '  tier-unlock': 'either' })
+  for (const n of ['Wrangler', 'Neighbor']) { await s.ask(`clear ${n}`, 200); await s.ask(`gamemode survival ${n}`, 200) }
+  const sx = X - 30, sz = Z - 30, hut = new Vec3(sx, Y, sz + 3)
+  const watchClicks = b => { b.clicks = []; b.on('message', jm => { const c = jm.json?.click_event?.command; if (c && c.startsWith('/betonquestanswer')) b.clicks.push({ text: jm.toString(), cmd: c }) }) }
+  watchClicks(me); watchClicks(other)
+  async function talk(b, name, pick) {
+    b.clicks.length = 0
+    const from = b.chatLog.length
+    await s.ask(`betonquest action ${name} mobsquadtest>talk`, 200)
+    await until(() => b.clicks.length > 0 || b.chatLog.slice(from).some(m => /Ranger Juniper: /.test(m)), 8000)
+    await sleep(1100)
+    if (pick) {
+      const c = b.clicks.find(c => c.text.includes(pick))
+      if (!c) return b.chatLog.slice(from).concat('NO OPTION ' + pick).join(' | ')
+      b.clicks.length = 0
+      b.chat(c.cmd); await sleep(1800)
+    }
+    const heard = b.chatLog.slice(from)
+    for (let i = 0; i < 6; i++) { // walk away from an open conversation as a player would
+      const c = b.clicks.find(c => /Maybe later|Thanks, Ranger/.test(c.text))
+      if (!c) break
+      b.clicks.length = 0; b.chat(c.cmd); await sleep(1300)
+    }
+    return heard.join(' | ')
+  }
+  const list = async (name, kind) => (await s.ask(`betonquest ${kind} ${name} list`, 700)).join(' ')
+  const has = async (name, kind, id) => new RegExp(`mobsquad>${id}(?![A-Za-z0-9_])`).test(await list(name, kind))
+  const tagged = (name, x) => has(name, 'tag', x)
+  const journaled = (name, x) => has(name, 'journal', x)
+  const active = (name, x) => has(name, 'objective', x)
+  const wait = async (fn, ms = 10000) => { await until(fn, ms, 400); return fn() }
+  const ph = async (name, what) => ((await s.ask(`papi parse ${name} %mobsquad_${what}%`, 600)).find(l => /^(?:\[[^\]]*\]:? )?(true|false)$/.test(l.trim())) || '').trim().replace(/^.*[ :]/, '')
+  const vittles = async name => +(((await s.ask(`clear ${name} minecraft:pumpkin_pie 0`, 600)).join(' ').match(/Found (\d+) matching/) || [0, 0])[1])
+  const foxes = () => critterLines('Wrangler').filter(l => / fox /.test(l)).length
+  const finishStep = async o => { await s.ask(`betonquest objective Wrangler complete mobsquad>${o}`, 900); await sleep(600) }
+
+  // ----- a chapter started on 0.12.0 carries on after the upgrade -----
+  await stand(me, 'Wrangler', sx, sz)
+  check('on the old package the Ranger starts Holler', /Howdy, wrangler!/.test(await talk(me, 'Wrangler', 'Yes, please!')) && await tagged('Wrangler', 'holler_started'))
+  await s.ask('execute at Wrangler run summon item ~ ~ ~ {Item:{id:"minecraft:sweet_berries",count:6},PickupDelay:0}', 300)
+  check('and gets to step 2', await wait(() => active('Wrangler', 'hollerSeeds')))
+  await quit(me); await quit(other)
+  await s.stop()
+  writeFileSync(path.join(packs, 'mobsquad/package.yml'), readFileSync(new URL('../src/main/resources/quests/mobsquad/package.yml', import.meta.url)))
+  await s.start()
+  const loadLog = s.log.join('\n')
+  check('BetonQuest loads every part of the new package', /95 Actions[^\]]*69 Conditions, 2 Conversations[^\]]*9 Items, 45 Journal Entries[^\]]*40 Objectives/.test(loadLog), loadLog.split('\n').filter(l => /Actions/.test(l)).join(' '))
+  const rejoin = async () => {
+    me = await bot('Wrangler', { physics: PHYSICS }); other = await bot('Neighbor', { physics: PHYSICS })
+    watchClicks(me); watchClicks(other)
+    await s.ask('gamemode survival Wrangler'); await s.ask('gamemode survival Neighbor')
+    await sleep(2500)
+  }
+  await rejoin()
+  check('after the upgrade the same step is still running', await wait(() => active('Wrangler', 'hollerSeeds')) && await tagged('Wrangler', 'holler_started') && await journaled('Wrangler', 'holler_2'))
+  await stand(me, 'Wrangler', sx, sz)
+  await s.ask('execute at Wrangler run summon item ~ ~ ~ {Item:{id:"minecraft:wheat_seeds",count:4},PickupDelay:0}', 300)
+  check('and finishes into step 3', await wait(() => active('Wrangler', 'hollerNoteBlock')))
+  await s.ask('clear Wrangler', 200)
+  await finishStep('hollerNoteBlock')
+  check('Holler ends with its old reward', await tagged('Wrangler', 'holler_done') && await journaled('Wrangler', 'holler_done'))
+  check('and now a keepsake and two vittles', await journaled('Wrangler', 'holler_keep') && await wait(async () => await vittles('Wrangler') === 2) && said(me, /You kept the fox's message\. Here are two vittles\./), String(await vittles('Wrangler')))
+  await talk(me, 'Wrangler', 'Yes, please!')
+  for (const o of ['yonderArrows', 'yonderTarget', 'yonderCampfire']) await finishStep(o)
+  check('Yonder gives its keepsake and two more', await journaled('Wrangler', 'yonder_keep') && await wait(async () => await vittles('Wrangler') === 4) && said(me, /You kept the signal fire/), String(await vittles('Wrangler')))
+  await talk(me, 'Wrangler', 'Yes, please!')
+  for (const o of ['backcountryPoppy', 'backcountryIron', 'backcountryShears']) await finishStep(o)
+  check('Backcountry gives its keepsake and two more', await journaled('Wrangler', 'backcountry_keep') && await wait(async () => await vittles('Wrangler') === 6) && said(me, /You kept the gate-guard's poppy/), String(await vittles('Wrangler')))
+  check('Season 1 is not done yet', !(await tagged('Wrangler', 'season1_done')) && foxes() === 0)
+
+  // ----- the offer, with every later switch on -----
+  for (const a of ['windsOpenOn', 'season2OpenOn', 'season3OpenOn']) await s.ask(`betonquest action - mobsquad>${a}`, 500)
+  let t1 = await talk(me, 'Wrangler', 'Maybe later.')
+  check('finishing Backcountry gets the finale offer, before anything later', /Ready for the Bunkhouse Round-up\?/.test(t1) && !/wind-sign|Wind-rings|Far Meadow|watch could/i.test(t1), t1)
+  check('saying maybe later starts nothing and offers no later chapter', !(await tagged('Wrangler', 'roundup_started')) && !/wind-sign|Wind-rings|Far Meadow/i.test(t1))
+  // a second player who finished Backcountry before 0.13.0
+  for (const x of ['holler_started', 'holler_done', 'yonder_started', 'yonder_done', 'backcountry_started', 'backcountry_done']) await s.ask(`betonquest tag Neighbor add mobsquad>${x}`, 250)
+  check('a player who finished Backcountry before this version is offered it too', /Ready for the Bunkhouse Round-up\?/.test(await talk(other, 'Neighbor', 'Maybe later.')))
+  for (const a of ['windsOpenOff', 'season2OpenOff', 'season3OpenOff']) await s.ask(`betonquest action - mobsquad>${a}`, 500)
+
+  // a critter from before the finale doesn't count
+  await s.ask('mobsquad give Wrangler chicken', 500)
+  t1 = await talk(me, 'Wrangler', 'Yes, please!')
+  check('yes starts the finale', /Coax a new critter\. Then bring it to me\./.test(t1) && await tagged('Wrangler', 'roundup_started') && await journaled('Wrangler', 'roundup_1') && await active('Wrangler', 'roundupCoax') && await active('Wrangler', 'roundupCoaxHint'), t1)
+  check('step 1 is announced', said(me, /Step 1 of 3\. Coax a new critter\./))
+  check('MobSquad is watching', await wait(async () => /^roundup$/m.test(file('Wrangler'))) && await ph('Wrangler', 'roundup_coaxed') === 'false', file('Wrangler'))
+  await s.ask('mobsquad give Wrangler chicken', 500)
+  await sleep(2500)
+  check('older and given critters do not count', await ph('Wrangler', 'roundup_coaxed') === 'false' && await active('Wrangler', 'roundupCoax') && !(await active('Wrangler', 'roundupSend')))
+  check('the Ranger says to coax one', /Coax a new critter\. Your journal says what's next\./.test(await talk(me, 'Wrangler', 'Thanks, Ranger!')))
+  // the watch is lost somehow: talking to the Ranger sets it up again
+  await s.ask('mobsquad roundup Wrangler stop', 500)
+  await talk(me, 'Wrangler', 'Thanks, Ranger!')
+  check('if the watch is lost, talking to the Ranger restores it', await wait(async () => /^roundup$/m.test(file('Wrangler'))))
+  const pf = me.chatLog.length
+  me.chat('/mobsquad roundup Wrangler stop'); await sleep(1200)
+  check('a player cannot run the roundup command', /^roundup$/m.test(file('Wrangler')) && !said(me, /Round-up is off/, pf), me.chatLog.slice(pf).join(' | '))
+
+  // the 15 minute tip: its objective is completed by command, standing in for the wait
+  await finishStep('roundupCoaxHint')
+  check('after 15 minutes on step 1, Juniper leaves a tip', await journaled('Wrangler', 'roundup_tip_coax') && said(me, /Juniper left a tip in your journal\./) && await active('Wrangler', 'roundupCoax'))
+
+  // ----- a real coax -----
+  await s.ask('kill @e[type=chicken]', 400)
+  await stand(me, 'Wrangler', sx, sz - 20)
+  await hold(me, 'Wrangler', 'wheat_seeds')
+  await s.ask(`summon chicken ${sx + 1.5} ${Y} ${sz - 19.5}`, 600)
+  await until(() => entity(me, e => e.name === 'chicken' && e.position.distanceTo(me.entity.position) < 4), 5000)
+  let cf = me.chatLog.length
+  await poke(me, entity(me, e => e.name === 'chicken' && e.position.distanceTo(me.entity.position) < 4))
+  await waitSaid(me, /interested/, 5000, cf)
+  await walk('Wrangler', sx, sz - 20, 14)
+  check('the bot really coaxes a chicken', await waitSaid(me, /You coaxed a chicken/, 8000, cf), me.chatLog.slice(cf).join(' | '))
+  check('the coax moves the finale to step 2', await wait(() => active('Wrangler', 'roundupSend')) && await journaled('Wrangler', 'roundup_2') && !(await journaled('Wrangler', 'roundup_1')) && !(await journaled('Wrangler', 'roundup_tip_coax')) && !(await active('Wrangler', 'roundupCoaxHint')), await list('Wrangler', 'objective'))
+  check('step 2 is announced', said(me, /Step 2 of 3\. Send it out from a Bunkhouse\./, cf))
+  const newId = (file('Wrangler').match(/^roundup-coaxed (\S+)$/m) || [])[1]
+  check('exactly the coaxed chicken is noted', !!newId && file('Wrangler').match(/^roundup-coaxed /mg).length === 1 && critterLines('Wrangler').some(l => l.includes(newId) && / chicken /.test(l)), file('Wrangler'))
+  await s.ask('betonquest action Wrangler mobsquad>roundupCoaxTip', 500)
+  check('no coax tip once it has been done', !(await journaled('Wrangler', 'roundup_tip_coax')))
+  t1 = await talk(me, 'Wrangler', 'Thanks, Ranger!')
+  check('the Ranger says to send it out', /Now send your new critter out from a Bunkhouse\./.test(t1) && !(await tagged('Wrangler', 'season1_done')), t1)
+  await finishStep('roundupSendHint')
+  check('after 15 minutes on step 2, the second tip', await journaled('Wrangler', 'roundup_tip_send') && await active('Wrangler', 'roundupSend'))
+  check('the other player\'s finale is untouched', !(await tagged('Neighbor', 'roundup_started')) && !/roundup/.test(file('Neighbor')))
+
+  // ----- a restart in the middle -----
+  await quit(me); await quit(other)
+  await s.stop()
+  await s.start()
+  await rejoin()
+  check('a restart keeps the finale where it was', await wait(() => active('Wrangler', 'roundupSend')) && await ph('Wrangler', 'roundup_coaxed') === 'true' && await ph('Wrangler', 'roundup_sent') === 'false', `${await ph('Wrangler', 'roundup_coaxed')} ${await ph('Wrangler', 'roundup_sent')}`)
+
+  await s.ask(`setblock ${hut.x} ${hut.y} ${hut.z} minecraft:vault`, 400)
+  check('the console marks the Season 1 Bunkhouse', (await s.ask(`mobsquad bunkhouse add ${hut.x} ${hut.y} ${hut.z} testworld`, 900)).join(' ').includes('Bunkhouse now'))
+  await s.ask('clear Wrangler minecraft:wheat_seeds', 200)
+  if (MENU) {
+    await stand(me, 'Wrangler', sx, sz, 0, 20)
+    const slotOf = id => critterLines('Wrangler').findIndex(l => l.includes(id))
+    const clickSlot = async slot => { const f = me.chatLog.length; await openBunkhouse(me, hut); await me.clickWindow(slot, 0, 0); await sleep(900); await closeMenu(me); return me.chatLog.slice(f).join(' | ') }
+    // an older chicken going out is not it
+    const oldId = critterLines('Wrangler').map(l => l.split(' ')[1]).find(id => id !== newId)
+    await clickSlot(slotOf(oldId))
+    await sleep(2500)
+    check('sending out an older critter is not it', await ph('Wrangler', 'roundup_sent') === 'false' && await ph('Wrangler', 'roundup_ready') === 'false' && await active('Wrangler', 'roundupSend'))
+    check('bringing an older critter does not finish', /Now send your new critter out/.test(await talk(me, 'Wrangler', 'Thanks, Ranger!')) && !(await tagged('Wrangler', 'season1_done')))
+    await clickSlot(slotOf(oldId)) // call it back
+    cf = me.chatLog.length
+    const sentSay = await clickSlot(slotOf(newId))
+    check('the new chicken goes out from the Bunkhouse', /out with you/.test(sentSay), sentSay)
+    check('that moves the finale to step 3', await wait(async () => await journaled('Wrangler', 'roundup_3')) && !(await active('Wrangler', 'roundupSend')) && !(await active('Wrangler', 'roundupSendHint')) && !(await journaled('Wrangler', 'roundup_tip_send')) && said(me, /Step 3 of 3\. Bring your new critter to Juniper\./, cf), await list('Wrangler', 'objective'))
+    check('MobSquad says it is ready', await ph('Wrangler', 'roundup_ready') === 'true')
+    await clickSlot(slotOf(newId)) // call it back
+    check('called back, it is not ready', await ph('Wrangler', 'roundup_ready') === 'false' && await ph('Wrangler', 'roundup_sent') === 'true')
+    t1 = await talk(me, 'Wrangler', 'Thanks, Ranger!')
+    check('the Ranger asks for it to be sent out again, and nothing is paid', /Send your new critter out again\. Then come back\./.test(t1) && !(await tagged('Wrangler', 'season1_done')) && foxes() === 0, t1)
+    await clickSlot(slotOf(newId))
+    await s.ask('clear Wrangler', 200)
+    t1 = await talk(me, 'Wrangler')
+    check('bringing it to Juniper finishes the finale', /You brought it! The first wind is lit!/.test(t1), t1)
+  } else {
+    console.log('    sending out and bringing it to Juniper skipped on ' + MC + ', where the bots can\'t use the Bunkhouse; the finishing actions are run by command')
+    check('coaxed but not sent: not ready, and the Ranger pays nothing', await ph('Wrangler', 'roundup_ready') === 'false' && /Now send your new critter out/.test(await talk(me, 'Wrangler', 'Thanks, Ranger!')) && foxes() === 0)
+    await s.ask('clear Wrangler', 200)
+    for (const a of ['roundupFinish', 'roundupKeep']) await s.ask(`betonquest action Wrangler mobsquad>${a}`, 1200)
+  }
+  check('season1_done is set', await wait(() => tagged('Wrangler', 'season1_done')))
+  check('the Season reward: one mail-carrier fox', await wait(async () => foxes() === 1) && said(me, /Season 1 is done! A mail fox waits in your Bunkhouse\./), file('Wrangler'))
+  check('the finale\'s keepsake and two vittles', await journaled('Wrangler', 'roundup_keep') && await journaled('Wrangler', 'roundup_done') && await wait(async () => await vittles('Wrangler') === 2) && said(me, /You lit the first wind\. Here are two vittles\./), String(await vittles('Wrangler')))
+  check('no step is left running or in the journal', !(await list('Wrangler', 'objective')).includes('mobsquad>roundup') && !(await journaled('Wrangler', 'roundup_1')) && !(await journaled('Wrangler', 'roundup_2')) && !(await journaled('Wrangler', 'roundup_3')))
+  check('MobSquad stops watching', await wait(async () => !/^roundup/m.test(file('Wrangler'))), file('Wrangler'))
+  t1 = await talk(me, 'Wrangler')
+  check('then the Ranger says more is coming', /Season 1 is done! More adventures are coming soon\./.test(t1), t1)
+  await talk(me, 'Wrangler')
+  check('talking again pays nothing again', foxes() === 1 && await vittles('Wrangler') === 2)
+  check('the other player got none of it', !(await tagged('Neighbor', 'season1_done')) && !/ fox /.test(file('Neighbor')) && await vittles('Neighbor') === 0 && !said(other, /mail fox|first wind is lit/))
+}
 
 const errors = s.exceptions()
 check('no MobSquad errors in the log', errors.length === 0, errors.slice(0, 5).join('\n'))

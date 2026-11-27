@@ -8,6 +8,7 @@ import com.extantape.mobsquad.model.Species;
 import com.extantape.mobsquad.model.Wrangler;
 import com.extantape.mobsquad.store.Store;
 import com.extantape.mobsquad.world.BunkhouseMenu;
+import com.extantape.mobsquad.world.BunkhouseSpot;
 import com.extantape.mobsquad.world.Bunkhouses;
 import com.extantape.mobsquad.world.Dinnerbell;
 import com.extantape.mobsquad.world.Posse;
@@ -147,8 +148,9 @@ public final class MobSquadPlugin extends JavaPlugin {
                             return b.buildFuture();
                         }).executes(this::giveBook))))
                 .then(Commands.literal("bunkhouse").requires(src -> src.getSender().hasPermission("mobsquad.admin"))
-                    .then(Commands.literal("add").executes(c -> bunkhouse(c, true)))
-                    .then(Commands.literal("remove").executes(c -> bunkhouse(c, false))))
+                    .then(Commands.literal("add").executes(c -> bunkhouse(c, true)).then(atSpot(BunkhouseDo.ADD)))
+                    .then(Commands.literal("remove").executes(c -> bunkhouse(c, false)).then(atSpot(BunkhouseDo.REMOVE)))
+                    .then(Commands.literal("check").then(atSpot(BunkhouseDo.CHECK))))
                 .then(Commands.literal("give").requires(src -> src.getSender().hasPermission("mobsquad.admin"))
                     .then(Commands.argument("player", ArgumentTypes.player())
                         .then(Commands.argument("critter", StringArgumentType.word()).suggests((c, b) -> {
@@ -175,6 +177,11 @@ public final class MobSquadPlugin extends JavaPlugin {
                             for (Species s : Species.values()) if (s.id().startsWith(b.getRemainingLowerCase())) b.suggest(s.id());
                             return b.buildFuture();
                         }).executes(this::sidekick))))
+                // The Season 1 finale (0.13.0): the quest turns on watching for a fresh coax and a send from a Bunkhouse.
+                .then(Commands.literal("roundup").requires(src -> src.getSender().hasPermission("mobsquad.admin"))
+                    .then(Commands.argument("player", ArgumentTypes.player())
+                        .then(Commands.literal("start").executes(c -> roundup(c, true)))
+                        .then(Commands.literal("stop").executes(c -> roundup(c, false)))))
                 // Quest hooks (0.9.0): BetonQuest's command event, or any other quest plugin, runs these from the console.
                 .then(Commands.literal("unlock").requires(src -> src.getSender().hasPermission("mobsquad.admin"))
                     .then(Commands.argument("player", ArgumentTypes.player())
@@ -336,6 +343,64 @@ public final class MobSquadPlugin extends JavaPlugin {
         if (add) bunkhouses.mark(b);
         else bunkhouses.unmark(b);
         say(c, add ? "That vault is a Bunkhouse now. Players right-click it to see their own critters." : "That vault is a plain vault again.", NamedTextColor.GREEN);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private enum BunkhouseDo { ADD, REMOVE, CHECK }
+
+    /** The {@code <x> <y> <z> [world]} form, which the console can use. */
+    private com.mojang.brigadier.builder.ArgumentBuilder<CommandSourceStack, ?> atSpot(BunkhouseDo what) {
+        return Commands.argument("position", ArgumentTypes.blockPosition())
+            .executes(c -> bunkhouseAt(c, what, null))
+            .then(Commands.argument("world", StringArgumentType.greedyString()).suggests((c, b) -> {
+                for (var w : getServer().getWorlds()) if (w.getName().toLowerCase(Locale.ROOT).startsWith(b.getRemainingLowerCase())) b.suggest(w.getName());
+                return b.buildFuture();
+            }).executes(c -> bunkhouseAt(c, what, c.getArgument("world", String.class))));
+    }
+
+    /** With no world named, it's the world the command was run in; for the plain console, that's the main world. */
+    private int bunkhouseAt(CommandContext<CommandSourceStack> c, BunkhouseDo what, String worldName) throws CommandSyntaxException {
+        var world = worldName == null ? c.getSource().getLocation().getWorld()
+            : BunkhouseSpot.world(worldName, getServer()::getWorld, getServer()::getWorld);
+        if (world == null) {
+            say(c, "There's no world called " + worldName + " loaded.", NamedTextColor.YELLOW);
+            return 0;
+        }
+        var at = c.getArgument("position", io.papermc.paper.command.brigadier.argument.resolvers.BlockPositionResolver.class).resolve(c.getSource());
+        int x = at.blockX(), y = at.blockY(), z = at.blockZ();
+        var found = BunkhouseSpot.find(world, x, y, z);
+        if (found.vault() == null) {
+            say(c, found.problem(), NamedTextColor.YELLOW);
+            return 0;
+        }
+        String vault = "The vault at " + BunkhouseSpot.where(world, x, y, z);
+        boolean is = bunkhouses.is(found.vault());
+        if (what == BunkhouseDo.CHECK) {
+            say(c, vault + (is ? " is a Bunkhouse." : " isn't a Bunkhouse."), is ? NamedTextColor.GREEN : NamedTextColor.YELLOW);
+            return is ? Command.SINGLE_SUCCESS : 0;
+        }
+        boolean add = what == BunkhouseDo.ADD;
+        if (add == is) {
+            say(c, vault + (add ? " is already a Bunkhouse." : " isn't a Bunkhouse."), NamedTextColor.YELLOW);
+            return 0;
+        }
+        if (add) bunkhouses.mark(found.vault());
+        else bunkhouses.unmark(found.vault());
+        say(c, vault + (add ? " is a Bunkhouse now." : " is a plain vault again."), NamedTextColor.GREEN);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    /** /mobsquad roundup <player> start|stop: the Season 1 finale begins or ends for a player. */
+    private int roundup(CommandContext<CommandSourceStack> c, boolean start) throws CommandSyntaxException {
+        Player p = c.getArgument("player", PlayerSelectorArgumentResolver.class).resolve(c.getSource()).getFirst();
+        Wrangler w = squads.get(p);
+        if (w == null) {
+            say(c, p.getName() + "'s Bunkhouse list can't be read right now; see the server log.", NamedTextColor.RED);
+            return 0;
+        }
+        boolean changed = start ? w.roundup.start() : w.roundup.stop();
+        if (changed) squads.save(w);
+        say(c, "[MobSquad] " + p.getName() + "'s Round-up is " + (start ? "on" : "off") + (changed ? "." : " (no change)."), NamedTextColor.GREEN);
         return Command.SINGLE_SUCCESS;
     }
 

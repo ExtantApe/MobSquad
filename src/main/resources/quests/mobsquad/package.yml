@@ -1,13 +1,19 @@
-# MobSquad quest chapters for BetonQuest. The Holler, Yonder and Backcountry chapters open the tiers. The Ten Winds
-# chapters (Wind-Signs, the Ten Winds, Holding the Line, the Far Meadow and the finale) are the story that follows them.
+# MobSquad quest chapters for BetonQuest. Season 1 is the Holler, Yonder and Backcountry chapters, which open the tiers,
+# and its finale, the Round-up at the Bunkhouse. The Ten Winds chapters (Wind-Signs, the Ten Winds, Holding the Line, the
+# Far Meadow and the finale) are the story that follows, and stay hidden until an admin opens them.
+#
+# Season 1 is always on. Each of its four chapters gives a keepsake and two vittles; its finale also gives a fox. The
+# Round-up watches for a newly coaxed critter that has been sent out from a Bunkhouse (/mobsquad roundup from the console
+# and three %mobsquad_roundup_...% placeholders).
 #
 # Finishing a tier chapter runs /mobsquad unlock and /mobsquad page from the console. The Ten Winds chapters never touch a
 # level, a tier or a critter; their rewards are journal lines and the Ranger's books (/mobsquad book from the console).
 # Nobody types a command: the Ranger's conversation, the quest journal, standing at a spot and the dinnerbell do it all.
 #
 # Install: copy this folder into plugins/BetonQuest/QuestPackages/, set the Ranger's Citizens NPC number below, then run
-# /bq reload. The Ten Winds chapters stay off until an admin places the spots and sets the constants below; the README
-# has the steps, including claim protection.
+# /bq reload. The Ten Winds chapters stay off until an admin places the spots, sets the constants below and opens them
+# (winds_open, plus season2_open for Wind-Signs, the watch and the Far Meadow, and season3_open for the wind-rings and
+# the finale); the README has the steps, including claim protection.
 #
 # Kids and adults. The adult wording shows only when a player is positively in an adult group: the 'adult' condition below
 # checks the permission posse.circle.adults, the adults' marker on the live servers (Posse's adults circle). Anyone without it, or when
@@ -92,6 +98,13 @@ conditions:
   finaleDone: 'tag ten_winds_done'
   adult: 'permission posse.circle.adults'
   windsOpen: 'globaltag winds_open'
+  season2Open: 'globaltag season2_open'
+  season3Open: 'globaltag season3_open'
+  roundupStarted: 'tag roundup_started'
+  season1Done: 'tag season1_done'
+  roundupCoaxed: 'variable %ph.mobsquad_roundup_coaxed% true'
+  roundupSent: 'variable %ph.mobsquad_roundup_sent% true'
+  roundupReady: 'variable %ph.mobsquad_roundup_ready% true'
   styleBuilder: 'tag style_builder'
   nowBuilder: 'variable %ph.mobsquad_style% builder'
   styleFighter: 'tag style_fighter'
@@ -149,6 +162,23 @@ actions:
   backcountryStep2: 'run ^journal delete backcountry_1 ^journal add backcountry_2 ^objective start backcountryIron ^notify &eStep 2 of 3. Smelt four iron ingots in a furnace. io:chat sound:entity.experience_orb.pickup'
   backcountryStep3: 'run ^journal delete backcountry_2 ^journal add backcountry_3 ^objective start backcountryShears ^notify &eStep 3 of 3. Craft a pair of shears. io:chat sound:entity.experience_orb.pickup'
   backcountryFinish: 'run ^journal delete backcountry_3 ^journal add backcountry_done ^tag add backcountry_done ^command mobsquad unlock %player% backcountry ^command mobsquad page %player% iron_golem ^notify &6Chapter done! Backcountry critters are open to you. The Iron Golem guards the first wind-gate. io:chat sound:ui.toast.challenge_complete'
+  hollerKeep: 'run ^journal add holler_keep ^command mobsquad vittles %player% 2 ^notify &eYou kept the fox''s message. Here are two vittles. io:chat sound:entity.item.pickup'
+  yonderKeep: 'run ^journal add yonder_keep ^command mobsquad vittles %player% 2 ^notify &eYou kept the signal fire. Here are two vittles. io:chat sound:entity.item.pickup'
+  backcountryKeep: 'run ^journal add backcountry_keep ^command mobsquad vittles %player% 2 ^notify &eYou kept the gate-guard''s poppy. Here are two vittles. io:chat sound:entity.item.pickup'
+  roundupStart: 'run ^tag add roundup_started ^journal add roundup_1 ^givejournal ^command mobsquad roundup %player% start ^objective start roundupCoax ^objective start roundupCoaxHint ^notify &eStep 1 of 3. Coax a new critter. io:chat sound:entity.experience_orb.pickup'
+  roundupRearm: 'run ^command mobsquad roundup %player% start'
+  roundupStep2: 'run ^objective delete roundupCoaxHint ^journal delete roundup_1 ^journal delete roundup_tip_coax ^journal add roundup_2 ^objective start roundupSend ^objective start roundupSendHint ^notify &eStep 2 of 3. Send it out from a Bunkhouse. io:chat sound:entity.experience_orb.pickup'
+  roundupStep3: 'run ^objective delete roundupSendHint ^journal delete roundup_2 ^journal delete roundup_tip_send ^journal add roundup_3 ^notify &eStep 3 of 3. Bring your new critter to Juniper. io:chat sound:entity.experience_orb.pickup'
+  roundupCoaxTip: 'if roundupCoaxed nop else roundupCoaxTipGive'
+  roundupCoaxTipGive: 'run ^journal add roundup_tip_coax ^notify &eJuniper left a tip in your journal. io:chat sound:entity.experience_orb.pickup'
+  roundupSendTip: 'if roundupSent nop else roundupSendTipGive'
+  roundupSendTipGive: 'run ^journal add roundup_tip_send ^notify &eJuniper left a tip in your journal. io:chat sound:entity.experience_orb.pickup'
+  roundupFinish: 'run ^tag add season1_done ^objective delete roundupCoax ^objective delete roundupSend ^objective delete roundupCoaxHint ^objective delete roundupSendHint ^journal delete roundup_1 ^journal delete roundup_2 ^journal delete roundup_3 ^journal delete roundup_tip_coax ^journal delete roundup_tip_send ^journal add roundup_done ^command mobsquad roundup %player% stop ^command mobsquad give %player% fox ^notify &6Season 1 is done! A mail fox waits in your Bunkhouse. io:chat sound:ui.toast.challenge_complete'
+  roundupKeep: 'run ^journal add roundup_keep ^command mobsquad vittles %player% 2 ^notify &eYou lit the first wind. Here are two vittles. io:chat sound:entity.item.pickup'
+  season2OpenOn: 'globaltag add season2_open'
+  season2OpenOff: 'globaltag del season2_open'
+  season3OpenOn: 'globaltag add season3_open'
+  season3OpenOff: 'globaltag del season3_open'
   styleEnsure: 'if styleKnown nop else styleSet1'
   nop: 'run'
   styleSet1: 'if nowBuilder tagBuilder else styleSet2'
@@ -217,13 +247,19 @@ actions:
 objectives:
   hollerBerries: 'pickup berries amount:6 actions:hollerStep2'
   hollerSeeds: 'pickup seeds amount:4 actions:hollerStep3'
-  hollerNoteBlock: 'craft noteBlock 1 actions:hollerFinish'
+  hollerNoteBlock: 'craft noteBlock 1 actions:hollerFinish,hollerKeep'
   yonderArrows: 'craft arrow 4 actions:yonderStep2'
   yonderTarget: 'craft target 1 actions:yonderStep3'
-  yonderCampfire: 'craft campfire 1 actions:yonderFinish'
+  yonderCampfire: 'craft campfire 1 actions:yonderFinish,yonderKeep'
   backcountryPoppy: 'pickup poppy amount:1 actions:backcountryStep2'
   backcountryIron: 'smelt ironIngot 4 actions:backcountryStep3'
-  backcountryShears: 'craft shears 1 actions:backcountryFinish'
+  backcountryShears: 'craft shears 1 actions:backcountryFinish,backcountryKeep'
+  # The Round-up's steps wait for MobSquad: each looks once a second and finishes as soon as it's true.
+  roundupCoax: 'delay 1 seconds interval:20 conditions:roundupCoaxed actions:roundupStep2'
+  roundupSend: 'delay 1 seconds interval:20 conditions:roundupSent actions:roundupStep3'
+  # Help only: a tip after 15 minutes on a step. A tip never changes a goal or a reward.
+  roundupCoaxHint: 'delay 15 actions:roundupCoaxTip'
+  roundupSendHint: 'delay 15 actions:roundupSendTip'
   signsStone: 'block COBBLESTONE 40 actions:signsFinishStone'
   signsWood: 'block OAK_PLANKS 40 actions:signsFinishWood'
   signsFight: 'mobkill ZOMBIE,HUSK,DROWNED,ZOMBIE_VILLAGER,SKELETON,STRAY,SPIDER,CAVE_SPIDER,CREEPER,WITCH,PILLAGER,VINDICATOR 5 actions:signsFinishFight'
@@ -264,6 +300,16 @@ journal:
   backcountry_2: '&0Poppy in hand. Next, I''ll smelt four iron ingots in a furnace.'
   backcountry_3: '&0Iron is shiny! Last, I''ll craft a pair of shears for the pumpkin face.'
   backcountry_done: '&0The Backcountry is open to me. The Iron Golem now guards the first wind-gate, and its page is in my Bunkhouse journal.'
+  holler_keep: '&0Keepsake from the Holler. The fox''s message.'
+  yonder_keep: '&0Keepsake from Yonder. The signal fire.'
+  backcountry_keep: '&0Keepsake from the Backcountry. The gate-guard''s poppy.'
+  roundup_1: '&0The Round-up begins. I''ll coax a new critter.'
+  roundup_2: '&0I coaxed one! I''ll send it out from a Bunkhouse.'
+  roundup_3: '&0My new critter is ready. I''ll bring it to Juniper.'
+  roundup_tip_coax: '&0Juniper''s tip. Chickens love seeds. Walk slowly with one.'
+  roundup_tip_send: '&0Juniper''s tip. A Bunkhouse is a vault. Right-click it.'
+  roundup_done: '&0Season 1 is done! A mail-carrier fox joined my Bunkhouse.'
+  roundup_keep: '&0Keepsake from the Round-up. The first wind is lit.'
   signs_stone: '&0A wind-sign fell over. I''m placing 40 stone blocks for a base. Solid as a boulder.'
   signs_wood: '&0A wind-sign fell over. I''m placing 40 plank blocks for a base. Warm as a hearth.'
   signs_fight: '&0Grumpy mobs bother the wind-signs. I''ll chase off five of them.'
@@ -292,7 +338,7 @@ conversations:
     quester: Ranger Juniper
     conversationIO: tellraw
     interceptor: simple
-    first: finaleDone,finaleOn,hollerOn,yonderOn,signsOn,windsOn,backcountryOn,watchOn,meadowOn,yonderOffer,meadowOfferExplorer,signsOffer,windsOffer,backcountryOffer,watchOfferFighter,watchOffer,meadowOffer,finaleOffer,allDone,hello
+    first: roundupReady,roundupAway,roundupSendOn,roundupOn,roundupOffer,finaleDone,finaleOn,hollerOn,yonderOn,signsOn,windsOn,backcountryOn,watchOn,meadowOn,yonderOffer,meadowOfferExplorer,signsOffer,windsOffer,backcountryOffer,watchOfferFighter,watchOffer,meadowOffer,finaleOffer,seasonOneDone,allDone,hello
     NPC_options:
       hello:
         text: 'Howdy, wrangler! I''m Ranger Juniper. Want a little job that opens up the Holler?'
@@ -326,6 +372,33 @@ conversations:
       backcountryStartText:
         text: 'The Backcountry is big and wild, and so is its critter. Read your journal for step one.'
         actions: 'backcountryStart'
+      roundupOffer:
+        text: 'You did all three! Ready for the Bunkhouse Round-up?'
+        conditions: 'backcountryDone,!roundupStarted,!season1Done'
+        pointers: 'yesRoundup,laterRoundupOffer'
+      roundupStartText:
+        text: 'Coax a new critter. Then bring it to me.'
+        actions: 'roundupStart'
+      roundupReady:
+        text: 'You brought it! The first wind is lit!'
+        conditions: 'roundupStarted,!season1Done,roundupReady'
+        actions: 'roundupFinish,roundupKeep'
+      roundupAway:
+        text: 'Send your new critter out again. Then come back.'
+        conditions: 'roundupStarted,!season1Done,roundupSent'
+        pointers: 'okay'
+      roundupSendOn:
+        text: 'Now send your new critter out from a Bunkhouse.'
+        conditions: 'roundupStarted,!season1Done,roundupCoaxed'
+        pointers: 'okay'
+      roundupOn:
+        text: 'Coax a new critter. Your journal says what''s next.'
+        conditions: 'roundupStarted,!season1Done'
+        actions: 'roundupRearm'
+        pointers: 'okay'
+      seasonOneDone:
+        text: 'Season 1 is done! More adventures are coming soon.'
+        conditions: 'season1Done'
       allDone:
         text: 'You''ve opened the Holler, Yonder and the Backcountry. I''m proud of you, wrangler!'
         conditions: 'backcountryDone'
@@ -333,7 +406,7 @@ conversations:
         text: 'Come see me whenever you like. The trails will wait.'
       signsOffer:
         text: 'Nice work! A wind-sign fell over. Want to stand it up?'
-        conditions: 'hollerDone,!signsStarted,windsOpen'
+        conditions: 'hollerDone,!signsStarted,windsOpen,season1Done,season2Open'
         pointers: 'yesSigns,laterSignsOffer'
       signsOn:
         text: 'Still on the wind-sign? Your journal says what to do.'
@@ -363,7 +436,7 @@ conversations:
         actions: 'signsGoWalk'
       windsOffer:
         text: 'Wind-rings sleep in the magic world. Want to wake them?'
-        conditions: 'yonderDone,!windsStarted,windsOpen'
+        conditions: 'yonderDone,!windsStarted,windsOpen,season1Done,season3Open'
         pointers: 'yesWinds,laterWindsOffer'
       windsOn:
         text: 'Still looking for wind-rings? Your journal says where.'
@@ -374,11 +447,11 @@ conversations:
         actions: 'styleEnsure,windsStart'
       watchOfferFighter:
         text: 'You''re brave, wrangler. Want to help the Ranger''s watch?'
-        conditions: 'backcountryDone,!watchStarted,windsOpen,styleFighter'
+        conditions: 'backcountryDone,!watchStarted,windsOpen,season1Done,season2Open,styleFighter'
         pointers: 'yesWatch,laterWatchOfferFighter'
       watchOffer:
         text: 'The Ranger''s watch could use help. It''s optional. Want to?'
-        conditions: 'backcountryDone,!watchStarted,windsOpen'
+        conditions: 'backcountryDone,!watchStarted,windsOpen,season1Done,season2Open'
         pointers: 'yesWatch,laterWatchOffer'
       watchOn:
         text: 'Still on watch? Your journal says how many are left.'
@@ -389,11 +462,11 @@ conversations:
         actions: 'styleEnsure,watchStart'
       meadowOfferExplorer:
         text: 'You walk far, wrangler. Want to find the Far Meadow?'
-        conditions: 'yonderDone,!meadowStarted,windsOpen,styleExplorer'
+        conditions: 'yonderDone,!meadowStarted,windsOpen,season1Done,season2Open,styleExplorer'
         pointers: 'yesMeadow,laterMeadowOfferExplorer'
       meadowOffer:
         text: 'Want to find the Far Meadow? Landmarks show the way.'
-        conditions: 'yonderDone,!meadowStarted,windsOpen'
+        conditions: 'yonderDone,!meadowStarted,windsOpen,season1Done,season2Open'
         pointers: 'yesMeadow,laterMeadowOffer'
       meadowOn:
         text: 'Still finding the meadow? Your journal lists the landmarks.'
@@ -409,7 +482,7 @@ conversations:
         actions: 'meadowStartAdult,meadowStartArm'
       finaleOffer:
         text: 'The herd wants to come home. Ready to ring the bell?'
-        conditions: 'backcountryDone,twoNew,!finaleStarted,windsOpen'
+        conditions: 'backcountryDone,twoNew,!finaleStarted,windsOpen,season1Done,season3Open'
         pointers: 'yesFinale,laterFinaleOffer'
       finaleOn:
         text: 'The meadow is waiting. Ring the dinnerbell there. Lost it?'
@@ -439,6 +512,12 @@ conversations:
         pointers: 'bye'
       okay:
         text: 'Thanks, Ranger!'
+      yesRoundup:
+        text: 'Yes, please!'
+        pointers: 'roundupStartText'
+      laterRoundupOffer:
+        text: 'Maybe later.'
+        pointers: 'bye'
       yesSigns:
         text: 'Yes, please!'
         actions: 'styleEnsure,signsStart'

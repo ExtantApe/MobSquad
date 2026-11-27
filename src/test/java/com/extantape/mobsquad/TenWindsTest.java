@@ -295,7 +295,7 @@ class TenWindsTest {
             Matcher notify = Pattern.compile("\\^notify .*? io:(\\w+)").matcher(y.getString("actions." + a));
             while (notify.find()) assertEquals("chat", notify.group(1), a + " tells only that player in chat");
         }
-        assertEquals(0, Pattern.compile("globaltag").matcher(String.join("\n", keys(y, "actions").stream().filter(k -> !k.startsWith("windsOpen")).map(k -> y.getString("actions." + k)).toList())).results().count(),
+        assertEquals(0, Pattern.compile("globaltag").matcher(String.join("\n", keys(y, "actions").stream().filter(k -> !k.matches("(windsOpen|season[23]Open)(On|Off)")).map(k -> y.getString("actions." + k)).toList())).results().count(),
             "only the admin switch touches a global tag, and nothing a player does");
     }
 
@@ -384,7 +384,8 @@ class TenWindsTest {
     @Test
     void theNewChaptersNeverTouchALevelATierOrACritter() throws Exception {
         YamlConfiguration y = pack();
-        List<String> newActions = keys(y, "actions").stream().filter(a -> !a.startsWith("holler") && !a.startsWith("yonder") && !a.startsWith("backcountry")).toList();
+        // Season 1 has its own rules (Season1Test); this is about the Ten Winds
+        List<String> newActions = keys(y, "actions").stream().filter(a -> !a.startsWith("holler") && !a.startsWith("yonder") && !a.startsWith("backcountry") && !a.startsWith("roundup")).toList();
         for (String a : newActions) {
             String def = y.getString("actions." + a);
             assertFalse(def.contains("mobsquad unlock") || def.contains("mobsquad page") || def.contains("mobsquad level") || def.contains("mobsquad xp")
@@ -422,7 +423,7 @@ class TenWindsTest {
         String text = Files.readString(Path.of("src/main/resources/quests/mobsquad/package.yml"));
         Matcher tokens = Pattern.compile("%[^%\\s]+%").matcher(text.replaceAll("#.*", ""));
         while (tokens.find())
-            assertTrue(tokens.group().matches("%ph\\.mobsquad_(top|style|holding_bell|level)%|%constant\\.\\w+%|%player%"), "no placeholder names another player or gives a place: " + tokens.group());
+            assertTrue(tokens.group().matches("%ph\\.mobsquad_(top|style|holding_bell|level|roundup_coaxed|roundup_sent|roundup_ready)%|%constant\\.\\w+%|%player%"), "no placeholder names another player or gives a place: " + tokens.group());
         assertFalse(text.contains("%player%") && Pattern.compile("notify[^\\n]*%player%").matcher(text).find(), "no message prints the player's name");
         assertFalse(Pattern.compile("(?i)ops?sudo").matcher(text).find());
     }

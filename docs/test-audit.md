@@ -2,6 +2,28 @@
 
 Kept by this repo's owning session, per `~/Code/CLAUDE.md`, "Test self-audits". Newest first.
 
+## 2026-11-27: Season 1 and the console Bunkhouse commands (0.13.0)
+
+| Promise | Test |
+| --- | --- |
+| Only a vault is ever marked; a bad world, height or unmade chunk is refused, and asking never generates a chunk | unit `BunkhouseSpotTest` (5); bot `bunkhouse`: air, chest, height, unmade spot not loaded, unknown world |
+| The console can add, remove and check, in an unloaded chunk too; a second add says already; marks outlive a restart | bot `bunkhouse` |
+| A player without `mobsquad.admin` can't add, remove or check by coordinates | bot `bunkhouse` |
+| A console-marked Bunkhouse opens for a player with no trust inside someone's GriefPrevention claim | bot `bunkhouse` (26.1.2, 26.2). It's a player's claim; an admin claim wasn't tried |
+| The live chapters keep every tag, step, line and reward; a chapter started on 0.12.0 carries on | unit `everythingTheLiveChaptersHadIsStillThereWordForWord`; bot `season1` (old package, then the new one, mid-Holler) |
+| Each chapter pays a keepsake and 2 vittles; the finale pays one fox, once | unit `eachOfTheFourChaptersGivesAKeepsakeAndTwoVittlesAndTheFinaleAFox`; bot `season1` |
+| Only a critter coaxed during the finale and sent from a Bunkhouse counts, and it has to be out | unit `onlyACritterCoaxedWhileItsOnAndSentFromABunkhouseCounts`; bot `season1` (real coax; older and given critters; called back) |
+| Progress is saved and outlives a restart; a lost watch is restored by the Ranger | unit `theRoundupIsSavedAndOldFilesLoadWithItOff`; bot `season1` |
+| Only admins and the console run `roundup`; one player's finale never touches another's | bot `season1` |
+| Anyone who finished Backcountry is offered the finale, with no switch | unit `theFinaleIsOfferedToAnyoneWhoFinishedBackcountryWithNoSwitch`; bot `season1` |
+| Season 2 and 3 stay hidden unless `winds_open`, their switch and `season1_done` are all there | unit `everyLaterOfferNeedsTheOldSwitchItsSeasonsSwitchAndSeasonOne`; bot `winds` (each switch alone and together) |
+| Help only adds a tip, and fails toward giving it | unit `helpOnlyAddsATipAndFailsTowardGivingIt`; bot `season1` |
+| New lines: no sentence over 12 words, no dashes, US spelling, nothing to type, all listed for the owner | unit `newKidLinesAreShortPlainAndAskForNoTyping`, `everyNewLineIsInTheListForTheOwner` |
+
+**Run:** 97 unit tests; bots on 26.1.2, 26.2 and 26.3, all passing: default suite 242, 242, 138; `bunkhouse,season1` 83, 83, 70; `chapters` 52 each; `winds` 103, 103, 96.
+
+**Gaps:** the AuraSkills and Multiverse runs weren't repeated. The 15-minute wait itself (the tip's objective is completed by command). Real crafting and smelting, and a click on a Citizens NPC, as before. On 26.3 bots can't use blocks, so the Bunkhouse menu, sending out and bringing the critter to Juniper don't run there. The placeholders' answer when MobSquad can't read a player's file has no bot test. A real game client.
+
 ## 2026-11-24: The Ten Winds (0.11.0)
 
 - Promises added: README "The Ten Winds", "Setting up the Ten Winds" and the hooks, CHANGELOG 0.11.0, D289 and the 0.11.0 decisions (automatic paths, same rewards, kid or adult fails closed, glow untouched, ships off until the admin's switch).

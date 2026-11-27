@@ -45,6 +45,7 @@ public final class Placeholders extends PlaceholderExpansion {
         Wrangler w = squads.get(p);
         if (w == null) return "";
         String live = params.toLowerCase(Locale.ROOT);
+        if (live.equals("roundup_ready")) return Boolean.toString(onMain(() -> w.roundup.ready(squads.posse()::isOut), false));
         if (live.equals("holding_bell")) return Boolean.toString(onMain(() -> isBell.test(p.getInventory().getItemInMainHand()), false));
         if (live.equals("style")) return onMain(() -> PlayerCounts.style(p), PlayStyle.ALL).id();
         return PlaceholderValues.value(params, squads.wranglinLevel(p), w, t -> squads.tierOpen(p, t));
@@ -72,7 +73,9 @@ public final class Placeholders extends PlaceholderExpansion {
          * open now by level and quests. page_creeper: true if that journal page is open. has_creeper: true if the player
          * has one. best_creeper: the highest level among their creepers, 0 if none. top: the highest level among all the
          * critters they own, 0 if none; it counts what they have, never what is out. holding_bell: true if the dinnerbell
-         * is in their main hand. style: builder, fighter, explorer, caretaker or all, from their own play. Anything else is null, which
+         * is in their main hand. style: builder, fighter, explorer, caretaker or all, from their own play. For the Season 1
+         * finale: roundup_coaxed (they've coaxed a critter since it started), roundup_sent (and sent it out from a
+         * Bunkhouse) and roundup_ready (and it's out with them now). Anything else is null, which
          * PlaceholderAPI leaves as written.
          */
         public static String value(String params, int level, Wrangler w, java.util.function.Predicate<Tier> tierOpen) {
@@ -81,6 +84,8 @@ public final class Placeholders extends PlaceholderExpansion {
                 case "level": return Integer.toString(level);
                 case "critters": return Integer.toString(w.critters.size());
                 case "pages": return Integer.toString(w.pages.size());
+                case "roundup_coaxed": return Boolean.toString(w.roundup.hasCoaxed());
+                case "roundup_sent": return Boolean.toString(w.roundup.hasSent());
                 case "top": return Integer.toString(w.critters.stream().mapToInt(Critter::level).max().orElse(0));
                 default: break;
             }

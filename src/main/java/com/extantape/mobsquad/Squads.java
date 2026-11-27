@@ -162,6 +162,20 @@ public final class Squads {
         if (!w.pages.contains(c.species()) && pageOpener != null) pageOpener.accept(p, c.species());
     }
 
+    /** A critter the player coaxed: added to their Bunkhouse, and noted for the Season 1 finale if it's on. */
+    public void coaxed(Player p, Critter c) {
+        Wrangler w = get(p);
+        if (w == null) return;
+        w.roundup.coaxed(c.id());
+        add(p, c);
+    }
+
+    /** A player sent a critter out from a Bunkhouse, which the Season 1 finale may be waiting for. */
+    public void sentFromBunkhouse(Player p, Critter c) {
+        Wrangler w = get(p);
+        if (w != null && w.roundup.sentOut(c.id())) save(w);
+    }
+
     /** Experience for a critter that's out; tells its owner when it levels up or passes a milestone. */
     public void critterXp(Posse.Out o, long xp) {
         Player p = Bukkit.getPlayer(o.owner());

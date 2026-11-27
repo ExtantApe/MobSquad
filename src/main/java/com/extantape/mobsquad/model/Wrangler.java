@@ -17,6 +17,9 @@ public final class Wrangler {
     /** Tiers a quest has unlocked for this player (0.9.0). Used when quests.tier-unlock is either or quest. */
     public final java.util.Set<Tier> questTiers = java.util.EnumSet.noneOf(Tier.class);
 
+    /** The Season 1 finale's progress (0.13.0). */
+    public final Roundup roundup = new Roundup();
+
     public Wrangler(UUID player) {
         this.player = player;
     }
