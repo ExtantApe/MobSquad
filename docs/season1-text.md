@@ -1,6 +1,6 @@
-# Season 1 text, for the owner's approval
+# Season 1 text
 
-Every player-facing line that 0.13.0 adds. No existing line changed its words. None of these is approved yet. Everyone sees the same words, kids and adults, so each is kid wording: no sentence is over 12 words, and nobody types anything.
+Every player-facing line that 0.13.0 adds. No existing line changed its words. The owner approved Ranger Juniper's lines, the chat lines and the journal entries on 2026-11-27 ("Approve all" for each set). The admin and console lines at the end weren't part of that question. Everyone sees the same words, kids and adults, so each is kid wording: no sentence is over 12 words, and nobody types anything.
 
 ## Ranger Juniper
 
