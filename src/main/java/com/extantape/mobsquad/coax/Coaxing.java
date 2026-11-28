@@ -155,7 +155,7 @@ public final class Coaxing implements Listener, Runnable {
         Puzzle puzzle = puzzles.get(a.mob.getType());
         Location at = a.mob.getLocation();
         a.mob.remove();
-        squads.add(p, Critter.fresh(puzzle.species()));
+        squads.coaxed(p, Critter.fresh(puzzle.species()));
         at.getWorld().spawnParticle(Particle.HEART, at.clone().add(0, 0.6, 0), 6, 0.4, 0.3, 0.4);
         p.playSound(at, Sound.ENTITY_PLAYER_LEVELUP, 0.6f, 1.4f);
         String what = puzzle.species().title().toLowerCase(java.util.Locale.ROOT);

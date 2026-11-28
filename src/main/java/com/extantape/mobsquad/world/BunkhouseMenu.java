@@ -214,6 +214,7 @@ public final class BunkhouseMenu implements Listener {
             return;
         }
         squads.posse().send(p, c);
+        squads.sentFromBunkhouse(p, c);
         p.sendMessage(Component.text(c.name() + " is out with you.", NamedTextColor.GREEN));
     }
 

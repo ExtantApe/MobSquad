@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.13.0
+
+Season 1.
+
+- **Bunkhouses from the console.** `/mobsquad bunkhouse add`, `remove` and `check` take `<x> <y> <z> [world]`, for admins and the console. Each makes the same vault check, loads the chunk if it has to, and refuses anything that isn't a vault, a height outside the world and a part of the world that was never generated (without generating it). A second `add` says it's already a Bunkhouse. The look-at-block form works as before.
+- **Season 1.** Holler, Yonder and Backcountry keep their tags, steps and old rewards, so anyone partway through carries on. A fourth chapter, the Round-up at the Bunkhouse, asks the player to coax a new critter, send it out from a Bunkhouse and bring it to Ranger Juniper. It sets `season1_done`. Anyone who has finished Backcountry is offered it, and it has no switch.
+- **Rewards.** Each of the four chapters adds a keepsake journal line and two vittles. The finale also gives a mail-carrier fox through `/mobsquad give`. Earlier finishes aren't paid back.
+- **Help.** After 15 minutes on one of the finale's first two steps, Juniper leaves a tip in the journal. Nothing gets harder and no goal changes. There's no help tied to dying.
+- **New hooks:** `/mobsquad roundup <player> start|stop` (admins and the console), `%mobsquad_roundup_coaxed%`, `%mobsquad_roundup_sent%` and `%mobsquad_roundup_ready%`. Progress is saved in the player's file. BetonQuest checks the placeholders once a second with its own `delay` objective, and MobSquad still has no BetonQuest code.
+- **Changed for the Ten Winds:** besides `winds_open`, each of those offers now needs `season1_done` and its Season's switch: `season2_open` for Wind-Signs, Holding the Line and the Far Meadow, `season3_open` for the wind-rings and the Ten Winds finale. Their steps, ring levels, the adults' watch and their rewards are unchanged. With `winds_open` off they stay hidden whatever the other switches say. Seasons 2 and 3 aren't built: no Season finales, no `season2_done`, so Season 3's offers don't wait for Season 2.
+- **Upgrading:** replace the BetonQuest copy of `package.yml` by hand, keeping your Ranger lines and spots (README).
+- New player-facing lines are in `docs/season1-text.md`. The owner approved the player lines on 2026-11-27.
+- Tested: 97 unit tests (`./gradlew clean build`). Bots on throwaway Paper 26.1.2 (build 74), 26.2 (135) and 26.3 (263) servers, 2026-11-27, one at a time, every run below passing: the default suite 242, 242 and 138 checks; `only=bunkhouse,season1` with BetonQuest 3.3.0-DEV-61 and PlaceholderAPI 83, 83 and 70; `only=chapters` 52, 52 and 52; `only=winds` with LuckPerms 103, 103 and 96. The `season1` section starts Holler on the 0.12.0 package, swaps in this one mid-chapter and plays to the finale with a real coax and a restart in the middle. Run `chapters` and `winds` separately, since `chapters` ends by restarting the server without its bots. Not tested: on 26.3 the Bunkhouse menu, sending out, bringing the critter to Juniper and the claim check (bots can't use blocks; the finishing actions ran by command); the AuraSkills and Multiverse runs; clicking a Citizens NPC; the real 15-minute wait; real crafting and smelting; a GriefPrevention admin claim (a player's claim was used); an upgrade on a copy of a real server; a real game client; a child reading the lines.
+
 ## 0.12.0
 
 Works with Posse 0.11.0 (formerly Mayor); the Mayor name is no longer recognized (D196, D292).

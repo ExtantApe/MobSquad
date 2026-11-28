@@ -223,7 +223,7 @@ class ChaptersTest {
             Matcher m = Pattern.compile("\\^command (\\S+) (\\S+)").matcher(def);
             while (m.find()) {
                 assertEquals("mobsquad", m.group(1), a + " runs only MobSquad commands");
-                assertTrue(Set.of("unlock", "page", "book", "dinnerbell").contains(m.group(2)), a + " runs only unlock, page, book and dinnerbell");
+                assertTrue(Set.of("unlock", "page", "book", "dinnerbell", "vittles", "roundup", "give").contains(m.group(2)), a + " runs only the quest commands");
             }
             assertFalse(def.matches(".*\\^(chat|opsudo|sudo|notifyall|runForAll)\\b.*"), a + " doesn't talk for or to other players");
         }

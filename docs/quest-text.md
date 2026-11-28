@@ -1,6 +1,6 @@
 # MobSquad quest text, for the owner's read
 
-Every line a player can see in Ranger Juniper's quests: MobSquad 0.10.0's three chapters (Holler, Yonder, Backcountry) and the Ten Winds chapters from 0.11.0 (D289). Generated from the quest files in this branch; kids get the lines marked for kids unless the server confirms they're an adult. Notes in italics say who sees a line; a line with no note is for everyone.
+Every line a player can see in Ranger Juniper's quests: MobSquad 0.10.0's three chapters (Holler, Yonder, Backcountry) and the Ten Winds chapters from 0.11.0 (D289). Generated from the quest files in this branch; kids get the lines marked for kids unless the server confirms they're an adult. Notes in italics say who sees a line; a line with no note is for everyone. The lines 0.13.0 adds for Season 1 aren't repeated here: they're in [season1-text.md](season1-text.md).
 
 ## Ranger Juniper talking
 
