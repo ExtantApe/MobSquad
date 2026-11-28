@@ -30,14 +30,16 @@ const BQ = !!process.env.MS_TEST_BQ
 // after the coax, and its finishing actions are run by command.
 // MS_TEST_LP=1 adds LuckPerms as well, for the Ten Winds (kid or adult by group); run it with MS_TEST_BQ=1 and only=winds
 const LP = !!process.env.MS_TEST_LP
-const want = n => (ONLY.length === 0 && n !== 'aura' && n !== 'groups' && n !== 'chapters' && n !== 'winds' && n !== 'season1') || ONLY.includes(n)
+// MS_TEST_LM=1 adds LevelledMobs 4.5.3.2 with its default rules, which level every mob; run it with only=bunkhouse,levelledmobs
+const LM = !!process.env.MS_TEST_LM
+const want = n => (ONLY.length === 0 && n !== 'aura' && n !== 'groups' && n !== 'chapters' && n !== 'winds' && n !== 'season1' && n !== 'levelledmobs') || ONLY.includes(n)
 const PHYSICS = MC !== '26.3'
 const MENU = PHYSICS
 const skip = name => { if (want(name)) console.log(`\n# ${name}: skipped on ${MC}, where the bots can't use a block`) }
 const Y = -60
 
 const dir = freshServer('suite-' + MC, { paper: jar(`paper-${MC}.jar`),
-  plugins: [jar('ViaVersion.jar'), jar('ViaBackwards.jar'), jar('GriefPrevention.jar'), jar('PlaceholderAPI.jar'), ...(BQ ? [jar('BetonQuest.jar')] : []), ...(LP ? [jar('LuckPerms.jar')] : []), ...(AURA ? [jar('AuraSkills.jar')] : []), ...(MV ? [jar('Multiverse-Core.jar'), jar('Multiverse-Inventories.jar')] : [])], props: { difficulty: 'easy' } })
+  plugins: [jar('ViaVersion.jar'), jar('ViaBackwards.jar'), jar('GriefPrevention.jar'), jar('PlaceholderAPI.jar'), ...(BQ ? [jar('BetonQuest.jar')] : []), ...(LP ? [jar('LuckPerms.jar')] : []), ...(LM ? [jar('LevelledMobs.jar')] : []), ...(AURA ? [jar('AuraSkills.jar')] : []), ...(MV ? [jar('Multiverse-Core.jar'), jar('Multiverse-Inventories.jar')] : [])], props: { difficulty: 'easy' } })
 const s = new Server({ dir, jvm: ['-Dmobsquad.test.sneak-tag=true'] }) // a tagged player counts as crouching; see Puzzles.crouching
 const cfgFile = path.join(dir, 'plugins/MobSquad/config.yml')
 const playersDir = path.join(dir, 'plugins/MobSquad/players')
@@ -2042,6 +2044,45 @@ if (want('season1')) {
   await talk(me, 'Wrangler')
   check('talking again pays nothing again', foxes() === 1 && await vittles('Wrangler') === 2)
   check('the other player got none of it', !(await tagged('Neighbor', 'season1_done')) && !/ fox /.test(file('Neighbor')) && await vittles('Neighbor') === 0 && !said(other, /mail fox|first wind is lit/))
+}
+
+// ---------- LevelledMobs (K-audit, 2026-11-28) ----------
+// Needs MS_TEST_LM=1 and runs with only=bunkhouse,levelledmobs. LevelledMobs' default rules level every mob, tamed or
+// named, so this proves it really levels a wild mob here, then that a critter sent out is left alone: no level, no extra
+// health. Sending out needs the Bunkhouse menu, so on 26.3 only the wild-mob half runs.
+if (want('levelledmobs')) {
+  section('LevelledMobs leaves critters alone')
+  check('LevelledMobs is running', s.log.some(l => /Enabling LevelledMobs/.test(l)))
+  const lmLevel = async sel => {
+    const out = (await s.ask(`data get entity ${sel} BukkitValues`, 400)).join(' ')
+    return out.includes('levelledmobs:level')
+  }
+  await s.ask(`kill @e[type=!player]`, 400)
+  await s.ask(`summon minecraft:zombie ${X + 8} ${Y} ${Z} {Tags:["lmwild"],PersistenceRequired:1b}`, 400)
+  check('it levels a wild zombie', await until(() => lmLevel('@e[tag=lmwild,limit=1]'), 10000, 500))
+  const wildName = (await s.ask('data get entity @e[tag=lmwild,limit=1] CustomName', 400)).join(' ')
+  check('without giving the zombie a real name, so coaxing and fights still treat it as wild', /no element|Found no/i.test(wildName), wildName)
+  await s.ask('kill @e[tag=lmwild]', 300)
+  if (MENU) {
+    await s.ask('mobsquad xp Wrangler 20000', 400)
+    await s.ask('mobsquad give Wrangler creeper', 400)
+    await s.ask('clear Wrangler', 200)
+    await stand(me, 'Wrangler', X, Z, 0, 20)
+    const w = await openBunkhouse(me, vault)
+    let slot = -1
+    for (let i = 0; i < 45; i++) if (egg(w, i) === 'creeper_spawn_egg') { slot = i; break }
+    const from = me.chatLog.length
+    if (slot >= 0) await me.clickWindow(slot, 0, 0)
+    check('a creeper critter goes out', slot >= 0 && await waitSaid(me, /out with you/, 4000, from), me.chatLog.slice(from).join(' | '))
+    await closeMenu(me)
+    const critter = '@e[type=creeper,limit=1,sort=nearest,x=' + X + ',y=' + Y + ',z=' + Z + ']'
+    await sleep(7000) // longer than LevelledMobs' 6-second recheck, so a late levelling would show
+    check('the critter carries the opt-out key', (await s.ask(`data get entity ${critter} BukkitValues`, 400)).join(' ').includes('levelledmobs:nolevel'))
+    check('LevelledMobs gave the critter no level', !(await lmLevel(critter)))
+    const hp = (await s.ask(`attribute ${critter} minecraft:max_health get`, 400)).join(' ')
+    check('its max health is a level 1 creeper\'s own 20', /is 20(\.0+)?\b/.test(hp), hp)
+    check('it keeps its own name', (await s.ask(`data get entity ${critter} CustomName`, 400)).join(' ').includes('Creeper'))
+  } else console.log('    sending a critter out skipped on ' + MC + ', where the bots can\'t use the Bunkhouse')
 }
 
 const errors = s.exceptions()

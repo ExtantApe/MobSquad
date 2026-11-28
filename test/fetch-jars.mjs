@@ -37,6 +37,7 @@ for (const [project, name, pick] of [
   ['auraskills', 'AuraSkills.jar', { version: '2.4.0' }], // the version the hook is built against; lists 26.1.2 to 26.3
   ['multiverse-core', 'Multiverse-Core.jar', { version: '5.8.2' }], // world groups test
   ['multiverse-inventories', 'Multiverse-Inventories.jar', { version: '5.3.6' }],
+  ['levelledmobs', 'LevelledMobs.jar', { version: '4.5.3.2' }], // 4.5.3.2 is the first listed for 26.3; the LevelledMobs test (MS_TEST_LM=1)
   ['placeholderapi', 'PlaceholderAPI.jar', { version: '2.12.3' }], // the version the hook is built against
   ['luckperms', 'LuckPerms.jar', { version: 'v5.5.71-bukkit' }], // the kid or adult group, read as a permission; the Ten Winds test
   ['betonquest', 'BetonQuest.jar', { version: '3.3.0-DEV-61' }], // the build the live server runs; the chapters test

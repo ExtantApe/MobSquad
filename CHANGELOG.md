@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.13.1
+
+- **LevelledMobs leaves critters alone.** LevelledMobs 4 levels every mob by default, named or tamed, so a critter sent out got its own level on top of MobSquad's growth: a level 1 creeper critter came out with 34 health where it should have 20, along with LevelledMobs' extra damage and speed and a second level in its nametag. Each critter is now marked with LevelledMobs' own opt-out key, `levelledmobs:nolevel`, before it enters the world, so LevelledMobs never touches it. Nothing changes without LevelledMobs, and no LevelledMobs setting is needed. Critters are never saved with the world, so there are no old levelled critters to fix.
+- Tested: unit tests (`./gradlew clean build`, including the key's exact name). A new bot section (`MS_TEST_LM=1`, `only=bunkhouse,levelledmobs`, LevelledMobs 4.5.3.2 with its default rules, fetched by `test/fetch-jars.mjs`) checks that LevelledMobs levels a wild zombie without giving it a real name (so coaxing and fights still see it as wild), then that a creeper critter carries the key, has no LevelledMobs level, keeps max health 20 and keeps its name. On throwaway Paper 26.1.2 and 26.2 it passed 44 of 44 each; on 26.1.2 the same run without the fix failed the three critter checks (health 34). On 26.3 it passed 33 of 33, but there bots can't use the Bunkhouse, so the critter half was skipped and only the wild-zombie checks ran. MobShowdown's matching change passed its LevelledMobs checks with this jar. Not tested: sending a critter out with LevelledMobs on 26.3; the default suite (nothing else changed); a LevelledMobs config with custom rules; a real game client.
+
 ## 0.13.0
 
 Season 1.
