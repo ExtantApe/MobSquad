@@ -174,6 +174,7 @@ public final class Posse implements Runnable {
             e.setPersistent(false);
             e.getPersistentDataContainer().set(ownerKey, PersistentDataType.STRING, owner.getUniqueId().toString());
             e.getPersistentDataContainer().set(critterKey, PersistentDataType.STRING, c.id().toString());
+            com.extantape.mobsquad.hook.LevelledMobsOptOut.mark(e); // before the spawn event, so LevelledMobs never levels it
             e.customName(Component.text(c.name()));
             e.setCustomNameVisible(true);
             if (e instanceof Mob m) {
